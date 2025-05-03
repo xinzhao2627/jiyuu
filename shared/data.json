@@ -1,0 +1,12 @@
+{
+    "filter_color": "grayscale(100%)",
+    "list_data": [
+        {
+            "content": "example.com",
+            "block_type": "1",
+            "isFiltered": true,
+            "isOverriden": true,
+            "isMuted": true
+        }
+    ]
+}
