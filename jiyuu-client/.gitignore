@@ -1,14 +1,11 @@
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
-/.vscode
-/out
-
 # Compiled output
 /dist
 /tmp
 /out-tsc
 /bazel-out
-
+/.vscode
 # Node
 /node_modules
 npm-debug.log

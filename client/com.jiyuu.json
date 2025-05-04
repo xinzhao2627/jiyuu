@@ -1,9 +1,0 @@
-{
-    "name": "com.jiyuu",
-    "description": "Trial sample",
-    "path":"C:\\Users\rainn\\Documents\\Projects\\jiyuu\\client\\out\\client-win32-x64\\client.exe",
-    "type":"stdio",
-    "allowed_origins":[
-        "chrome-extensions://fcmbcbfcfhjdppdcknhfmanbfhnefihj/"
-    ]
-}
