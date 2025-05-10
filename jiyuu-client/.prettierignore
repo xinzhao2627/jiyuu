@@ -6,7 +6,7 @@ tsconfig.json
 tsconfig.*.json
 **/*.js
 **/*.ts
-**/*.tsx
+# **/*.tsx
 **/*.jsx
 **/*.json
 **/*.css
