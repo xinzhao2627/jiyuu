@@ -14,8 +14,15 @@ export const useStore = create<Store>((set) => ({
 	targetTextInput: "",
 	setTargetTextInput: (c: string) => set(() => ({ targetTextInput: c })),
 
-	groupIdInput: null,
-	setGroupIdInput: (c: number) => set(() => ({ groupIdInput: c })),
+	// groupIdInput: null,
+	// setGroupIdInput: (c: number) => set(() => ({ groupIdInput: c })),
+
+	// isModalOpen: false,
+	// setIsModalOpen: (c: boolean) => set(() => ({ isModalOpen: c })),
+
+	selectedBlockGroup: null,
+	setSelectedBlockGroup: (c: number | null) =>
+		set(() => ({ selectedBlockGroup: c })),
 }));
 
 interface Store {
@@ -28,8 +35,14 @@ interface Store {
 	targetTextInput: string;
 	setTargetTextInput: empty_func;
 
-	groupIdInput: number | null;
-	setGroupIdInput: empty_func;
+	// groupIdInput: number | null;
+	// setGroupIdInput: empty_func;
+
+	// isModalOpen: boolean;
+	// setIsModalOpen: empty_func;
+
+	selectedBlockGroup: number | null;
+	setSelectedBlockGroup: empty_func;
 }
 
 export interface SiteAttribute {
@@ -48,6 +61,7 @@ export interface BlockParameters {
 export interface BlockGroup extends BlockParameters {
 	id: string;
 	group_name: string;
+	is_activated: 0 | 1;
 }
 export interface BlockedSites {
 	target_text: string;

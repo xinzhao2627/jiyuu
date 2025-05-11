@@ -29,7 +29,7 @@
     "@fontsource/roboto": "^5.2.5",
     "@mui/icons-material": "^7.1.0",
     "@mui/material": "^7.1.0",
-    "better-sqlite3": "^11.9.1",
+    "better-sqlite3": "^11.10.0",
     "electron-updater": "^6.3.9",
     "prettier": "^3.5.3",
     "sqlite3": "^5.1.7",

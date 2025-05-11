@@ -10,17 +10,12 @@ import Blockings from "./features/blockings/Blockings";
 function App(): React.JSX.Element {
 	useEffect(() => {}, []);
 	return (
-		<Stack direction={"column"} width={"100vw"}>
+		<div style={{ display: "block", height: "100vh", width: "100vw" }}>
 			<Sidebar />
-
-			{/* body */}
-			<Blockings />
-			{/* sidebar */}
-
-			{/* for loop of all block groups */}
-
-			{/* content */}
-		</Stack>
+			<div style={{ flex: 1, overflow: "auto" }}>
+				<Blockings />
+			</div>
+		</div>
 	);
 }
 
