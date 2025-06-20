@@ -49,3 +49,15 @@
 
 -- SELECT bs.target_text FROM blocked_sites AS bs JOIN block_group as bg on bs.block_group_id = bg.id WHERE bs.block_group_id = 1
 
+select * from blocked_sites
+
+CREATE TABLE IF NOT EXISTS usage_log (
+        id INTEGER PRIMARY KEY,
+        web_url TEXT NOT NULL,
+        web_content TEXT,
+        time_start TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        time_end TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        time_total_seconds INTEGER NOT NULL
+)
+
+SELECT * from block_group

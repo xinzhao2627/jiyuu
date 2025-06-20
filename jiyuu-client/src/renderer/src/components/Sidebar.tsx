@@ -6,12 +6,19 @@ import Box from "@mui/material/Box";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import {
+	BottomNavigation,
+	BottomNavigationAction,
 	ListItem,
 	ListItemButton,
 	ListItemIcon,
 	ListItemText,
 } from "@mui/material";
 import AddLocationIcon from "@mui/icons-material/AddLocation";
+import TuneIcon from "@mui/icons-material/Tune";
+import AbcIcon from "@mui/icons-material/Abc";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import VpnLockIcon from "@mui/icons-material/VpnLock";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 const ConfigItem: React.FC<{ text: string; callback: (c) => void }> = ({
 	text,
 	callback,
@@ -29,24 +36,25 @@ const ConfigItem: React.FC<{ text: string; callback: (c) => void }> = ({
 };
 
 export default function Sidebar(): React.JSX.Element {
-	const [value, setValue] = React.useState(2);
+	const location = useLocation();
+	const navigate = useNavigate();
 
+	const routes = ["/", "/dashboard", "/wordbank", "/options"];
+	const currentTab = routes.indexOf(location.pathname);
 	const handleChange = (
 		event: React.SyntheticEvent,
 		newValue: number,
 	): void => {
-		setValue(newValue);
+		navigate(routes[newValue]);
 	};
 	return (
-		<Tabs
-			value={value}
-			onChange={handleChange}
-			variant="fullWidth"
-			sx={{ backgroundColor: "white" }}
-		>
-			<Tab label="Dashboard" />
-			<Tab label="Blockings" />
-			<Tab label="Option" />
-		</Tabs>
+		<BottomNavigation value={currentTab} onChange={handleChange} showLabels>
+			<BottomNavigationAction label="Blockings" icon={<VpnLockIcon />} />
+
+			<BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} />
+
+			<BottomNavigationAction label="Word Bank" icon={<AbcIcon />} />
+			<BottomNavigationAction label="Options" icon={<TuneIcon />} />
+		</BottomNavigation>
 	);
 }
