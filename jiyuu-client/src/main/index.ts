@@ -21,9 +21,22 @@ interface SiteAttribute {
 	descDoc: string;
 	keywordsDoc: string;
 }
+interface SiteTime extends SiteAttribute {
+	secondsElapsed: number;
+	startTime: Date;
+	lastLogTime: Date;
+}
 interface BlockedSites {
 	target_text: string;
 	block_group_id: number;
+}
+
+interface BlockedSites_with_configs extends BlockedSites {
+	is_grayscaled: 0 | 1;
+	is_covered: 0 | 1;
+	is_muted: 0 | 1;
+	group_name: string;
+	is_activated: 0 | 1;
 }
 interface BlockParameters {
 	is_grayscaled: 0 | 1;
@@ -84,14 +97,15 @@ app.whenReady().then(() => {
 	});
 
 	// initialize sqlite
-
 	const dbPath = app.isPackaged
 		? join(app.getPath("userData"), "jiyuuData.db")
 		: join(__dirname, "../../src/main/jiyuuData.db");
 	db = new Database(dbPath);
+
 	initBlockGroup();
 	initBlockedSitesData();
 	initUsageLog();
+
 	// IPC test
 	ipcMain.on("blockgroup/get", (event: Electron.IpcMainEvent, _data) => {
 		try {
@@ -106,8 +120,10 @@ app.whenReady().then(() => {
 
 	ipcMain.on("blockedsites/get", (event: Electron.IpcMainEvent, _data) => {
 		try {
+			// get the blocked sites of a specific group
 			const rows =
-				(getBlockedSitesData(_data)?.all() as Array<BlockedSites>) || [];
+				(getBlockedSitesDataOneGroup(_data)?.all() as Array<BlockedSites>) ||
+				[];
 
 			// Also get block group settings if specific group is requested
 			let blockGroupSettings: unknown = null;
@@ -268,6 +284,10 @@ app.whenReady().then(() => {
 				if (data.isWebpage) {
 					validateWebpage(data, ws);
 				}
+				// if
+				else if (data.isTimelist) {
+					validateTimelist(data, ws);
+				}
 			} catch (e) {
 				console.log("e: ", e);
 				console.log("Received non-JSON message:", message.toString());
@@ -285,46 +305,82 @@ app.on("window-all-closed", () => {
 		app.quit();
 	}
 });
+function validateTimelist(data, ws): void {
+	// the site data here is multiple,
+	// meaning there could be more than 1 tabs that are sent
 
-function validateWebpage(data, ws): void {
-	const siteData: SiteAttribute = data.data;
 	try {
+		const siteData: Map<string, SiteTime> = data.data;
+		// const tabId: number = data.tabId;
+
+		function removeNoConsumptions(): void {
+			const keylist = siteData.keys();
+			for (let sd of keylist) {
+				if (!siteData.get(sd)!.secondsElapsed) {
+					siteData.delete(sd);
+				}
+			}
+		}
+		removeNoConsumptions();
+
+		// get all listed sites/keyword in jiyuu
+		const rows =
+			(getBlockedSitesDataAll()?.all() as Array<BlockedSites_with_configs>) ||
+			[];
+
+		// loops all listed sites/keywords and determine their block group
+		const blockGroupsList = new Map<number, number>();
+		for (let r of rows) {
+			const isact = r.is_activated;
+			const target = r.target_text;
+
+			for (let [k, v] of siteData) {
+				// if one of the tab is included in the active block...
+				if (siteIncludes(v, target, isact)) {
+					let s = blockGroupsList.get(r.block_group_id);
+
+					// get the corresponding blockgroup/s of the data
+					// add the each elapsed seconds into corresponding blockgroup
+					// set the maximum secondsElapsed (if there area any duplicates)
+					blockGroupsList.set(
+						r.block_group_id,
+						s ? Math.max(s, v.secondsElapsed) : v.secondsElapsed,
+					);
+				}
+			}
+		}
+
+		// then log the sites in siteData to the usage table
+		// TODO: also add
+	} catch (error) {
+		const errMsg = error instanceof Error ? error.message : String(error);
+		console.log("validate timelist error: ", errMsg);
+	}
+}
+
+// validates 1 site/webpage
+function validateWebpage(data, ws): void {
+	try {
+		const siteData: SiteAttribute = data.data;
+		const tabId: number = data.tabId;
+
 		// get all blocked sites and their corresponding effects (grayscale, cover, mute)
 		const rows =
-			(db
-				?.prepare(
-					`SELECT 
-										bs.target_text, bg.is_grayscaled, 
-										bg.is_covered, bg.is_muted, 
-										bg.group_name, bg.is_activated
-									FROM blocked_sites as bs 
-									INNER JOIN block_group as bg ON 
-										bg.id = bs.block_group_id`,
-				)
-				.all() as Array<{
-				target_text: string;
-				is_grayscaled: 0 | 1;
-				is_covered: 0 | 1;
-				is_muted: 0 | 1;
-				group_name: string;
-				is_activated: 0 | 1;
-			}>) || [];
+			(getBlockedSitesDataAll()?.all() as Array<BlockedSites_with_configs>) ||
+			[];
 
 		let grayscale_count = 0;
 		let muted_count = 0;
 		let covered_count = 0;
+
+		// list of sites/keywords that are blocked
 		const following_detected_texts: string[] = [];
 
 		// check if the any of the sites attribute matched any of the keywords in blocked_sites
 		for (let r of rows) {
 			const isact = r.is_activated;
 			const target = r.target_text;
-			if (
-				(isact && siteData.desc.includes(target)) ||
-				siteData.keywords.includes(target) ||
-				siteData.title.includes(target) ||
-				siteData.url.includes(target)
-			) {
+			if (siteIncludes(siteData, target, isact)) {
 				// and if matches, get the effects
 				console.log("found");
 				grayscale_count += r.is_grayscaled;
@@ -336,6 +392,7 @@ function validateWebpage(data, ws): void {
 		let is_blocked = covered_count + muted_count + grayscale_count > 0;
 		ws.send(
 			JSON.stringify({
+				tabId: tabId,
 				isBlocked: is_blocked,
 				message: is_blocked
 					? "Blocking will proceed..."
@@ -359,7 +416,9 @@ function validateWebpage(data, ws): void {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 
-function getBlockedSitesData(_data): Statement<unknown[], unknown> | undefined {
+function getBlockedSitesDataOneGroup(
+	_data,
+): Statement<unknown[], unknown> | undefined {
 	return db?.prepare(
 		_data.id
 			? `SELECT bs.target_text, bs.block_group_id 
@@ -369,6 +428,17 @@ function getBlockedSitesData(_data): Statement<unknown[], unknown> | undefined {
 				WHERE 
 					bs.block_group_id = ${_data.id}`
 			: "SELECT * FROM blocked_sites",
+	);
+}
+function getBlockedSitesDataAll(): Statement<unknown[], unknown> | undefined {
+	return db?.prepare(
+		`SELECT 
+				bs.target_text, bg.is_grayscaled, 
+				bg.is_covered, bg.is_muted, 
+				bg.group_name, bg.is_activated
+			FROM blocked_sites as bs 
+			INNER JOIN block_group as bg ON 
+				bg.id = bs.block_group_id`,
 	);
 }
 
@@ -421,4 +491,17 @@ function initUsageLog(): void {
 function deleteBlockGroupAndBlockedSitesData(id): void {
 	db?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?").run(id);
 	db?.prepare("DELETE FROM block_group WHERE id = ?").run(id);
+}
+
+function siteIncludes(
+	siteData: SiteAttribute | SiteTime,
+	target: string,
+	isact: 0 | 1,
+): boolean {
+	return (
+		(isact && siteData.desc.includes(target)) ||
+		siteData.keywords.includes(target) ||
+		siteData.title.includes(target) ||
+		siteData.url.includes(target)
+	);
 }

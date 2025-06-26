@@ -1,3 +1,5 @@
+// TODO: modify the websocket receiver to block the tabid (line 210+)
+
 console.log("top started");
 // time list is a map <key_url, blocked_site>
 let timeList = new Map();
@@ -47,6 +49,7 @@ async function log_to_server() {
 					...feedback.data,
 					secondsElapsed: tabData?.secondsElapsed || 0,
 					startTime: tabData?.startTime || currentTime,
+					tabId: tabData.tabId ? tabData.tabId : tab.id,
 				});
 			}
 		}
@@ -54,9 +57,15 @@ async function log_to_server() {
 	console.log("From log_to_server list of recorded: ", timeList);
 	lastLogTime = currentTime;
 
-	// finally empty the timelist records (do this if its already connected to the database)
-	// timeList = new Map();
+	// finally send it to server and empty the timelist records (do this if its already connected to the database)
+	async function sendToServer() {
+		await sendMessage({ isTimelist: true, data: timeList });
+		timeList = new Map();
+	}
 
+	await sendToServer();
+
+	// repeat again after 5 seconds have passed
 	setTimeout(log_to_server, 5000);
 }
 
@@ -95,11 +104,14 @@ function incrementor() {
 }
 
 async function sendMessage(data) {
+	// if the websocket is not yet initialized, run it
 	if (!(_socket && _socket.readyState === WebSocket.OPEN)) {
 		console.log("no socket yet, initializing...");
 
 		await connectWebSocket();
 	}
+
+	// if websocket is running, send the parameter to
 	if (_socket && _socket.readyState === WebSocket.OPEN) {
 		console.log("socket ready, sending data...");
 
@@ -118,7 +130,11 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 			return;
 		}
 		// sends the web content in the electron backend server
-		// sendMessage({ isWebpage: true, data: feedback.data });
+		sendMessage({
+			isWebpage: true,
+			data: feedback.data,
+			tabId: activeInfo.tabId,
+		});
 	} catch (error) {
 		console.error("Error in Activated listener: ", error);
 	}
@@ -134,7 +150,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 				return;
 			}
 			// sends the web content in the electron backend server
-			// sendMessage({ isWebpage: true, data: feedback.data });
+			sendMessage({ isWebpage: true, data: feedback.data, tabId: tabId });
 		}
 	} catch (error) {
 		console.error("Error on Updated Listener: ", error);
