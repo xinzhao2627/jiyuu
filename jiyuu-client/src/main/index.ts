@@ -13,6 +13,8 @@ import { get } from "http";
 // const connections: WebSocket[] = [];
 // let connections: WebSocket[] = [];
 let db: BetterSqlite3.Database | undefined;
+
+// THESE 3 are different types of inputs came from the extension
 interface SiteAttribute {
 	desc: string;
 	keywords: string;
@@ -26,6 +28,11 @@ interface SiteTime extends SiteAttribute {
 	startTime: Date;
 	lastLogTime: Date;
 }
+
+interface SiteTime_with_tabId extends SiteTime {
+	tabId: number;
+}
+////
 interface BlockedSites {
 	target_text: string;
 	block_group_id: number;
@@ -38,6 +45,7 @@ interface BlockedSites_with_configs extends BlockedSites {
 	group_name: string;
 	is_activated: 0 | 1;
 }
+
 interface BlockParameters {
 	is_grayscaled: 0 | 1;
 	is_covered: 0 | 1;
@@ -310,7 +318,10 @@ function validateTimelist(data, ws): void {
 	// meaning there could be more than 1 tabs that are sent
 
 	try {
-		const siteData: Map<string, SiteTime> = data.data;
+		console.log(data);
+		const siteData = new Map<string, SiteTime_with_tabId>(
+			Object.entries(data.data),
+		);
 		// const tabId: number = data.tabId;
 
 		function removeNoConsumptions(): void {
@@ -350,8 +361,13 @@ function validateTimelist(data, ws): void {
 			}
 		}
 
-		// then log the sites in siteData to the usage table
-		// TODO: also add
+		// TODO: then log the sites in siteData to the usage table
+		// TODO:  with the collected blockgroups list, update the time usage
+
+		// then validate if its blocked or not
+		for (let [k, v] of siteData) {
+			validateWebpage({ data: v, tabId: v.tabId }, ws);
+		}
 	} catch (error) {
 		const errMsg = error instanceof Error ? error.message : String(error);
 		console.log("validate timelist error: ", errMsg);
@@ -361,7 +377,7 @@ function validateTimelist(data, ws): void {
 // validates 1 site/webpage
 function validateWebpage(data, ws): void {
 	try {
-		const siteData: SiteAttribute = data.data;
+		const siteData: SiteAttribute | SiteTime | SiteTime_with_tabId = data.data;
 		const tabId: number = data.tabId;
 
 		// get all blocked sites and their corresponding effects (grayscale, cover, mute)
@@ -499,9 +515,9 @@ function siteIncludes(
 	isact: 0 | 1,
 ): boolean {
 	return (
-		(isact && siteData.desc.includes(target)) ||
-		siteData.keywords.includes(target) ||
-		siteData.title.includes(target) ||
-		siteData.url.includes(target)
+		(isact && siteData.desc?.includes(target)) ||
+		siteData.keywords?.includes(target) ||
+		siteData.title?.includes(target) ||
+		siteData.url?.includes(target)
 	);
 }

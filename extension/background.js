@@ -49,18 +49,26 @@ async function log_to_server() {
 					...feedback.data,
 					secondsElapsed: tabData?.secondsElapsed || 0,
 					startTime: tabData?.startTime || currentTime,
-					tabId: tabData.tabId ? tabData.tabId : tab.id,
+					tabId: tabData?.tabId ? tabData.tabId : tab.id,
 				});
 			}
 		}
 	});
-	console.log("From log_to_server list of recorded: ", timeList);
+	console.log("From log_to_server sec elapsed: ");
+
+	console.log(
+		"From log_to_server list of recorded: ",
+		Object.fromEntries(timeList)
+	);
 	lastLogTime = currentTime;
 
 	// finally send it to server and empty the timelist records (do this if its already connected to the database)
 	async function sendToServer() {
-		await sendMessage({ isTimelist: true, data: timeList });
-		timeList = new Map();
+		await sendMessage({
+			isTimelist: true,
+			data: Object.fromEntries(timeList),
+		});
+		// timeList = new Map();
 	}
 
 	await sendToServer();
@@ -208,34 +216,49 @@ async function connectWebSocket() {
 			console.log("sent from electron: ", d.blockParam);
 
 			// electron will reply if we should block the tab or not
-			if (d.isBlocked) {
-				chrome.tabs.query(
-					{ active: true, currentWindow: true },
-					async (tabs) => {
-						if (tabs[0]) {
-							try {
-								// here we will send message to content.js to block the tab with the corresponding configs
-								const feedback = await chrome.tabs.sendMessage(
-									tabs[0].id,
-									{
-										toBlockData: true, // meaning this sendMessage will attempt to block the data
-										data: d.blockParam,
-									}
-								);
+			if (d.isBlocked && d.tabId) {
+				// chrome.tabs.query(
+				// 	{ active: true, currentWindow: true },
+				// 	async (tabs) => {
+				// 		if (tabs[0]) {
+				// 			try {
+				// 				// here we will send message to content.js to block the tab with the corresponding configs
+				// 				const feedback = await chrome.tabs.sendMessage(
+				// 					tabs[0].id,
+				// 					{
+				// 						toBlockData: true, // meaning this sendMessage will attempt to block the data
+				// 						data: d.blockParam,
+				// 					}
+				// 				);
 
-								// we can see if the block is successful or error based on the feedback message
-								console.log("feedback: ", feedback);
-							} catch (err) {
-								console.error(
-									"Error sending block message:",
-									err
-								);
-							}
-						}
-					}
-				);
-
-				console.log("done");
+				// 				// we can see if the block is successful or error based on the feedback message
+				// 				console.log("feedback: ", feedback);
+				// 			} catch (err) {
+				// 				console.error(
+				// 					"Error sending block message:",
+				// 					err
+				// 				);
+				// 			}
+				// 		}
+				// 	}
+				// );
+				const feedback = await chrome.tabs.sendMessage(d.tabId, {
+					toBlockData: true, // meaning this sendMessage will attempt to block the data
+					data: d.blockParam,
+				});
+				if (feedback.status != 200) {
+					throw new Error(
+						"there was a problem blocking the tab: ",
+						feedback.error
+					);
+				} else {
+					console.log(
+						"blocking successfully executed, feedback: ",
+						feedback
+					);
+				}
+			} else {
+				console.log(`from websocket not blocked: ${d}`);
 			}
 		};
 

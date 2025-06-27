@@ -48,7 +48,12 @@ export default function Sidebar(): React.JSX.Element {
 		navigate(routes[newValue]);
 	};
 	return (
-		<BottomNavigation value={currentTab} onChange={handleChange} showLabels>
+		<BottomNavigation
+			value={currentTab}
+			onChange={handleChange}
+			showLabels
+			sx={{ backgroundColor: "transparent" }}
+		>
 			<BottomNavigationAction label="Blockings" icon={<VpnLockIcon />} />
 
 			<BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} />

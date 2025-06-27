@@ -13,7 +13,14 @@ function App(): React.JSX.Element {
 	useEffect(() => {}, []);
 	return (
 		<BrowserRouter>
-			<div style={{ display: "block", height: "100vh", width: "100vw" }}>
+			<div
+				style={{
+					display: "block",
+					height: "100vh",
+					width: "100vw",
+					backgroundColor: "#F8F8FF",
+				}}
+			>
 				<div style={{ flex: 1, overflow: "auto", height: "100%" }}>
 					<Routes>
 						<Route path="/" element={<Blockings />} />
