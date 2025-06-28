@@ -10,6 +10,7 @@ import {
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { menuButtonStyle, useStore } from "../blockingsStore";
+import { ipcRendererSend } from "../blockingAPI";
 const modalStyle = {
 	position: "absolute",
 	top: "50%",
@@ -57,6 +58,10 @@ export default function NewBlockGroupModal(): React.JSX.Element {
 							variant="contained"
 							color="primary"
 							onClick={() => {
+								// TODO
+								// ipcRendererSend("blockgroup/put", {
+								// 	group_name: NewGroupModalInput,
+								// });
 								setIsNewGroupModalOpen(false);
 								setNewGroupModalInput("");
 							}}

@@ -52,7 +52,16 @@ export default function Sidebar(): React.JSX.Element {
 			value={currentTab}
 			onChange={handleChange}
 			showLabels
-			sx={{ backgroundColor: "transparent" }}
+			sx={{
+				backgroundColor: "transparent",
+				width: "100%",
+				display: "flex",
+				"& .MuiBottomNavigationAction-root": {
+					flex: 1,
+					minWidth: 0,
+					maxWidth: "none",
+				},
+			}}
 		>
 			<BottomNavigationAction label="Blockings" icon={<VpnLockIcon />} />
 

@@ -56,10 +56,15 @@ export default function Blockings(): React.JSX.Element {
 
 		// RECEIVE BLOCK GROUP RESPONSE
 		ipcRendererOn("blockgroup/get/response", (event, data) => {
-			if (data.error) console.error("Error fetching group block: ", data.error);
+			if (data.error)
+				console.error("Error blockgroup/get/response: ", data.error);
 			setBlockGroupData(data.data);
 		});
-
+		ipcRendererOn("blockgroup/put/response", (event, data) => {
+			if (data.error)
+				console.error("Error blockgroup/put/response: ", data.error);
+			setBlockGroupData(data.data);
+		});
 		// RECEIVE BLOCK SITE RESPONSE
 		ipcRendererOn("blockedsites/get/response", (event, data) => {
 			if (data.error) console.error("Error fetching group block: ", data.error);
@@ -151,28 +156,36 @@ export default function Blockings(): React.JSX.Element {
 									{v.group_name}
 								</Typography>
 							</CardContent>
-							<CardActions>
-								<Button
-									size="small"
-									onClick={(e) => e.stopPropagation()}
-									sx={menuButtonStyle}
+							<CardActions sx={{ flex: 1 }}>
+								<Stack
+									direction={{ xs: "column", sm: "row" }}
+									spacing={1}
+									sx={{
+										width: "100%",
+									}}
 								>
-									Delete
-								</Button>
-								<Button
-									size="small"
-									onClick={(e) => e.stopPropagation()}
-									sx={menuButtonStyle}
-								>
-									Rename
-								</Button>
-								<Button
-									size="small"
-									onClick={(e) => e.stopPropagation()}
-									sx={menuButtonStyle}
-								>
-									Duplicate
-								</Button>
+									<Button
+										size="small"
+										onClick={(e) => e.stopPropagation()}
+										sx={menuButtonStyle}
+									>
+										Delete
+									</Button>
+									<Button
+										size="small"
+										onClick={(e) => e.stopPropagation()}
+										sx={menuButtonStyle}
+									>
+										Rename
+									</Button>
+									<Button
+										size="small"
+										onClick={(e) => e.stopPropagation()}
+										sx={menuButtonStyle}
+									>
+										Duplicate
+									</Button>
+								</Stack>
 							</CardActions>
 						</Card>
 					);
