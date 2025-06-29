@@ -12,10 +12,14 @@
 // 	});
 // };
 
+
+
 export const ipcRendererOn = (
 	query: string,
 	callback: (event: Electron.IpcRendererEvent, data) => void,
 ): void => {
+
+
 	window.electron.ipcRenderer.on(query, callback);
 };
 

@@ -110,22 +110,13 @@ app.whenReady().then(() => {
 		: join(__dirname, "../../src/main/jiyuuData.db");
 	db = new Database(dbPath);
 
+	// triggers when opening the app
 	initBlockGroup();
 	initBlockedSitesData();
 	initUsageLog();
+	console.log("initialization done");
 
-	// IPC test
-	ipcMain.on("blockgroup/get", (event: Electron.IpcMainEvent, _data) => {
-		try {
-			const rows = getBlockGroup()?.all() || [];
-			event.reply("blockgroup/get/response", { data: rows });
-		} catch (err) {
-			const errorMsg = err instanceof Error ? err.message : String(err);
-			event.reply("blockgroup/get/response", { error: errorMsg, data: [] });
-		}
-	});
-	// ipcMain.on("hi", (event: Electron.IpcMainEvent, _) => console.log("pipip"));
-
+	// retrieves all blocked sites of a specific group
 	ipcMain.on("blockedsites/get", (event: Electron.IpcMainEvent, _data) => {
 		try {
 			// get the blocked sites of a specific group
@@ -155,6 +146,7 @@ app.whenReady().then(() => {
 		}
 	});
 
+	// insert one blocksite/keywrod into a specific blockgroup, not yet used as of 6/29/25
 	ipcMain.on("blockedsites/put", (event: Electron.IpcMainEvent, data) => {
 		try {
 			console.log("put block sites", { a: data.target_text, b: data.group_id });
@@ -171,9 +163,39 @@ app.whenReady().then(() => {
 			event.reply("blockedsites/put/response", { error: errorMsg });
 		}
 	});
+
+	// retrieve all the blockgroup
+	ipcMain.on("blockgroup/get", (event: Electron.IpcMainEvent, _data) => {
+		try {
+			const rows = getBlockGroup()?.all() || [];
+			event.reply("blockgroup/get/response", { data: rows });
+		} catch (err) {
+			const errorMsg = err instanceof Error ? err.message : String(err);
+			event.reply("blockgroup/get/response", { error: errorMsg, data: [] });
+		}
+	});
+
+	// put/create a new blockgroup
+	ipcMain.on("blockgroup/put", (event: Electron.IpcMainEvent, _data) => {
+		try {
+			if (!_data.group_name) throw "No group name input";
+			db
+				?.prepare("INSERT INTO block_group(group_name) VALUES(?)")
+				.run(_data.group_name);
+			event.reply("blockgroup/put/response", {
+				info: `group ${_data.group_name} added.`,
+			});
+		} catch (err) {
+			const errorMsg = err instanceof Error ? err.message : String(err);
+			event.reply("blockgroup/put/response", { error: errorMsg, data: [] });
+		}
+	});
+
+	// renames a block group
 	ipcMain.on("blockgroup/rename", (event: Electron.IpcMainEvent, data) => {
 		try {
 			const { group_id, old_group_name, new_group_name } = data;
+
 			if (!(group_id && old_group_name && new_group_name))
 				throw "Invalid data provided for renaming block group";
 
@@ -193,6 +215,8 @@ app.whenReady().then(() => {
 			event.reply("blockgroup/rename", { error: errorMsg });
 		}
 	});
+
+	// delete a block group and corresponding blocked sites of that group
 	ipcMain.on(
 		"BlockGroupAndBlockedSitesData/delete",
 		(event: Electron.IpcMainEvent, data) => {
@@ -209,13 +233,14 @@ app.whenReady().then(() => {
 					"There was an error deleting block group including blocked sites data: ",
 					errorMsg,
 				);
-				event.reply("BlockGroupAndBlockedSitesData/set/response", {
+				event.reply("BlockGroupAndBlockedSitesData/delete/response", {
 					error: errorMsg,
 				});
 			}
 		},
 	);
 
+	// on a particular block group, set all the blocked sites on any changes made by the user
 	ipcMain.on(
 		"BlockGroupAndBlockedSitesData/set",
 		(event: Electron.IpcMainEvent, data) => {

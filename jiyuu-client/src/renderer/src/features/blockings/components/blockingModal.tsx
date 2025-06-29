@@ -38,6 +38,8 @@ export default function BlockingModal(): React.JSX.Element {
 		setIsCoveredState,
 		setIsGrayscaledState,
 		setIsMutedState,
+		setIsBlockingModalOpen,
+		isBlockingModalOpen,
 	} = useStore();
 	const targetTextPut = (): void => {
 		if (
@@ -71,12 +73,20 @@ export default function BlockingModal(): React.JSX.Element {
 			is_covered: isCoveredState,
 			is_muted: isMutedState,
 		});
+
 		setSelectedBlockGroup(null);
+		setIsBlockingModalOpen(false);
+
+		// refesh block group if needed (optional)
+		// ipcRendererSend("blockgroup/get", {});
 	};
 	return (
 		<Modal
-			open={Boolean(selectedBlockGroup)}
-			onClose={() => setSelectedBlockGroup(null)}
+			open={isBlockingModalOpen && Boolean(selectedBlockGroup)}
+			onClose={() => {
+				setSelectedBlockGroup(null);
+				setIsBlockingModalOpen(false);
+			}}
 			aria-labelledby="modal-modal-title"
 			aria-describedby="modal-modal-description"
 		>
@@ -190,6 +200,7 @@ export default function BlockingModal(): React.JSX.Element {
 							onClick={() => {
 								setSelectedBlockGroup(null);
 								setTargetTextInput("");
+								setIsBlockingModalOpen(false);
 							}}
 							sx={{ ...menuButtonStyle, fontWeight: 400 }}
 						>

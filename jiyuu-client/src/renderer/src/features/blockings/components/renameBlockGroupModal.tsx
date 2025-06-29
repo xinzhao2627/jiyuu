@@ -13,18 +13,22 @@ import { menuButtonStyle, useStore } from "../blockingsStore";
 import { ipcRendererSend } from "../blockingAPI";
 import { modalStyle } from "@renderer/assets/shared/modalStyle";
 
-export default function NewBlockGroupModal(): React.JSX.Element {
+export default function RenameBlockGroupModal(): React.JSX.Element {
 	const {
-		isNewGroupModalOpen,
-		setIsNewGroupModalOpen,
-		NewGroupModalInput,
-		setNewGroupModalInput,
+		isRenameGroupModalOpen,
+		setIsRenameGroupModalOpen,
+		RenameGroupModalInput,
+		setRenameGroupModalInput,
+		setSelectedBlockGroup,
+		selectedBlockGroup,
+		RenameOldGroupName,
+		setRenameOldGroupName,
 	} = useStore();
 	return (
 		<>
 			<Modal
-				open={isNewGroupModalOpen}
-				onClose={() => setIsNewGroupModalOpen(false)}
+				open={isRenameGroupModalOpen}
+				onClose={() => setIsRenameGroupModalOpen(false)}
 			>
 				<Box sx={modalStyle}>
 					<Typography
@@ -32,14 +36,14 @@ export default function NewBlockGroupModal(): React.JSX.Element {
 						color="initial"
 						sx={{ ...menuButtonStyle, fontSize: "1.4em", width: "100%" }}
 					>
-						Enter group name
+						Enter new group name
 					</Typography>
 					<TextField
 						variant="standard"
 						fullWidth
 						sx={{ marginTop: 3 }}
-						value={NewGroupModalInput}
-						onChange={(e) => setNewGroupModalInput(e.target.value)}
+						value={RenameGroupModalInput}
+						onChange={(e) => setRenameGroupModalInput(e.target.value)}
 					/>
 					<Stack direction={"row"} justifyContent={"end"} gap={1} marginTop={3}>
 						<Button
@@ -47,11 +51,14 @@ export default function NewBlockGroupModal(): React.JSX.Element {
 							color="primary"
 							onClick={() => {
 								// TODO
-								ipcRendererSend("blockgroup/put", {
-									group_name: NewGroupModalInput,
+								ipcRendererSend("blockgroup/rename", {
+									group_id: selectedBlockGroup,
+									new_group_name: RenameGroupModalInput,
+									old_group_name: RenameOldGroupName,
 								});
-								setIsNewGroupModalOpen(false);
-								setNewGroupModalInput("");
+								setIsRenameGroupModalOpen(false);
+								setRenameGroupModalInput("");
+								setSelectedBlockGroup(null);
 
 								ipcRendererSend("blockgroup/get", {});
 							}}
@@ -63,8 +70,10 @@ export default function NewBlockGroupModal(): React.JSX.Element {
 							variant="outlined"
 							color="primary"
 							onClick={() => {
-								setIsNewGroupModalOpen(false);
-								setNewGroupModalInput("");
+								setIsRenameGroupModalOpen(false);
+								setRenameGroupModalInput("");
+								setSelectedBlockGroup(null);
+								setRenameOldGroupName("");
 							}}
 							sx={{ ...menuButtonStyle, fontWeight: 400 }}
 						>

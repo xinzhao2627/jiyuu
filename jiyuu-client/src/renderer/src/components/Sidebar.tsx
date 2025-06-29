@@ -53,7 +53,7 @@ export default function Sidebar(): React.JSX.Element {
 			onChange={handleChange}
 			showLabels
 			sx={{
-				backgroundColor: "transparent",
+				backgroundColor: "#F8F8FF",
 				width: "100%",
 				display: "flex",
 				"& .MuiBottomNavigationAction-root": {

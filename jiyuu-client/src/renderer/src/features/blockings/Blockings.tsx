@@ -22,6 +22,8 @@ import BlockingModal from "./components/blockingModal";
 import { ipcRenderer } from "electron";
 import { windowsStore } from "process";
 import NewBlockGroupModal from "./components/newBlockGroupModal";
+import DeleteBlockGroupModal from "./components/deleteBlockGroupModal";
+import RenameBlockGroupModal from "./components/renameBlockGroupModal";
 
 export default function Blockings(): React.JSX.Element {
 	const {
@@ -37,6 +39,12 @@ export default function Blockings(): React.JSX.Element {
 		setIsGrayscaledState,
 		setIsMutedState,
 		setIsNewGroupModalOpen,
+		setIsBlockingModalOpen,
+		isBlockingModalOpen,
+		setIsDeleteGroupModalOpen,
+		setIsRenameGroupModalOpen,
+		setRenameOldGroupName,
+		RenameOldGroupName,
 	} = useStore();
 
 	const openModal = (v: BlockGroup): void => {
@@ -60,11 +68,25 @@ export default function Blockings(): React.JSX.Element {
 				console.error("Error blockgroup/get/response: ", data.error);
 			setBlockGroupData(data.data);
 		});
+		// RECEIVE BLOCK GROUP RENAME RESPONSE
+		ipcRendererOn("blockgroup/rename/response", (event, data) => {
+			if (data.error)
+				console.error("Error blockgroup/rename/response: ", data.error);
+			else if (data.info) console.info(data.info);
+		});
+		// RECEIVE BLOCK GROUP CREATE/PUT RESPONSE
+		ipcRendererOn("blockgroup/put/response", (event, data) => {
+			if (data.error)
+				console.error("Error blockgroup/get/response: ", data.error);
+			else if (data.info) console.info(data.info);
+		});
+
 		ipcRendererOn("blockgroup/put/response", (event, data) => {
 			if (data.error)
 				console.error("Error blockgroup/put/response: ", data.error);
 			setBlockGroupData(data.data);
 		});
+
 		// RECEIVE BLOCK SITE RESPONSE
 		ipcRendererOn("blockedsites/get/response", (event, data) => {
 			if (data.error) console.error("Error fetching group block: ", data.error);
@@ -73,10 +95,15 @@ export default function Blockings(): React.JSX.Element {
 			if (data.blockGroupSettings) {
 				const settings = data.blockGroupSettings;
 				console.log("Bsite Settings: ", settings);
+
+				// set all the values of the selected blockgroup
 				setSelectedBlockGroup(settings.id);
 				setIsCoveredState(Boolean(settings.is_covered));
 				setIsMutedState(Boolean(settings.is_muted));
 				setIsGrayscaledState(Boolean(settings.is_grayscaled));
+
+				// also show the modal itself
+				setIsBlockingModalOpen(true);
 			}
 		});
 
@@ -96,126 +123,175 @@ export default function Blockings(): React.JSX.Element {
 			},
 		);
 
+		// gets a reply when deleting a block group
+		ipcRendererOn(
+			"BlockGroupAndBlockedSitesData/delete/response",
+			(event, data) => {
+				if (data.error)
+					console.error("Error deleting a block group: ", data.error);
+				else console.info("Deleting a block group success");
+			},
+		);
+
 		return () => {
 			window.electron.ipcRenderer.removeAllListeners("blockgroup/get/response");
+
 			window.electron.ipcRenderer.removeAllListeners(
 				"blockedsites/get/response",
 			);
 			window.electron.ipcRenderer.removeAllListeners(
 				"blockedsites/put/response",
 			);
+
 			window.electron.ipcRenderer.removeAllListeners(
 				"BlockGroupAndBlockedSitesData/set/response",
+			);
+			window.electron.ipcRenderer.removeAllListeners(
+				"BlockGroupAndBlockedSitesData/delete/response",
 			);
 		};
 	}, []);
 
 	return (
 		<>
-			<Stack>
-				{blockGroupData.map((v: BlockGroup, i) => {
-					// console.log(v);
+			<Stack
+				sx={{
+					height: "100%",
+				}}
+			>
+				<Stack
+					sx={{
+						flex: 1,
+						overflowY: "auto",
+						paddingBottom: 1,
+						"&::-webkit-scrollbar": {
+							width: "6px",
+						},
+						"&::-webkit-scrollbar-track": {
+							backgroundColor: "transparent",
+						},
+						"&::-webkit-scrollbar-thumb": {
+							backgroundColor: "#d0d0d0",
+							borderRadius: "3px",
+						},
+						"&::-webkit-scrollbar-thumb:hover": {
+							backgroundColor: "#b0b0b0",
+						},
+					}}
+				>
+					{blockGroupData &&
+						blockGroupData.map((v: BlockGroup, i) => {
+							// console.log(v);
 
-					return (
-						<Card
-							// sx={{ maxWidth: 345 }}
-							sx={{
-								borderRadius: 0,
-								padding: 1,
-								marginBottom: "2px",
-							}}
-							key={`${v.id} - ${i}`}
-						>
-							{/* <Box sx={{ backgroundColor: "#b5d9a3", height: 100 }}></Box> */}
-							<CardContent sx={{ paddingBottom: 0 }}>
-								<Typography
-									gutterBottom
+							return (
+								<Card
+									// sx={{ maxWidth: 345 }}
 									sx={{
-										color: "text.secondary",
-										fontSize: 14,
-										fontWeight: v.is_activated ? 600 : "initial",
+										borderRadius: 0,
+										padding: 1,
+										marginBottom: "2px",
+										minHeight: "140px",
 									}}
+									key={`${v.id} - ${i}`}
 								>
-									{v.is_activated ? "Active" : "Inactive"}
-								</Typography>
-								<Typography
-									variant="h5"
-									component={"div"}
-									onClick={() => openModal(v)}
-									sx={{
-										color: "#424242",
-										"&:hover": { color: "#229799" },
-										transition: "all 0.15s ease-in-out",
-										cursor: "pointer",
-										width: "fit-content",
-										fontWeight: 600,
-									}}
-									pr={2}
-									py={"2px"}
-								>
-									{v.group_name}
-								</Typography>
-							</CardContent>
-							<CardActions sx={{ flex: 1 }}>
-								<Stack
-									direction={{ xs: "column", sm: "row" }}
-									spacing={1}
-									sx={{
-										width: "100%",
-									}}
-								>
-									<Button
-										size="small"
-										onClick={(e) => e.stopPropagation()}
-										sx={menuButtonStyle}
-									>
-										Delete
-									</Button>
-									<Button
-										size="small"
-										onClick={(e) => e.stopPropagation()}
-										sx={menuButtonStyle}
-									>
-										Rename
-									</Button>
-									<Button
-										size="small"
-										onClick={(e) => e.stopPropagation()}
-										sx={menuButtonStyle}
-									>
-										Duplicate
-									</Button>
-								</Stack>
-							</CardActions>
-						</Card>
-					);
-				})}
-				<div style={{ textAlign: "center", marginTop: "2em" }}>
+									{/* <Box sx={{ backgroundColor: "#b5d9a3", height: 100 }}></Box> */}
+									<CardContent sx={{ paddingBottom: 0 }}>
+										<Typography
+											gutterBottom
+											sx={{
+												color: "text.secondary",
+												fontSize: 14,
+												fontWeight: v.is_activated ? 600 : "initial",
+											}}
+										>
+											{v.is_activated ? "Active" : "Inactive"}
+										</Typography>
+										<Typography
+											variant="h5"
+											component={"div"}
+											onClick={() => openModal(v)}
+											sx={{
+												color: "#424242",
+												"&:hover": { color: "#229799" },
+												transition: "all 0.15s ease-in-out",
+												cursor: "pointer",
+												width: "fit-content",
+												fontWeight: 600,
+											}}
+											pr={2}
+											py={"2px"}
+										>
+											{v.group_name}
+										</Typography>
+									</CardContent>
+									<CardActions sx={{ flex: 1 }}>
+										<Stack
+											direction={{ xs: "column", sm: "row" }}
+											spacing={1}
+											sx={{
+												width: "100%",
+											}}
+										>
+											<Button
+												size="small"
+												onClick={(e) => {
+													e.stopPropagation();
+													setSelectedBlockGroup(v.id);
+													setIsDeleteGroupModalOpen(true);
+												}}
+												sx={menuButtonStyle}
+											>
+												Delete
+											</Button>
+											<Button
+												size="small"
+												onClick={(e) => {
+													e.stopPropagation();
+													setSelectedBlockGroup(v.id);
+													setIsRenameGroupModalOpen(true);
+													setRenameOldGroupName(v.group_name);
+												}}
+												sx={menuButtonStyle}
+											>
+												Rename
+											</Button>
+										</Stack>
+									</CardActions>
+								</Card>
+							);
+						})}
+				</Stack>
+
+				<Box
+					sx={{
+						padding: 2,
+						// flexShrink: 0,
+						backgroundColor: "#F8F8FF",
+						// borderTop: "1px solid #e0e0e0",
+						display: "flex",
+						justifyContent: "center",
+						// alignItems: "center",
+					}}
+				>
 					<Button
 						onClick={() => setIsNewGroupModalOpen(true)}
 						variant="contained"
 						color="primary"
 						sx={{
-							textTransform: "none",
-							width: "fit-content",
-							padding: 1,
+							// textTransform: "none",
+							padding: "12px 24px",
 							fontWeight: 600,
 							letterSpacing: 0.5,
 						}}
 					>
 						Add block group
 					</Button>
-				</div>
+				</Box>
 			</Stack>
-			{/* <Typography>{groupIdInput}</Typography>
-			<TextField
-				value={groupIdInput}
-				onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-					setGroupIdInput(event.target.value);
-				}}
-			/> */}
 			<BlockingModal />
 			<NewBlockGroupModal />
+			<DeleteBlockGroupModal />
+			<RenameBlockGroupModal />
 		</>
 	);
 }

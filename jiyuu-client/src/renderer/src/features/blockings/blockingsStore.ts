@@ -33,6 +33,24 @@ export const useStore = create<Store>((set) => ({
 
 	NewGroupModalInput: "",
 	setNewGroupModalInput: (c: string) => set(() => ({ NewGroupModalInput: c })),
+
+	isDeleteGroupModalOpen: false,
+	setIsDeleteGroupModalOpen: (c: boolean) =>
+		set(() => ({ isDeleteGroupModalOpen: c })),
+
+	isRenameGroupModalOpen: false,
+	setIsRenameGroupModalOpen: (c: boolean) =>
+		set(() => ({ isRenameGroupModalOpen: c })),
+
+	RenameGroupModalInput: "",
+	setRenameGroupModalInput: (c: string) =>
+		set(() => ({ RenameGroupModalInput: c })),
+	RenameOldGroupName: "",
+	setRenameOldGroupName: (c: string) => set(() => ({ RenameOldGroupName: c })),
+
+	isBlockingModalOpen: false,
+	setIsBlockingModalOpen: (c: boolean) =>
+		set(() => ({ isBlockingModalOpen: c })),
 }));
 
 interface Store {
@@ -62,6 +80,22 @@ interface Store {
 	setIsNewGroupModalOpen: empty_func;
 	NewGroupModalInput: string;
 	setNewGroupModalInput: empty_func;
+
+	// DELETE GROUP MODAL COMPONENT
+	isDeleteGroupModalOpen: boolean;
+	setIsDeleteGroupModalOpen: empty_func;
+
+	// RENAME GROUP MODAL COMPONENT
+	isRenameGroupModalOpen: boolean;
+	setIsRenameGroupModalOpen: empty_func;
+	RenameGroupModalInput: string;
+	setRenameGroupModalInput: empty_func;
+	RenameOldGroupName: string;
+	setRenameOldGroupName: empty_func;
+
+	// BLOCKING MODAL
+	isBlockingModalOpen: boolean;
+	setIsBlockingModalOpen: empty_func;
 }
 
 export interface SiteAttribute {

@@ -15,23 +15,23 @@ function App(): React.JSX.Element {
 		<BrowserRouter>
 			<div
 				style={{
-					display: "block",
+					display: "flex",
+					flexDirection: "column",
 					height: "100vh",
 					width: "100vw",
 					backgroundColor: "#F8F8FF",
 				}}
 			>
-				<div style={{ flex: 1, overflow: "auto", height: "100%" }}>
+				<div style={{ flex: 1, overflow: "auto" }}>
 					<Routes>
 						<Route path="/" element={<Blockings />} />
 						<Route path="/dashboard" element={<Dashboard />} />
 					</Routes>
 				</div>
+
 				<div
 					style={{
-						overflow: "hidden",
-						position: "fixed",
-						bottom: 0,
+						flexShrink: 0,
 						width: "100%",
 					}}
 				>
