@@ -175,6 +175,29 @@ app.whenReady().then(() => {
 		}
 	});
 
+	// modify the is_activated of one block group
+	ipcMain.on(
+		"blockgroup/set/isactivated",
+		(event: Electron.IpcMainEvent, _data) => {
+			try {
+				const { group_id, is_activated } = _data;
+				if (group_id == undefined || is_activated == undefined)
+					throw "undefined _data";
+				db
+					?.prepare("UPDATE block_group SET is_activated = ? WHERE id = ?")
+					.run(is_activated ? 1 : 0, group_id);
+
+				event.reply("blockgroup/set/isactivated", {});
+			} catch (err) {
+				const errorMsg = err instanceof Error ? err.message : String(err);
+				event.reply("blockgroup/set/isactivated/response", {
+					error: errorMsg,
+					data: [],
+				});
+			}
+		},
+	);
+
 	// put/create a new blockgroup
 	ipcMain.on("blockgroup/put", (event: Electron.IpcMainEvent, _data) => {
 		try {

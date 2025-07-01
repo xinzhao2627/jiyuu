@@ -16,6 +16,7 @@ import {
 	Box,
 	CardContent,
 	CardActions,
+	Switch,
 } from "@mui/material";
 import { ipcRendererOn, ipcRendererSend } from "./blockingAPI";
 import BlockingModal from "./components/blockingModal";
@@ -86,6 +87,14 @@ export default function Blockings(): React.JSX.Element {
 				console.error("Error blockgroup/put/response: ", data.error);
 			setBlockGroupData(data.data);
 		});
+		ipcRendererOn("blockgroup/set/isactivated/response", (event, data) => {
+			if (data.error)
+				console.error(
+					"Error setting the is_activated of a block group: ",
+					data.error,
+				);
+			else console.info("is_activated setup of a block group success");
+		});
 
 		// RECEIVE BLOCK SITE RESPONSE
 		ipcRendererOn("blockedsites/get/response", (event, data) => {
@@ -149,6 +158,9 @@ export default function Blockings(): React.JSX.Element {
 			window.electron.ipcRenderer.removeAllListeners(
 				"BlockGroupAndBlockedSitesData/delete/response",
 			);
+			window.electron.ipcRenderer.removeAllListeners(
+				"blockgroup/set/isactivated/response",
+			);
 		};
 	}, []);
 
@@ -206,23 +218,37 @@ export default function Blockings(): React.JSX.Element {
 										>
 											{v.is_activated ? "Active" : "Inactive"}
 										</Typography>
-										<Typography
-											variant="h5"
-											component={"div"}
-											onClick={() => openModal(v)}
-											sx={{
-												color: "#424242",
-												"&:hover": { color: "#229799" },
-												transition: "all 0.15s ease-in-out",
-												cursor: "pointer",
-												width: "fit-content",
-												fontWeight: 600,
-											}}
-											pr={2}
-											py={"2px"}
-										>
-											{v.group_name}
-										</Typography>
+										<Stack direction={"row"} justifyContent={"space-between"}>
+											<Typography
+												variant="h5"
+												component={"div"}
+												onClick={() => openModal(v)}
+												sx={{
+													color: "#424242",
+													"&:hover": { color: "#229799" },
+													transition: "all 0.15s ease-in-out",
+													cursor: "pointer",
+													width: "fit-content",
+													fontWeight: 600,
+												}}
+												pr={2}
+												py={"2px"}
+											>
+												{v.group_name}
+											</Typography>
+
+											<Switch
+												checked={Boolean(v.is_activated)}
+												size="medium"
+												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+													ipcRendererSend("blockgroup/set/isactivated", {
+														group_id: v.id,
+														is_activated: e.target.checked,
+													});
+													ipcRendererSend("blockgroup/get", {});
+												}}
+											/>
+										</Stack>
 									</CardContent>
 									<CardActions sx={{ flex: 1 }}>
 										<Stack

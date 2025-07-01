@@ -12,6 +12,8 @@ import {
 	ListItemButton,
 	ListItemIcon,
 	ListItemText,
+	SxProps,
+	Theme,
 } from "@mui/material";
 import AddLocationIcon from "@mui/icons-material/AddLocation";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -34,7 +36,7 @@ const ConfigItem: React.FC<{ text: string; callback: (c) => void }> = ({
 		</ListItem>
 	);
 };
-
+const actionStyle: SxProps<Theme> = { fontWeight: 600, letterSpacing: 0.2 };
 export default function Sidebar(): React.JSX.Element {
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -61,14 +63,31 @@ export default function Sidebar(): React.JSX.Element {
 					minWidth: 0,
 					maxWidth: "none",
 				},
+				marginY: 1,
 			}}
 		>
-			<BottomNavigationAction label="Blockings" icon={<VpnLockIcon />} />
+			<BottomNavigationAction
+				label="Blockings"
+				icon={<VpnLockIcon />}
+				sx={actionStyle}
+			/>
 
-			<BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} />
+			<BottomNavigationAction
+				label="Dashboard"
+				icon={<DashboardIcon />}
+				sx={actionStyle}
+			/>
 
-			<BottomNavigationAction label="Word Bank" icon={<AbcIcon />} />
-			<BottomNavigationAction label="Options" icon={<TuneIcon />} />
+			<BottomNavigationAction
+				label="Word Bank"
+				icon={<AbcIcon />}
+				sx={actionStyle}
+			/>
+			<BottomNavigationAction
+				label="Options"
+				icon={<TuneIcon />}
+				sx={actionStyle}
+			/>
 		</BottomNavigation>
 	);
 }
