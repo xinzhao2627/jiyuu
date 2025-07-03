@@ -202,6 +202,14 @@ app.whenReady().then(() => {
 	ipcMain.on("blockgroup/put", (event: Electron.IpcMainEvent, _data) => {
 		try {
 			if (!_data.group_name) throw "No group name input";
+
+			const rows = (getBlockGroup()?.all() as Array<BlockGroup>) || [];
+
+			for (let r of rows) {
+				if (_data.group_name === r.group_name)
+					throw `Group name already exist ${_data.group_name} and ${r.group_name}`;
+			}
+
 			db
 				?.prepare("INSERT INTO block_group(group_name) VALUES(?)")
 				.run(_data.group_name);
