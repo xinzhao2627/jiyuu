@@ -1,51 +1,42 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as React from "react";
 import { useEffect } from "react";
-import {
-	BlockedSites,
-	BlockGroup,
-	menuButtonStyle,
-	useStore,
-} from "./blockingsStore";
+import { BlockGroup, menuButtonStyle, useStore } from "./blockingsStore";
+import toast, { Toaster } from "react-hot-toast";
 import {
 	Button,
 	Card,
 	Stack,
-	TextField,
 	Typography,
-	Box,
 	CardContent,
 	CardActions,
 	Switch,
+	Fab,
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import { ipcRendererOn, ipcRendererSend } from "./blockingAPI";
 import BlockingModal from "./components/blockingModal";
-import { ipcRenderer } from "electron";
-import { windowsStore } from "process";
 import NewBlockGroupModal from "./components/newBlockGroupModal";
 import DeleteBlockGroupModal from "./components/deleteBlockGroupModal";
 import RenameBlockGroupModal from "./components/renameBlockGroupModal";
-
+import "@fontsource/roboto/300.css";
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/700.css";
 export default function Blockings(): React.JSX.Element {
 	const {
 		blockGroupData,
-		blockedSitesData,
-		targetTextInput,
 		setBlockGroupData,
-		setTargetTextInput,
 		setBlockedSitesData,
-		selectedBlockGroup,
 		setSelectedBlockGroup,
 		setIsCoveredState,
 		setIsGrayscaledState,
 		setIsMutedState,
 		setIsNewGroupModalOpen,
 		setIsBlockingModalOpen,
-		isBlockingModalOpen,
 		setIsDeleteGroupModalOpen,
 		setIsRenameGroupModalOpen,
 		setRenameOldGroupName,
-		RenameOldGroupName,
 	} = useStore();
 
 	const openModal = (v: BlockGroup): void => {
@@ -57,47 +48,44 @@ export default function Blockings(): React.JSX.Element {
 	};
 
 	useEffect(() => {
-		ipcRendererOn("blockedsites/put/response", (event, data) => {
+		ipcRendererOn("blockedsites/put/response", (_, data) => {
 			if (data.error)
 				console.error("putting target text response: ", data.error);
 			else console.info("inserting data success");
 		});
 
 		// RECEIVE BLOCK GROUP RESPONSE
-		ipcRendererOn("blockgroup/get/response", (event, data) => {
+		ipcRendererOn("blockgroup/get/response", (_, data) => {
 			if (data.error)
 				console.error("Error blockgroup/get/response: ", data.error);
 			setBlockGroupData(data.data);
 		});
 		// RECEIVE BLOCK GROUP RENAME RESPONSE
-		ipcRendererOn("blockgroup/rename/response", (event, data) => {
-			if (data.error)
+		ipcRendererOn("blockgroup/rename/response", (_, data) => {
+			if (data.error) {
 				console.error("Error blockgroup/rename/response: ", data.error);
-			else if (data.info) console.info(data.info);
+				toast.error(data.error);
+			} else if (data.info) toast.success(data.info);
 		});
-		// RECEIVE BLOCK GROUP CREATE/PUT RESPONSE
-		ipcRendererOn("blockgroup/put/response", (event, data) => {
-			if (data.error)
+		// RECEIVE BLOCK GROUP CREATE/PUT RESPONSE (when you create a block  group)
+		ipcRendererOn("blockgroup/put/response", (_, data) => {
+			if (data.error) {
 				console.error("Error blockgroup/get/response: ", data.error);
-			else if (data.info) console.info(data.info);
+				toast.error(data.error);
+			} else if (data.info) toast.success(data.info);
 		});
 
-		ipcRendererOn("blockgroup/put/response", (event, data) => {
-			if (data.error)
-				console.error("Error blockgroup/put/response: ", data.error);
-			setBlockGroupData(data.data);
-		});
-		ipcRendererOn("blockgroup/set/isactivated/response", (event, data) => {
-			if (data.error)
+		ipcRendererOn("blockgroup/set/isactivated/response", (_, data) => {
+			if (data.error) {
 				console.error(
-					"Error setting the is_activated of a block group: ",
+					"blockgroup/set/isactivated/response error: ",
 					data.error,
 				);
-			else console.info("is_activated setup of a block group success");
+			} else console.info("is_activated setup of a block group success");
 		});
 
 		// RECEIVE BLOCK SITE RESPONSE
-		ipcRendererOn("blockedsites/get/response", (event, data) => {
+		ipcRendererOn("blockedsites/get/response", (_, data) => {
 			if (data.error) console.error("Error fetching group block: ", data.error);
 			setBlockedSitesData(data.data);
 			console.log("Bsite data: ", data.data);
@@ -123,22 +111,20 @@ export default function Blockings(): React.JSX.Element {
 		// ipcRendererSend("blockedsites/get", { init: true });
 
 		// SETTING ALL BLOCK GROUP DATA AND BLOCKED SITES DATA response
-		ipcRendererOn(
-			"BlockGroupAndBlockedSitesData/set/response",
-			(event, data) => {
-				if (data.error)
-					console.error("ERROR MODIFYING THE ENTIRE GORUP: ", data.error);
-				else console.info("MODIFYING THE ENTIRE GROUP SUCCESS");
-			},
-		);
+		ipcRendererOn("BlockGroupAndBlockedSitesData/set/response", (_, data) => {
+			if (data.error)
+				console.error("ERROR MODIFYING THE ENTIRE GORUP: ", data.error);
+			else if (data.info) toast.success(data.info);
+		});
 
 		// gets a reply when deleting a block group
 		ipcRendererOn(
 			"BlockGroupAndBlockedSitesData/delete/response",
-			(event, data) => {
-				if (data.error)
+			(_, data) => {
+				if (data.error) {
 					console.error("Error deleting a block group: ", data.error);
-				else console.info("Deleting a block group success");
+					toast.error(data.error);
+				} else if (data.info) toast.success(data.info);
 			},
 		);
 
@@ -288,36 +274,37 @@ export default function Blockings(): React.JSX.Element {
 						})}
 				</Stack>
 
-				<Box
+				{/* Floating Action Button */}
+				<Fab
+					color="primary"
+					variant="extended"
+					disableRipple
+					onClick={() => setIsNewGroupModalOpen(true)}
 					sx={{
-						padding: 2,
-						// flexShrink: 0,
-						backgroundColor: "#F8F8FF",
-						// borderTop: "1px solid #e0e0e0",
-						display: "flex",
-						justifyContent: "center",
-						// alignItems: "center",
+						position: "fixed",
+						bottom: 90,
+						right: 20,
+						zIndex: 100,
+						fontWeight: 600,
 					}}
 				>
-					<Button
-						onClick={() => setIsNewGroupModalOpen(true)}
-						variant="contained"
-						color="primary"
-						sx={{
-							// textTransform: "none",
-							padding: "12px 24px",
-							fontWeight: 600,
-							letterSpacing: 0.5,
-						}}
-					>
-						Add block group
-					</Button>
-				</Box>
+					<AddIcon /> Add group
+				</Fab>
 			</Stack>
 			<BlockingModal />
 			<NewBlockGroupModal />
 			<DeleteBlockGroupModal />
 			<RenameBlockGroupModal />
+			<Toaster
+				position="top-center"
+				toastOptions={{
+					className: "roboto-toast",
+					duration: 1200,
+					style: {
+						fontWeight: "600",
+					},
+				}}
+			/>
 		</>
 	);
 }

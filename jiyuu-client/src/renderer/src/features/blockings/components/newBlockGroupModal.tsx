@@ -8,7 +8,6 @@ import {
 	Stack,
 } from "@mui/material";
 import * as React from "react";
-import { useState, useEffect } from "react";
 import { menuButtonStyle, useStore } from "../blockingsStore";
 import { ipcRendererSend } from "../blockingAPI";
 import { modalStyle } from "@renderer/assets/shared/modalStyle";

@@ -207,14 +207,14 @@ app.whenReady().then(() => {
 
 			for (let r of rows) {
 				if (_data.group_name === r.group_name)
-					throw `Group name already exist ${_data.group_name} and ${r.group_name}`;
+					throw `Group name already exist (${_data.group_name}, ${r.group_name})`;
 			}
 
 			db
 				?.prepare("INSERT INTO block_group(group_name) VALUES(?)")
 				.run(_data.group_name);
 			event.reply("blockgroup/put/response", {
-				info: `group ${_data.group_name} added.`,
+				info: `Group ${_data.group_name} added.`,
 			});
 		} catch (err) {
 			const errorMsg = err instanceof Error ? err.message : String(err);
@@ -240,10 +240,11 @@ app.whenReady().then(() => {
 			db
 				?.prepare("UPDATE block_group SET group_name = ? WHERE id = ?")
 				.run(new_group_name, group_id);
+			event.reply("blockgroup/rename/response", { info: "Rename successful" });
 		} catch (err) {
 			const errorMsg = err instanceof Error ? err.message : String(err);
 			console.error("error renaming in blockgroup: ", errorMsg);
-			event.reply("blockgroup/rename", { error: errorMsg });
+			event.reply("blockgroup/rename/response", { error: errorMsg });
 		}
 	});
 
@@ -257,7 +258,9 @@ app.whenReady().then(() => {
 					throw "Invalid data provided for deleting block group and blocked sites data";
 
 				deleteBlockGroupAndBlockedSitesData(id);
-				event.reply("BlockGroupAndBlockedSitesData/delete/response", {});
+				event.reply("BlockGroupAndBlockedSitesData/delete/response", {
+					info: "Deleted successfully",
+				});
 			} catch (err) {
 				const errorMsg = err instanceof Error ? err.message : String(err);
 				console.error(
@@ -314,7 +317,9 @@ app.whenReady().then(() => {
 					insertMany(blocked_sites_data);
 				} else throw "Error, the database is not initialized properly";
 
-				event.reply("BlockGroupAndBlockedSitesData/set/response", {});
+				event.reply("BlockGroupAndBlockedSitesData/set/response", {
+					info: "MODIFYING THE ENTIRE GROUP SUCCESS",
+				});
 			} catch (err) {
 				const errorMsg = err instanceof Error ? err.message : String(err);
 				console.error(

@@ -1,10 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as React from "react";
-import { useState, useEffect } from "react";
-import Drawer from "@mui/material/Drawer";
-import Box from "@mui/material/Box";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
+import ShieldIcon from "@mui/icons-material/Shield";
 import {
 	BottomNavigation,
 	BottomNavigationAction,
@@ -17,9 +13,9 @@ import {
 } from "@mui/material";
 import AddLocationIcon from "@mui/icons-material/AddLocation";
 import TuneIcon from "@mui/icons-material/Tune";
-import AbcIcon from "@mui/icons-material/Abc";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import VpnLockIcon from "@mui/icons-material/VpnLock";
+import FontDownloadIcon from "@mui/icons-material/FontDownload";
+// import VpnLockIcon from "@mui/icons-material/VpnLock";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 const ConfigItem: React.FC<{ text: string; callback: (c) => void }> = ({
 	text,
@@ -55,7 +51,7 @@ export default function Sidebar(): React.JSX.Element {
 			onChange={handleChange}
 			showLabels
 			sx={{
-				backgroundColor: "#F8F8FF",
+				backgroundColor: "transparent",
 				width: "100%",
 				display: "flex",
 				"& .MuiBottomNavigationAction-root": {
@@ -63,28 +59,29 @@ export default function Sidebar(): React.JSX.Element {
 					minWidth: 0,
 					maxWidth: "none",
 				},
-				marginY: 1,
+				padding: 1,
+				// backdropFilter: "blur(2px)",
 			}}
 		>
 			<BottomNavigationAction
-				label="Blockings"
-				icon={<VpnLockIcon />}
+				label="BLOCKINGS"
+				icon={<ShieldIcon />}
 				sx={actionStyle}
 			/>
 
 			<BottomNavigationAction
-				label="Dashboard"
+				label="DASHBOARD"
 				icon={<DashboardIcon />}
 				sx={actionStyle}
 			/>
 
 			<BottomNavigationAction
-				label="Word Bank"
-				icon={<AbcIcon />}
+				label="WORD BANK"
+				icon={<FontDownloadIcon />}
 				sx={actionStyle}
 			/>
 			<BottomNavigationAction
-				label="Options"
+				label="OPTIONS"
 				icon={<TuneIcon />}
 				sx={actionStyle}
 			/>

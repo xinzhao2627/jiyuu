@@ -1,5 +1,5 @@
 * {
-	font-family: "Inter";
+	font-family: "consolas";
 }
 
 body {
@@ -17,4 +17,7 @@ body {
 	justify-content: center;
 	flex-direction: column;
 	margin-bottom: 80px;
+}
+.roboto-toast {
+	font-family: "Roboto, sans-serif";
 }
