@@ -32,7 +32,8 @@ const ConfigItem: React.FC<{ text: string; callback: (c) => void }> = ({
 		</ListItem>
 	);
 };
-const actionStyle: SxProps<Theme> = { fontWeight: 600, letterSpacing: 0.2 };
+const actionStyle: SxProps<Theme> = { fontWeight: 600 };
+const iconActionStyle: SxProps<Theme> = { mb: "2px" };
 export default function Sidebar(): React.JSX.Element {
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -65,24 +66,24 @@ export default function Sidebar(): React.JSX.Element {
 		>
 			<BottomNavigationAction
 				label="BLOCKINGS"
-				icon={<ShieldIcon />}
+				icon={<ShieldIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
 
 			<BottomNavigationAction
 				label="DASHBOARD"
-				icon={<DashboardIcon />}
+				icon={<DashboardIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
 
 			<BottomNavigationAction
 				label="WORD BANK"
-				icon={<FontDownloadIcon />}
+				icon={<FontDownloadIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
 			<BottomNavigationAction
 				label="OPTIONS"
-				icon={<TuneIcon />}
+				icon={<TuneIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
 		</BottomNavigation>

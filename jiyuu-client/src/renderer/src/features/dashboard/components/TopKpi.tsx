@@ -31,6 +31,7 @@ export default function TopKpi({
 						{title}
 					</Typography>
 				</Stack>
+
 				{content}
 			</CardContent>
 		</Card>

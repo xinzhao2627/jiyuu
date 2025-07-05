@@ -129,13 +129,24 @@ export default function Blockings(): React.JSX.Element {
 		);
 
 		return () => {
-			window.electron.ipcRenderer.removeAllListeners("blockgroup/get/response");
+			window.electron.ipcRenderer.removeAllListeners(
+				"blockedsites/put/response",
+			);
 
+			window.electron.ipcRenderer.removeAllListeners("blockgroup/get/response");
+			window.electron.ipcRenderer.removeAllListeners(
+				"blockgroup/rename/response",
+			);
 			window.electron.ipcRenderer.removeAllListeners(
 				"blockedsites/get/response",
 			);
+			window.electron.ipcRenderer.removeAllListeners("blockgroup/put/response");
 			window.electron.ipcRenderer.removeAllListeners(
-				"blockedsites/put/response",
+				"blockgroup/set/isactivated/response",
+			);
+
+			window.electron.ipcRenderer.removeAllListeners(
+				"blockedsites/get/response",
 			);
 
 			window.electron.ipcRenderer.removeAllListeners(
@@ -143,9 +154,6 @@ export default function Blockings(): React.JSX.Element {
 			);
 			window.electron.ipcRenderer.removeAllListeners(
 				"BlockGroupAndBlockedSitesData/delete/response",
-			);
-			window.electron.ipcRenderer.removeAllListeners(
-				"blockgroup/set/isactivated/response",
 			);
 		};
 	}, []);
@@ -284,6 +292,7 @@ export default function Blockings(): React.JSX.Element {
 						position: "fixed",
 						bottom: 90,
 						right: 20,
+
 						zIndex: 100,
 						fontWeight: 600,
 					}}

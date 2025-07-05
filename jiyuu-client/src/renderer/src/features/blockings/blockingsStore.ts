@@ -51,6 +51,10 @@ export const useStore = create<Store>((set) => ({
 	isBlockingModalOpen: false,
 	setIsBlockingModalOpen: (c: boolean) =>
 		set(() => ({ isBlockingModalOpen: c })),
+
+	selectedPeriod: "1d",
+	setSelectedPeriod: (c: "1d" | "1w" | "1m") =>
+		set(() => ({ selectedPeriod: c })),
 }));
 
 interface Store {
@@ -96,6 +100,9 @@ interface Store {
 	// BLOCKING MODAL
 	isBlockingModalOpen: boolean;
 	setIsBlockingModalOpen: empty_func;
+
+	selectedPeriod: "1d" | "1w" | "1m";
+	setSelectedPeriod: empty_func;
 }
 
 export interface SiteAttribute {

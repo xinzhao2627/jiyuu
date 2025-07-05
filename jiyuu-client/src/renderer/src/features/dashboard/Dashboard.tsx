@@ -2,12 +2,21 @@
 import * as React from "react";
 import { useState } from "react";
 import BlockCounter from "./components/BlockCounter";
-import { Box, Grid, Paper } from "@mui/material";
+import {
+	Box,
+	Grid,
+	Paper,
+	Stack,
+	ToggleButton,
+	ToggleButtonGroup,
+	Typography,
+} from "@mui/material";
 import TopKpi from "./components/TopKpi";
 import BlockIcon from "@mui/icons-material/Block";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import InterestsIcon from "@mui/icons-material/Interests";
+import { useStore } from "../blockings/blockingsStore";
 
 function miniCardTime(
 	count: number,
@@ -19,13 +28,16 @@ function miniCardTime(
 				display: "flex",
 			}}
 		>
-			{count} in the last 24hrs
+			<Typography variant="h3" color="initial">
+				{count}
+			</Typography>
 		</Box>
 	);
 }
 
 export default function Dashboard(): React.JSX.Element {
 	const t1 = miniCardTime(30, "day");
+	const { selectedPeriod, setSelectedPeriod } = useStore();
 	return (
 		<div
 			style={{
@@ -38,7 +50,7 @@ export default function Dashboard(): React.JSX.Element {
 				{/* site visits today */}
 				<Grid size={4}>
 					<TopKpi
-						title="Site visits"
+						title="Total site visits"
 						content={t1}
 						icon={<RemoveRedEyeIcon />}
 					/>
@@ -46,13 +58,13 @@ export default function Dashboard(): React.JSX.Element {
 
 				{/* block count */}
 				<Grid size={4}>
-					<TopKpi title="Block count" content={t1} icon={<BlockIcon />} />
+					<TopKpi title="Total block count" content={t1} icon={<BlockIcon />} />
 				</Grid>
 
 				{/* time usage today */}
 				<Grid size={4}>
 					<TopKpi
-						title="Time usage"
+						title="Total time usage"
 						content={t1}
 						icon={
 							<AccessTimeIcon sx={{ alignContent: "center", height: "100%" }} />
@@ -70,7 +82,81 @@ export default function Dashboard(): React.JSX.Element {
 				</Grid>
 			</Grid>
 			{/* <BlockCounter /> */}
-
+			<ToggleButtonGroup
+				value={selectedPeriod}
+				exclusive
+				onChange={(
+					e: React.MouseEvent<HTMLElement>,
+					newPeriod: "1d" | "1w" | "1m" | null,
+				) => {
+					if (newPeriod === "1d" || newPeriod == "1w" || newPeriod == "1m") {
+						setSelectedPeriod(newPeriod);
+					}
+				}}
+				sx={{
+					position: "fixed",
+					top: 10,
+					left: "50%",
+					transform: "translateX(-50%)",
+					alignContent: "center",
+					textAlign: "center",
+				}}
+			>
+				<ToggleButton
+					value="1d"
+					aria-label="left aligned"
+					disableRipple
+					sx={{
+						minWidth: 50,
+						textTransform: "none",
+						"&.Mui-selected": {
+							backgroundColor: "#1976d2",
+							color: "white",
+							"&:hover": {
+								backgroundColor: "#1565c0",
+							},
+						},
+					}}
+				>
+					1 day
+				</ToggleButton>
+				<ToggleButton
+					value="1w"
+					aria-label="centered"
+					disableRipple
+					sx={{
+						minWidth: 50,
+						textTransform: "none",
+						"&.Mui-selected": {
+							backgroundColor: "#1976d2",
+							color: "white",
+							"&:hover": {
+								backgroundColor: "#1565c0",
+							},
+						},
+					}}
+				>
+					1 week
+				</ToggleButton>
+				<ToggleButton
+					value="1m"
+					aria-label="right aligned"
+					disableRipple
+					sx={{
+						minWidth: 50,
+						textTransform: "none",
+						"&.Mui-selected": {
+							backgroundColor: "#1976d2",
+							color: "white",
+							"&:hover": {
+								backgroundColor: "#1565c0",
+							},
+						},
+					}}
+				>
+					1 month
+				</ToggleButton>
+			</ToggleButtonGroup>
 			{/*  */}
 		</div>
 	);
