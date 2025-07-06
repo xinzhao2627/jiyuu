@@ -50,6 +50,9 @@ async function log_to_server() {
 					secondsElapsed: tabData?.secondsElapsed || 0,
 					startTime: tabData?.startTime || currentTime,
 					tabId: tabData?.tabId ? tabData.tabId : tab.id,
+					day: currentTime.getDate(),
+					hour: currentTime.getHours() + 1,
+					month: currentTime.getMonth() + 1,
 				});
 			}
 		}
@@ -68,7 +71,7 @@ async function log_to_server() {
 			isTimelist: true,
 			data: Object.fromEntries(timeList),
 		});
-		// timeList = new Map();
+		timeList = new Map();
 	}
 
 	await sendToServer();

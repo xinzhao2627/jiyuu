@@ -7,6 +7,8 @@ import {
 	Grid,
 	Paper,
 	Stack,
+	SxProps,
+	Theme,
 	ToggleButton,
 	ToggleButtonGroup,
 	Typography,
@@ -38,6 +40,18 @@ function miniCardTime(
 export default function Dashboard(): React.JSX.Element {
 	const t1 = miniCardTime(30, "day");
 	const { selectedPeriod, setSelectedPeriod } = useStore();
+	const tButtonStyle: SxProps<Theme> = {
+		backgroundColor: "white",
+		p: 1,
+		textTransform: "none",
+		"&.Mui-selected": {
+			backgroundColor: "#1976d2",
+			color: "white",
+			"&:hover": {
+				backgroundColor: "#1565c0",
+			},
+		},
+	};
 	return (
 		<div
 			style={{
@@ -46,6 +60,49 @@ export default function Dashboard(): React.JSX.Element {
 				display: "inline-block",
 			}}
 		>
+			<Box sx={{ width: "100%", textAlign: "center" }}>
+				<ToggleButtonGroup
+					value={selectedPeriod}
+					exclusive
+					onChange={(
+						e: React.MouseEvent<HTMLElement>,
+						newPeriod: "1d" | "1w" | "1m" | null,
+					) => {
+						if (newPeriod === "1d" || newPeriod == "1w" || newPeriod == "1m") {
+							setSelectedPeriod(newPeriod);
+						}
+					}}
+					sx={{
+						alignContent: "center",
+						textAlign: "center",
+					}}
+				>
+					<ToggleButton
+						value="1d"
+						aria-label="left aligned"
+						disableRipple
+						sx={tButtonStyle}
+					>
+						1 day
+					</ToggleButton>
+					<ToggleButton
+						value="1w"
+						aria-label="centered"
+						disableRipple
+						sx={tButtonStyle}
+					>
+						1 week
+					</ToggleButton>
+					<ToggleButton
+						value="1m"
+						aria-label="right aligned"
+						disableRipple
+						sx={tButtonStyle}
+					>
+						1 month
+					</ToggleButton>
+				</ToggleButtonGroup>
+			</Box>
 			<Grid container spacing={1} padding={1}>
 				{/* site visits today */}
 				<Grid size={4}>
@@ -81,83 +138,6 @@ export default function Dashboard(): React.JSX.Element {
 					/>
 				</Grid>
 			</Grid>
-			{/* <BlockCounter /> */}
-			<ToggleButtonGroup
-				value={selectedPeriod}
-				exclusive
-				onChange={(
-					e: React.MouseEvent<HTMLElement>,
-					newPeriod: "1d" | "1w" | "1m" | null,
-				) => {
-					if (newPeriod === "1d" || newPeriod == "1w" || newPeriod == "1m") {
-						setSelectedPeriod(newPeriod);
-					}
-				}}
-				sx={{
-					position: "fixed",
-					top: 10,
-					left: "50%",
-					transform: "translateX(-50%)",
-					alignContent: "center",
-					textAlign: "center",
-				}}
-			>
-				<ToggleButton
-					value="1d"
-					aria-label="left aligned"
-					disableRipple
-					sx={{
-						minWidth: 50,
-						textTransform: "none",
-						"&.Mui-selected": {
-							backgroundColor: "#1976d2",
-							color: "white",
-							"&:hover": {
-								backgroundColor: "#1565c0",
-							},
-						},
-					}}
-				>
-					1 day
-				</ToggleButton>
-				<ToggleButton
-					value="1w"
-					aria-label="centered"
-					disableRipple
-					sx={{
-						minWidth: 50,
-						textTransform: "none",
-						"&.Mui-selected": {
-							backgroundColor: "#1976d2",
-							color: "white",
-							"&:hover": {
-								backgroundColor: "#1565c0",
-							},
-						},
-					}}
-				>
-					1 week
-				</ToggleButton>
-				<ToggleButton
-					value="1m"
-					aria-label="right aligned"
-					disableRipple
-					sx={{
-						minWidth: 50,
-						textTransform: "none",
-						"&.Mui-selected": {
-							backgroundColor: "#1976d2",
-							color: "white",
-							"&:hover": {
-								backgroundColor: "#1565c0",
-							},
-						},
-					}}
-				>
-					1 month
-				</ToggleButton>
-			</ToggleButtonGroup>
-			{/*  */}
 		</div>
 	);
 }

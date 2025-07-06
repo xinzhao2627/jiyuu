@@ -1,11 +1,17 @@
 
 -- CREATE TABLE block_group(
---     id INTEGER PRIMARY KEY,
---     group_name VARCHAR(255) NOT NULL,
---     is_grayscaled INTEGER DEFAULT 1,
---     is_covered INTEGER DEFAULT 0,
---     is_muted Integer DEFAULT 0,
---     is_activated Integer DEFAULT 0,
+--         id INTEGER PRIMARY KEY,
+--         group_name VARCHAR(255) NOT NULL,
+--         is_grayscaled INTEGER DEFAULT 1,
+--         is_covered INTEGER DEFAULT 0,
+--         is_muted Integer DEFAULT 0,
+--         is_activated Integer DEFAULT 0,
+
+--         usage_time_left INTEGER,
+--         usage_time_value INTEGER,
+--         usage_reset_period VARCHAR(255) NOT NULL,
+
+--         lock_type VARCHAR(255) DEFAULT NULL
 -- )
         -- insert into block_group(group_name, is_grayscaled, is_muted, is_activated) VALUES("main", 1, 1, 1);
         -- SELECT * from block_group;
@@ -49,15 +55,28 @@
 
 -- SELECT bs.target_text FROM blocked_sites AS bs JOIN block_group as bg on bs.block_group_id = bg.id WHERE bs.block_group_id = 1
 
-select * from blocked_sites
+-- select * from blocked_sites
 
-CREATE TABLE IF NOT EXISTS usage_log (
+-- CREATE TABLE IF NOT EXISTS usage_log (
+--         id INTEGER PRIMARY KEY,
+--         base_url TEXT NOT NULL,
+--         full_url TEXT NOT NULL,
+--         recorded_day INTEGER NOT NULL,
+--         recorded_hour INTEGER NOT NULL,
+--         recorded_month INTEGER NOT NULL
+-- )
+-- PRAGMA table_info(usage_log)
+-- DROP table usage_log
+
+
+-- SELECT * from block_group
+
+CREATE TABLE date_today (
         id INTEGER PRIMARY KEY,
-        web_url TEXT NOT NULL,
-        web_content TEXT,
-        time_start TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        time_end TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        time_total_seconds INTEGER NOT NULL
+        day_number INTEGER NOT NULL,
+        hour_number INTEGER NOT NULL
+        
 )
 
-SELECT * from block_group
+drop table block_group
+

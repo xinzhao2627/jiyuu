@@ -51,6 +51,10 @@ interface BlockParameters {
 	is_covered: 0 | 1;
 	is_muted: 0 | 1;
 	is_activated: 0 | 1;
+	usage_time_left: number;
+	usage_time_value: number;
+	usage_reset_period: "week" | "day" | "hour";
+	lock_type: string;
 }
 interface BlockGroup extends BlockParameters {
 	id: number;
@@ -111,10 +115,15 @@ app.whenReady().then(() => {
 	db = new Database(dbPath);
 
 	// triggers when opening the app
-	initBlockGroup();
-	initBlockedSitesData();
-	initUsageLog();
-	console.log("initialization done");
+	try {
+		initToday();
+		initBlockGroup();
+		initBlockedSitesData();
+		initUsageLog();
+		console.log("initialization done");
+	} catch (e) {
+		console.log(e);
+	}
 
 	// retrieves all blocked sites of a specific group
 	ipcMain.on("blockedsites/get", (event: Electron.IpcMainEvent, _data) => {
@@ -353,7 +362,7 @@ app.whenReady().then(() => {
 				if (data.isWebpage) {
 					validateWebpage(data, ws);
 				}
-				// if
+				// if just logging the time, do this instead
 				else if (data.isTimelist) {
 					validateTimelist(data, ws);
 				}
@@ -400,7 +409,7 @@ function validateTimelist(data, ws): void {
 			(getBlockedSitesDataAll()?.all() as Array<BlockedSites_with_configs>) ||
 			[];
 
-		// loops all listed sites/keywords and determine their block group
+		// loops all listed sites/keywords and determine their <group_id, seconds>
 		const blockGroupsList = new Map<number, number>();
 		for (let r of rows) {
 			const isact = r.is_activated;
@@ -545,7 +554,13 @@ function initBlockGroup(): void {
 				is_grayscaled INTEGER DEFAULT 1,
 				is_covered INTEGER DEFAULT 0,
 				is_muted Integer DEFAULT 0,
-				is_activated Integer DEFAULT 0
+				is_activated Integer DEFAULT 0,
+
+				usage_time_left INTEGER,
+				usage_time_value INTEGER,
+				usage_reset_period VARCHAR(255) NOT NULL,
+
+				lock_type VARCHAR(255) DEFAULT NULL
 			)`,
 		)
 		.run();
@@ -554,12 +569,12 @@ function initUsageLog(): void {
 	db
 		?.prepare(
 			`CREATE TABLE IF NOT EXISTS usage_log (
-				id INTEGER PRIMARY KEY,
-				web_url TEXT NOT NULL,
-				web_content TEXT,
-				time_start TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
-				time_end TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
-				time_total_seconds INTEGER NOT NULL
+					id INTEGER PRIMARY KEY,
+					base_url TEXT NOT NULL,
+					full_url TEXT NOT NULL,
+					recorded_day INTEGER NOT NULL,
+					recorded_hour INTEGER NOT NULL,
+					recorded_month INTEGER NOT NULL
 			)`,
 		)
 		.run();
@@ -581,4 +596,56 @@ function siteIncludes(
 		siteData.title?.includes(target) ||
 		siteData.url?.includes(target)
 	);
+}
+
+// initialize time for today when the app opens, and also initialize it every minute
+function initToday(): void {
+	db
+		?.prepare(
+			`CREATE TABLE date_today (
+				id INTEGER PRIMARY KEY,
+				day_number INTEGER NOT NULL,
+				hour_number INTEGER NOT NULL,
+			)`,
+		)
+		.run();
+	const d = new Date();
+	const today = {
+		day: d.getDate(),
+		hour: d.getHours() + 1,
+	};
+	const row = db?.prepare(`SELECT * FROM date_today`).get() as {
+		id: number;
+		day_number: number;
+		hour_number: number;
+	};
+	if (!row) {
+		console.log("no date, adding date today...");
+		db
+			?.prepare(`INSERT INTO date_today(day_number, hour_number) VALUES(?, ?)`)
+			.run(today.day, today.hour);
+	} // else {
+	// 	console.log(
+	// 		`today is ${today}.. the one in the database is ${row.day_number} ${row.hour_number}`,
+	// 	);
+	// 	if (row.date_number !== today) {
+	// 		console.log("replacing day to: ", today);
+	// 		db?.prepare("UPDATE date_today set date_number = ?").run(today);
+	// 	}
+	// }
+	let lastTime = new Date();
+	const one_minute = 60 * 1000;
+	async function recursiveTimeChecker(): Promise<void> {
+		const currentTime = new Date();
+
+		if (currentTime.getTime() - lastTime.getTime() < one_minute) {
+			setTimeout(recursiveTimeChecker, 1000);
+			return;
+		}
+		db
+			?.prepare("UPDATE date_today set day_number = ?, hour_number = ?")
+			.run(currentTime.getDate(), currentTime.getHours() + 1);
+		setTimeout(recursiveTimeChecker, one_minute);
+	}
+	recursiveTimeChecker();
 }
