@@ -7,7 +7,7 @@ import App from "./App";
 import { createTheme, ThemeProvider } from "@mui/material";
 const THEME = createTheme({
 	typography: {
-		fontFamily: "Inter, Arial, sans-serif",
+		fontFamily: "roboto, Arial, sans-serif",
 	},
 });
 createRoot(document.getElementById("root")!).render(

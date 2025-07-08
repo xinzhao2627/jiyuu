@@ -42,11 +42,12 @@ export default function BlockingModal(): React.JSX.Element {
 		isBlockingModalOpen,
 	} = useStore();
 	const targetTextPut = (): void => {
+		// when putting a new keyword in blockedsites list, check if it already exist
 		if (
 			blockedSitesData.some(
 				(v) =>
 					v.target_text.toLowerCase() === targetTextInput.toLowerCase() &&
-					v.block_group_id === selectedBlockGroup,
+					v.block_group_id === selectedBlockGroup?.id,
 			)
 		) {
 			console.warn("Target text already exists in the list.");
@@ -57,36 +58,32 @@ export default function BlockingModal(): React.JSX.Element {
 			]);
 		}
 	};
-	const saveNewBlockGroup_and_BlockedSitesData = (): void => {
-		console.log("remaining cxonfig: ", {
-			group_id: selectedBlockGroup,
-			blocked_sites_data: blockedSitesData,
-			is_grayscaled: isGrayscaledState,
-			is_covered: isCoveredState,
-			is_muted: isMutedState,
-		});
-
-		ipcRendererSend("BlockGroupAndBlockedSitesData/set", {
-			group_id: selectedBlockGroup,
-			blocked_sites_data: blockedSitesData,
-			is_grayscaled: isGrayscaledState,
-			is_covered: isCoveredState,
-			is_muted: isMutedState,
-		});
-
+	const handleClose = (): void => {
 		setSelectedBlockGroup(null);
 		setIsBlockingModalOpen(false);
-
+		setIsCoveredState(0);
+		setIsGrayscaledState(0);
+		setIsMutedState(0);
+		setTargetTextInput("");
+	};
+	const saveNewBlockGroup_and_BlockedSitesData = (): void => {
+		setSelectedBlockGroup({
+			...selectedBlockGroup,
+			is_grayscaled: isGrayscaledState,
+			is_covered: isCoveredState,
+			is_muted: isMutedState,
+		});
+		ipcRendererSend("blockgroup_blockedsites/set", {
+			group: selectedBlockGroup,
+			blocked_sites_data: blockedSitesData,
+		});
 		// refesh block group if needed (optional)
 		// ipcRendererSend("blockgroup/get", {});
 	};
 	return (
 		<Modal
 			open={isBlockingModalOpen && Boolean(selectedBlockGroup)}
-			onClose={() => {
-				setSelectedBlockGroup(null);
-				setIsBlockingModalOpen(false);
-			}}
+			onClose={handleClose}
 			aria-labelledby="modal-modal-title"
 			aria-describedby="modal-modal-description"
 		>
@@ -96,7 +93,7 @@ export default function BlockingModal(): React.JSX.Element {
 						<ToggleButton
 							color="warning"
 							value="covered"
-							selected={isCoveredState}
+							selected={Boolean(isCoveredState)}
 							disableRipple
 							onClick={() => setIsCoveredState(!isCoveredState)}
 							sx={menuButtonStyle}
@@ -107,7 +104,7 @@ export default function BlockingModal(): React.JSX.Element {
 							color="primary"
 							value="grayscaled"
 							disableRipple
-							selected={isGrayscaledState}
+							selected={Boolean(isGrayscaledState)}
 							onClick={() => setIsGrayscaledState(!isGrayscaledState)}
 							sx={menuButtonStyle}
 						>
@@ -117,7 +114,7 @@ export default function BlockingModal(): React.JSX.Element {
 							color="success"
 							value="muted"
 							disableRipple
-							selected={isMutedState}
+							selected={Boolean(isMutedState)}
 							onClick={() => setIsMutedState(!isMutedState)}
 							sx={menuButtonStyle}
 						>
@@ -188,7 +185,7 @@ export default function BlockingModal(): React.JSX.Element {
 							color="primary"
 							onClick={() => {
 								saveNewBlockGroup_and_BlockedSitesData();
-								setTargetTextInput("");
+								handleClose();
 							}}
 							sx={{ ...menuButtonStyle, fontWeight: 400 }}
 						>
@@ -197,11 +194,7 @@ export default function BlockingModal(): React.JSX.Element {
 						<Button
 							variant="outlined"
 							color="primary"
-							onClick={() => {
-								setSelectedBlockGroup(null);
-								setTargetTextInput("");
-								setIsBlockingModalOpen(false);
-							}}
+							onClick={handleClose}
 							sx={{ ...menuButtonStyle, fontWeight: 400 }}
 						>
 							Cancel

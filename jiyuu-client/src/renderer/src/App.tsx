@@ -8,6 +8,7 @@ import { Stack, Typography } from "@mui/material";
 import Blockings from "./features/blockings/Blockings";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Dashboard from "./features/dashboard/Dashboard";
+import { Toaster } from "react-hot-toast";
 
 function App(): React.JSX.Element {
 	useEffect(() => {}, []);
@@ -37,6 +38,16 @@ function App(): React.JSX.Element {
 				>
 					<Sidebar />
 				</div>
+				<Toaster
+					position="top-center"
+					toastOptions={{
+						className: "roboto-toast",
+						duration: 1200,
+						style: {
+							fontWeight: "600",
+						},
+					}}
+				/>
 			</div>
 		</BrowserRouter>
 	);

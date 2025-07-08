@@ -71,6 +71,7 @@
 
 -- SELECT * from block_group
 
+
 CREATE TABLE date_today (
         id INTEGER PRIMARY KEY,
         day_number INTEGER NOT NULL,
@@ -80,3 +81,10 @@ CREATE TABLE date_today (
 
 drop table block_group
 
+CREATE TABLE block_group_config (
+        id INTEGER PRIMARY KEY,
+        block_group_id INTEGER NOT NULL REFERENCES block_group(id),
+        config_type VARCHAR(255),
+        config_data JSON,
+        FOREIGN KEY (block_group_id) REFERENCES block_group(id)
+)

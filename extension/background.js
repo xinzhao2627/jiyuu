@@ -63,7 +63,6 @@ async function log_to_server() {
 		"From log_to_server list of recorded: ",
 		Object.fromEntries(timeList)
 	);
-	lastLogTime = currentTime;
 
 	// finally send it to server and empty the timelist records (do this if its already connected to the database)
 	async function sendToServer() {
@@ -75,7 +74,7 @@ async function log_to_server() {
 	}
 
 	await sendToServer();
-
+	lastLogTime = currentTime;
 	// repeat again after 5 seconds have passed
 	setTimeout(log_to_server, 5000);
 }

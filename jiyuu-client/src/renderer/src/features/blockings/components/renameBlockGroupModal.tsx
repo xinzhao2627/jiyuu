@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { menuButtonStyle, useStore } from "../blockingsStore";
 import { ipcRendererSend } from "../blockingAPI";
 import { modalStyle } from "@renderer/assets/shared/modalStyle";
+import toast from "react-hot-toast";
 
 export default function RenameBlockGroupModal(): React.JSX.Element {
 	const {
@@ -24,12 +25,15 @@ export default function RenameBlockGroupModal(): React.JSX.Element {
 		RenameOldGroupName,
 		setRenameOldGroupName,
 	} = useStore();
+	const handleClose = (): void => {
+		setIsRenameGroupModalOpen(false);
+		setRenameGroupModalInput("");
+		setSelectedBlockGroup(null);
+		setRenameOldGroupName("");
+	};
 	return (
 		<>
-			<Modal
-				open={isRenameGroupModalOpen}
-				onClose={() => setIsRenameGroupModalOpen(false)}
-			>
+			<Modal open={isRenameGroupModalOpen} onClose={handleClose}>
 				<Box sx={modalStyle}>
 					<Typography
 						variant="h5"
@@ -50,17 +54,17 @@ export default function RenameBlockGroupModal(): React.JSX.Element {
 							variant="contained"
 							color="primary"
 							onClick={() => {
-								// TODO
-								ipcRendererSend("blockgroup/rename", {
-									group_id: selectedBlockGroup,
-									new_group_name: RenameGroupModalInput,
-									old_group_name: RenameOldGroupName,
-								});
-								setIsRenameGroupModalOpen(false);
-								setRenameGroupModalInput("");
-								setSelectedBlockGroup(null);
+								if (RenameGroupModalInput === selectedBlockGroup?.group_name) {
+									toast.error("group name already exist");
+								} else {
+									ipcRendererSend("blockgroup/set", {
+										group: selectedBlockGroup,
+										new_group_name: RenameGroupModalInput,
+									});
 
-								ipcRendererSend("blockgroup/get", {});
+									handleClose();
+									ipcRendererSend("blockgroup/get", {});
+								}
 							}}
 							sx={{ ...menuButtonStyle, fontWeight: 400 }}
 						>
@@ -69,12 +73,7 @@ export default function RenameBlockGroupModal(): React.JSX.Element {
 						<Button
 							variant="outlined"
 							color="primary"
-							onClick={() => {
-								setIsRenameGroupModalOpen(false);
-								setRenameGroupModalInput("");
-								setSelectedBlockGroup(null);
-								setRenameOldGroupName("");
-							}}
+							onClick={handleClose}
 							sx={{ ...menuButtonStyle, fontWeight: 400 }}
 						>
 							Cancel

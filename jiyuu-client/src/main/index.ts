@@ -5,61 +5,23 @@ import { app, shell, BrowserWindow, ipcMain } from "electron";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
+
 import { WebSocketServer } from "ws";
 // import sqlite3 from "sqlite3";
 import Database, { Statement } from "better-sqlite3";
 import BetterSqlite3 from "better-sqlite3";
 import { get } from "http";
+import {
+	BlockedSites,
+	BlockedSites_with_configs,
+	BlockGroup,
+	SiteAttribute,
+	SiteTime,
+	SiteTime_with_tabId,
+} from "./jiyuuInterfaces";
 // const connections: WebSocket[] = [];
 // let connections: WebSocket[] = [];
 let db: BetterSqlite3.Database | undefined;
-
-// THESE 3 are different types of inputs came from the extension
-interface SiteAttribute {
-	desc: string;
-	keywords: string;
-	url: string;
-	title: string;
-	descDoc: string;
-	keywordsDoc: string;
-}
-interface SiteTime extends SiteAttribute {
-	secondsElapsed: number;
-	startTime: Date;
-	lastLogTime: Date;
-}
-
-interface SiteTime_with_tabId extends SiteTime {
-	tabId: number;
-}
-////
-interface BlockedSites {
-	target_text: string;
-	block_group_id: number;
-}
-
-interface BlockedSites_with_configs extends BlockedSites {
-	is_grayscaled: 0 | 1;
-	is_covered: 0 | 1;
-	is_muted: 0 | 1;
-	group_name: string;
-	is_activated: 0 | 1;
-}
-
-interface BlockParameters {
-	is_grayscaled: 0 | 1;
-	is_covered: 0 | 1;
-	is_muted: 0 | 1;
-	is_activated: 0 | 1;
-	usage_time_left: number;
-	usage_time_value: number;
-	usage_reset_period: "week" | "day" | "hour";
-	lock_type: string;
-}
-interface BlockGroup extends BlockParameters {
-	id: number;
-	group_name: string;
-}
 
 function createWindow(): void {
 	// Create the browser window.
@@ -118,6 +80,7 @@ app.whenReady().then(() => {
 	try {
 		initToday();
 		initBlockGroup();
+		initBlockGroupConfig();
 		initBlockedSitesData();
 		initUsageLog();
 		console.log("initialization done");
@@ -184,28 +147,21 @@ app.whenReady().then(() => {
 		}
 	});
 
-	// modify the is_activated of one block group
-	ipcMain.on(
-		"blockgroup/set/isactivated",
-		(event: Electron.IpcMainEvent, _data) => {
-			try {
-				const { group_id, is_activated } = _data;
-				if (group_id == undefined || is_activated == undefined)
-					throw "undefined _data";
-				db
-					?.prepare("UPDATE block_group SET is_activated = ? WHERE id = ?")
-					.run(is_activated ? 1 : 0, group_id);
-
-				event.reply("blockgroup/set/isactivated", {});
-			} catch (err) {
-				const errorMsg = err instanceof Error ? err.message : String(err);
-				event.reply("blockgroup/set/isactivated/response", {
-					error: errorMsg,
-					data: [],
-				});
-			}
-		},
-	);
+	// retrieve a blockgroup with corresponding id
+	ipcMain.on("blockgroup/get/id", (event: Electron.IpcMainEvent, _data) => {
+		try {
+			const { id } = _data;
+			if (!id) throw new Error("ID is required");
+			const row = db
+				?.prepare("SELECT * FROM block_group WHERE id = ?")
+				.get(id) as BlockGroup;
+			if (!row) throw new Error(`Block group with ID ${id} not found`);
+			event.reply("blockgroup/get/id/response", { data: row });
+		} catch (err) {
+			const errorMsg = err instanceof Error ? err.message : String(err);
+			event.reply("blockgroup/get/id/response", { error: errorMsg });
+		}
+	});
 
 	// put/create a new blockgroup
 	ipcMain.on("blockgroup/put", (event: Electron.IpcMainEvent, _data) => {
@@ -231,89 +187,66 @@ app.whenReady().then(() => {
 		}
 	});
 
-	// renames a block group
-	ipcMain.on("blockgroup/rename", (event: Electron.IpcMainEvent, data) => {
+	// sets a block group
+	ipcMain.on("blockgroup/set", (event: Electron.IpcMainEvent, data) => {
 		try {
-			const { group_id, old_group_name, new_group_name } = data;
+			const { group, new_group_name } = data as {
+				group: BlockGroup;
+				new_group_name: string;
+			};
 
-			if (!(group_id && old_group_name && new_group_name))
-				throw "Invalid data provided for renaming block group";
-
-			if (old_group_name === new_group_name) {
-				event.reply("blockgroup/rename", {
-					info: "No changes were made as the new group name is the same as the old one.",
-				});
-				return;
-			}
-
-			db
-				?.prepare("UPDATE block_group SET group_name = ? WHERE id = ?")
-				.run(new_group_name, group_id);
-			event.reply("blockgroup/rename/response", { info: "Rename successful" });
+			setBlockGroup(group, new_group_name);
+			event.reply("blockgroup/set/response", { info: "Rename successful" });
 		} catch (err) {
 			const errorMsg = err instanceof Error ? err.message : String(err);
 			console.error("error renaming in blockgroup: ", errorMsg);
-			event.reply("blockgroup/rename/response", { error: errorMsg });
+			event.reply("blockgroup/set/response", { error: errorMsg });
 		}
 	});
 
 	// delete a block group and corresponding blocked sites of that group
-	ipcMain.on(
-		"BlockGroupAndBlockedSitesData/delete",
-		(event: Electron.IpcMainEvent, data) => {
-			try {
-				const { id } = data;
-				if (!id)
-					throw "Invalid data provided for deleting block group and blocked sites data";
+	ipcMain.on("blockgroup/delete", (event: Electron.IpcMainEvent, data) => {
+		try {
+			const { id } = data;
+			if (!id)
+				throw "Invalid data provided for deleting block group and blocked sites data";
 
-				deleteBlockGroupAndBlockedSitesData(id);
-				event.reply("BlockGroupAndBlockedSitesData/delete/response", {
-					info: "Deleted successfully",
-				});
-			} catch (err) {
-				const errorMsg = err instanceof Error ? err.message : String(err);
-				console.error(
-					"There was an error deleting block group including blocked sites data: ",
-					errorMsg,
-				);
-				event.reply("BlockGroupAndBlockedSitesData/delete/response", {
-					error: errorMsg,
-				});
-			}
-		},
-	);
+			blockGroupDelete(id);
+			event.reply("blockgroup/delete/response", {
+				info: "Deleted successfully",
+			});
+		} catch (err) {
+			const errorMsg = err instanceof Error ? err.message : String(err);
+			console.error(
+				"There was an error deleting block group including blocked sites data: ",
+				errorMsg,
+			);
+			event.reply("blockgroup/delete/response", {
+				error: errorMsg,
+			});
+		}
+	});
 
 	// on a particular block group, set all the blocked sites on any changes made by the user
 	ipcMain.on(
-		"BlockGroupAndBlockedSitesData/set",
+		"blockgroup_blockedsites/set",
 		(event: Electron.IpcMainEvent, data) => {
 			try {
-				const {
-					group_id,
-					blocked_sites_data,
-					is_grayscaled,
-					is_covered,
-					is_muted,
-				} = data;
+				const { group, blocked_sites_data } = data as {
+					group: BlockGroup;
+					blocked_sites_data: Array<BlockedSites>;
+				};
 				console.log(data);
 
 				// for block group
-				db
-					?.prepare(
-						"UPDATE block_group SET is_grayscaled = ?, is_covered = ?, is_muted = ? WHERE id = ?",
-					)
-					.run(
-						is_grayscaled ? 1 : 0,
-						is_covered ? 1 : 0,
-						is_muted ? 1 : 0,
-						group_id,
-					);
+				setBlockGroup(group);
 
+				// delete blocked sites of that group first to start fresh
 				db
 					?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?")
-					.run(group_id);
+					.run(group.id);
 
-				// for blocked sites
+				// then insert the latest collections
 				const inserter = db?.prepare(
 					"INSERT OR IGNORE INTO blocked_sites(target_text, block_group_id) VALUES(@target_text, @block_group_id)",
 				);
@@ -326,16 +259,16 @@ app.whenReady().then(() => {
 					insertMany(blocked_sites_data);
 				} else throw "Error, the database is not initialized properly";
 
-				event.reply("BlockGroupAndBlockedSitesData/set/response", {
+				event.reply("blockgroup_blockedsites/set/response", {
 					info: "MODIFYING THE ENTIRE GROUP SUCCESS",
 				});
 			} catch (err) {
 				const errorMsg = err instanceof Error ? err.message : String(err);
 				console.error(
-					"There was an error setting both the block gorup and blocked siotes data: ",
+					"There was an error setting both the block gorup and blocked sites data: ",
 					errorMsg,
 				);
-				event.reply("BlockGroupAndBlockedSitesData/set/response", {
+				event.reply("blockgroup_blockedsites/set/response", {
 					error: errorMsg,
 				});
 			}
@@ -531,6 +464,37 @@ function getBlockedSitesDataAll(): Statement<unknown[], unknown> | undefined {
 function getBlockGroup(): Statement<unknown[], unknown> | undefined {
 	return db?.prepare("SELECT * FROM block_group");
 }
+function setBlockGroup(
+	group: BlockGroup,
+	new_group_name: string | undefined = undefined,
+): void {
+	if (!group) throw "Invalid data provided for renaming block group";
+
+	// if rename config exists and wants to rename, then rename
+	const name =
+		new_group_name && group.group_name !== new_group_name
+			? new_group_name
+			: group.group_name;
+
+	db
+		?.prepare(
+			`UPDATE block_group 
+					SET 
+						group_name = ?, 
+						is_activated = ?, 
+						is_grayscaled = ?, 
+						is_covered = ?, 
+						is_muted = ? 
+					WHERE id = ?`,
+		)
+		.run(
+			name,
+			group.is_activated,
+			group.is_grayscaled,
+			group.is_covered,
+			group.is_muted,
+		);
+}
 
 function initBlockedSitesData(): void {
 	db
@@ -551,19 +515,24 @@ function initBlockGroup(): void {
 			`CREATE TABLE IF NOT EXISTS block_group(
 				id INTEGER PRIMARY KEY,
 				group_name VARCHAR(255) NOT NULL,
-				is_grayscaled INTEGER DEFAULT 1,
+				is_grayscaled INTEGER DEFAULT 0,
 				is_covered INTEGER DEFAULT 0,
 				is_muted Integer DEFAULT 0,
 				is_activated Integer DEFAULT 0,
-
-				usage_time_left INTEGER,
-				usage_time_value INTEGER,
-				usage_reset_period VARCHAR(255) NOT NULL,
-
-				lock_type VARCHAR(255) DEFAULT NULL
 			)`,
 		)
 		.run();
+}
+function initBlockGroupConfig(): void {
+	db?.prepare(
+		`CREATE TABLE IF NOT EXISTS block_group_config (
+			id INTEGER PRIMARY KEY,
+			block_group_id INTEGER NOT NULL REFERENCES block_group(id),
+			config_type VARCHAR(255),
+			config_data JSON,
+			FOREIGN KEY (block_group_id) REFERENCES block_group(id)
+		)`,
+	);
 }
 function initUsageLog(): void {
 	db
@@ -580,8 +549,9 @@ function initUsageLog(): void {
 		.run();
 }
 
-function deleteBlockGroupAndBlockedSitesData(id): void {
+function blockGroupDelete(id): void {
 	db?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?").run(id);
+	db?.prepare("DELE FROM block_group_config WHERE block_group_id = ?");
 	db?.prepare("DELETE FROM block_group WHERE id = ?").run(id);
 }
 
@@ -602,10 +572,10 @@ function siteIncludes(
 function initToday(): void {
 	db
 		?.prepare(
-			`CREATE TABLE date_today (
+			`CREATE TABLE IF NOT EXISTS date_today (
 				id INTEGER PRIMARY KEY,
 				day_number INTEGER NOT NULL,
-				hour_number INTEGER NOT NULL,
+				hour_number INTEGER NOT NULL
 			)`,
 		)
 		.run();
@@ -635,16 +605,19 @@ function initToday(): void {
 	// }
 	let lastTime = new Date();
 	const one_minute = 60 * 1000;
-	async function recursiveTimeChecker(): Promise<void> {
+	function recursiveTimeChecker(): void {
 		const currentTime = new Date();
 
 		if (currentTime.getTime() - lastTime.getTime() < one_minute) {
 			setTimeout(recursiveTimeChecker, 1000);
 			return;
 		}
+		console.log("renewing date..");
+
 		db
 			?.prepare("UPDATE date_today set day_number = ?, hour_number = ?")
 			.run(currentTime.getDate(), currentTime.getHours() + 1);
+		lastTime = currentTime;
 		setTimeout(recursiveTimeChecker, one_minute);
 	}
 	recursiveTimeChecker();

@@ -1,7 +1,6 @@
 // export const text_target_put_response = (): void => {
 // 	window.electron.ipcRenderer.on;
 // };
-
 // export const text_target_put = (
 // 	targetTextInput: string,
 // 	groupIdInput: number | null,
@@ -11,15 +10,10 @@
 // 		group_id: groupIdInput,
 // 	});
 // };
-
-
-
 export const ipcRendererOn = (
 	query: string,
 	callback: (event: Electron.IpcRendererEvent, data) => void,
 ): void => {
-
-
 	window.electron.ipcRenderer.on(query, callback);
 };
 

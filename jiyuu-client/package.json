@@ -32,6 +32,7 @@
     "better-sqlite3": "^11.10.0",
     "electron-updater": "^6.3.9",
     "prettier": "^3.5.3",
+    "react-hook-form": "^7.60.0",
     "react-hot-toast": "^2.5.2",
     "react-router-dom": "^7.6.0",
     "sqlite3": "^5.1.7",

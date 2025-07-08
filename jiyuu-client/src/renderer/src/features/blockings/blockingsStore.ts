@@ -1,3 +1,7 @@
+import {
+	BlockedSites,
+	BlockGroup,
+} from "@renderer/shared/types/jiyuuInterfaces";
 import { create } from "zustand";
 
 type empty_func = (c) => void;
@@ -15,17 +19,17 @@ export const useStore = create<Store>((set) => ({
 	setTargetTextInput: (c: string) => set(() => ({ targetTextInput: c })),
 
 	selectedBlockGroup: null,
-	setSelectedBlockGroup: (c: number | null) =>
+	setSelectedBlockGroup: (c: BlockGroup) =>
 		set(() => ({ selectedBlockGroup: c })),
 
-	isCoveredState: false,
-	setIsCoveredState: (c: boolean) => set(() => ({ isCoveredState: c })),
+	isCoveredState: 0,
+	setIsCoveredState: (c: number) => set(() => ({ isCoveredState: c })),
 
-	isMutedState: false,
-	setIsMutedState: (c: boolean) => set(() => ({ isMutedState: c })),
+	isMutedState: 0,
+	setIsMutedState: (c: number) => set(() => ({ isMutedState: c })),
 
-	isGrayscaledState: false,
-	setIsGrayscaledState: (c: boolean) => set(() => ({ isGrayscaledState: c })),
+	isGrayscaledState: 0,
+	setIsGrayscaledState: (c: number) => set(() => ({ isGrayscaledState: c })),
 
 	isNewGroupModalOpen: false,
 	setIsNewGroupModalOpen: (c: boolean) =>
@@ -52,6 +56,16 @@ export const useStore = create<Store>((set) => ({
 	setIsBlockingModalOpen: (c: boolean) =>
 		set(() => ({ isBlockingModalOpen: c })),
 
+	// USAGE TIMER LIMIT MODAL COMPONENT - Added implementations
+	isUsageLimitModalOpen: false,
+	setUsageLimitModalOpen: (c: boolean) =>
+		set(() => ({ isUsageLimitModalOpen: c })),
+	usageTimeValueNumber: 0,
+	setUsageTimeValueNumber: (c: number) =>
+		set(() => ({ usageTimeValueNumber: c })),
+	usageResetPeriod: 0,
+	setUsageResetPeriod: (c: number) => set(() => ({ usageResetPeriod: c })),
+
 	selectedPeriod: "1d",
 	setSelectedPeriod: (c: "1d" | "1w" | "1m") =>
 		set(() => ({ selectedPeriod: c })),
@@ -67,16 +81,17 @@ interface Store {
 	targetTextInput: string;
 	setTargetTextInput: empty_func;
 
-	selectedBlockGroup: number | null;
+	// the group id of a clicked group
+	selectedBlockGroup: BlockGroup | null;
 	setSelectedBlockGroup: empty_func;
 
-	isCoveredState: boolean;
+	isCoveredState: number;
 	setIsCoveredState: empty_func;
 
-	isMutedState: boolean;
+	isMutedState: number;
 	setIsMutedState: empty_func;
 
-	isGrayscaledState: boolean;
+	isGrayscaledState: number;
 	setIsGrayscaledState: empty_func;
 
 	// NEW GROUP MODAL COMPONENT
@@ -97,7 +112,15 @@ interface Store {
 	RenameOldGroupName: string;
 	setRenameOldGroupName: empty_func;
 
-	// BLOCKING MODAL
+	// USAGE TIMER LIMIT MODAL COMPONENT
+	isUsageLimitModalOpen: boolean;
+	setUsageLimitModalOpen: empty_func;
+	usageTimeValueNumber: number;
+	setUsageTimeValueNumber: empty_func;
+	usageResetPeriod: number;
+	setUsageResetPeriod: empty_func;
+
+	// BLOCKING MODAL (show blocked sites of a group)
 	isBlockingModalOpen: boolean;
 	setIsBlockingModalOpen: empty_func;
 
@@ -105,28 +128,6 @@ interface Store {
 	setSelectedPeriod: empty_func;
 }
 
-export interface SiteAttribute {
-	desc: string;
-	keywords: string;
-	url: string;
-	title: string;
-	descDoc: string;
-	keywordsDoc: string;
-}
-export interface BlockParameters {
-	is_grayscaled: 0 | 1;
-	is_covered: 0 | 1;
-	is_muted: 0 | 1;
-}
-export interface BlockGroup extends BlockParameters {
-	id: number;
-	group_name: string;
-	is_activated: 0 | 1;
-}
-export interface BlockedSites {
-	target_text: string;
-	block_group_id: number;
-}
 export const menuButtonStyle = {
 	letterSpacing: 0.5,
 	fontWeight: 700,

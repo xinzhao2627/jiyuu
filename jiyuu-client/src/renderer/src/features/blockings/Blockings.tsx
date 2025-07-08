@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as React from "react";
 import { useEffect } from "react";
-import { BlockGroup, menuButtonStyle, useStore } from "./blockingsStore";
-import toast, { Toaster } from "react-hot-toast";
+import { menuButtonStyle, useStore } from "./blockingsStore";
+import toast from "react-hot-toast";
 import {
 	Button,
 	Card,
@@ -23,6 +23,9 @@ import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
+import UsageLimitModal from "./components/usageLimitModal";
+import { BlockGroup } from "@renderer/shared/types/jiyuuInterfaces";
+
 export default function Blockings(): React.JSX.Element {
 	const {
 		blockGroupData,
@@ -37,6 +40,10 @@ export default function Blockings(): React.JSX.Element {
 		setIsDeleteGroupModalOpen,
 		setIsRenameGroupModalOpen,
 		setRenameOldGroupName,
+		setUsageLimitModalOpen,
+
+		setUsageResetPeriod,
+		setUsageTimeValueNumber,
 	} = useStore();
 
 	const openModal = (v: BlockGroup): void => {
@@ -48,113 +55,117 @@ export default function Blockings(): React.JSX.Element {
 	};
 
 	useEffect(() => {
-		ipcRendererOn("blockedsites/put/response", (_, data) => {
-			if (data.error)
-				console.error("putting target text response: ", data.error);
-			else console.info("inserting data success");
-		});
+		const listeners = [
+			{
+				channel: "blockedsites/put/response",
+				handler: (_, data) => {
+					if (data.error)
+						console.error("putting target text response: ", data.error);
+					else console.info("inserting data success");
+				},
+			},
+			{
+				// RECEIVE BLOCK GROUP RESPONSE
+				channel: "blockgroup/get/response",
+				handler: (_, data) => {
+					if (data.error)
+						console.error("Error blockgroup/get/response: ", data.error);
+					setBlockGroupData(data.data);
+				},
+			},
+			{
+				// RECEIVE BLOCK GROUP (ONE ONLY) RESPONSE
+				channel: "blockgroup/get/id/response",
+				handler: (_, data) => {
+					if (data.error)
+						console.error("Error blockgroup/get/id/response: ", data.error);
+				},
+			},
+			{
+				// RECEIVE BLOCK GROUP (USAGE ONLY) RESPONSE
+				channel: "blockgroup/get/usage/response",
+				handler: (_, data) => {
+					if (data.error)
+						console.error("Error blockgroup/get/usage/response: ", data.error);
+					else {
+						console.log(data);
 
-		// RECEIVE BLOCK GROUP RESPONSE
-		ipcRendererOn("blockgroup/get/response", (_, data) => {
-			if (data.error)
-				console.error("Error blockgroup/get/response: ", data.error);
-			setBlockGroupData(data.data);
+						setUsageResetPeriod(data.period);
+						setUsageTimeValueNumber(data.timeLeft);
+					}
+				},
+			},
+			{
+				channel: "blockgroup/set/response",
+				handler: (_, data) => {
+					if (data.error) {
+						console.error("Error blockgroup/rename/response: ", data.error);
+						toast.error(data.error);
+					} else if (data.info) toast.success(data.info);
+				},
+			},
+			{
+				// RECEIVE BLOCK GROUP CREATE/PUT RESPONSE (when you create a block  group)
+				channel: "blockgroup/put/response",
+				handler: (_, data) => {
+					if (data.error) {
+						console.error("Error blockgroup/get/response: ", data.error);
+						toast.error(data.error);
+					} else if (data.info) toast.success(data.info);
+				},
+			},
+			{
+				// RECEIVE BLOCK SITE RESPONSE
+				channel: "blockedsites/get/response",
+				handler: (_, data) => {
+					if (data.error)
+						console.error("Error fetching group block: ", data.error);
+					else setBlockedSitesData(data.data);
+				},
+			},
+			{
+				// SETTING ALL BLOCK GROUP DATA AND BLOCKED SITES DATA response
+				channel: "blockgroup_blockedsites/set/response",
+				handler: (_, data) => {
+					if (data.error)
+						console.error("ERROR MODIFYING THE ENTIRE GORUP: ", data.error);
+					else if (data.info) toast.success(data.info);
+				},
+			},
+			{
+				// gets a reply when deleting a block group
+				channel: "blockgroup/delete/response",
+				handler: (_, data) => {
+					if (data.error) {
+						console.error("Error deleting a block group: ", data.error);
+						toast.error(data.error);
+					} else if (data.info) toast.success(data.info);
+				},
+			},
+		];
+		listeners.forEach((v) => {
+			ipcRendererOn(v.channel, v.handler);
 		});
-		// RECEIVE BLOCK GROUP RENAME RESPONSE
-		ipcRendererOn("blockgroup/rename/response", (_, data) => {
-			if (data.error) {
-				console.error("Error blockgroup/rename/response: ", data.error);
-				toast.error(data.error);
-			} else if (data.info) toast.success(data.info);
-		});
-		// RECEIVE BLOCK GROUP CREATE/PUT RESPONSE (when you create a block  group)
-		ipcRendererOn("blockgroup/put/response", (_, data) => {
-			if (data.error) {
-				console.error("Error blockgroup/get/response: ", data.error);
-				toast.error(data.error);
-			} else if (data.info) toast.success(data.info);
-		});
-
-		ipcRendererOn("blockgroup/set/isactivated/response", (_, data) => {
-			if (data.error) {
-				console.error(
-					"blockgroup/set/isactivated/response error: ",
-					data.error,
-				);
-			} else console.info("is_activated setup of a block group success");
-		});
-
-		// RECEIVE BLOCK SITE RESPONSE
-		ipcRendererOn("blockedsites/get/response", (_, data) => {
-			if (data.error) console.error("Error fetching group block: ", data.error);
-			setBlockedSitesData(data.data);
-			console.log("Bsite data: ", data.data);
-			if (data.blockGroupSettings) {
-				const settings = data.blockGroupSettings;
-				console.log("Bsite Settings: ", settings);
-
-				// set all the values of the selected blockgroup
-				setSelectedBlockGroup(settings.id);
-				setIsCoveredState(Boolean(settings.is_covered));
-				setIsMutedState(Boolean(settings.is_muted));
-				setIsGrayscaledState(Boolean(settings.is_grayscaled));
-
-				// also show the modal itself
-				setIsBlockingModalOpen(true);
-			}
-		});
-
 		// GET ALL BLOCK GROUP (INITIALIZATION)
 		ipcRendererSend("blockgroup/get", { init: true });
 
-		// // GET ALL BLOCK SITE
-		// ipcRendererSend("blockedsites/get", { init: true });
-
-		// SETTING ALL BLOCK GROUP DATA AND BLOCKED SITES DATA response
-		ipcRendererOn("BlockGroupAndBlockedSitesData/set/response", (_, data) => {
-			if (data.error)
-				console.error("ERROR MODIFYING THE ENTIRE GORUP: ", data.error);
-			else if (data.info) toast.success(data.info);
-		});
-
-		// gets a reply when deleting a block group
-		ipcRendererOn(
-			"BlockGroupAndBlockedSitesData/delete/response",
-			(_, data) => {
-				if (data.error) {
-					console.error("Error deleting a block group: ", data.error);
-					toast.error(data.error);
-				} else if (data.info) toast.success(data.info);
-			},
-		);
+		// UPDATES GROUP EVERY MINUTE
+		let lt = new Date();
+		function recursiveGroupChecker(): void {
+			const ct = new Date();
+			if (ct.getTime() - lt.getTime() < 60000) {
+				setTimeout(recursiveGroupChecker, 1000);
+				return;
+			}
+			lt = ct;
+			ipcRendererSend("blockgroup/get", {});
+		}
+		recursiveGroupChecker();
 
 		return () => {
-			window.electron.ipcRenderer.removeAllListeners(
-				"blockedsites/put/response",
-			);
-
-			window.electron.ipcRenderer.removeAllListeners("blockgroup/get/response");
-			window.electron.ipcRenderer.removeAllListeners(
-				"blockgroup/rename/response",
-			);
-			window.electron.ipcRenderer.removeAllListeners(
-				"blockedsites/get/response",
-			);
-			window.electron.ipcRenderer.removeAllListeners("blockgroup/put/response");
-			window.electron.ipcRenderer.removeAllListeners(
-				"blockgroup/set/isactivated/response",
-			);
-
-			window.electron.ipcRenderer.removeAllListeners(
-				"blockedsites/get/response",
-			);
-
-			window.electron.ipcRenderer.removeAllListeners(
-				"BlockGroupAndBlockedSitesData/set/response",
-			);
-			window.electron.ipcRenderer.removeAllListeners(
-				"BlockGroupAndBlockedSitesData/delete/response",
-			);
+			listeners.forEach((v) => {
+				window.electron.ipcRenderer.removeAllListeners(v.channel);
+			});
 		};
 	}, []);
 
@@ -216,7 +227,13 @@ export default function Blockings(): React.JSX.Element {
 											<Typography
 												variant="h5"
 												component={"div"}
-												onClick={() => openModal(v)}
+												onClick={() => {
+													setSelectedBlockGroup(v);
+													setIsCoveredState(v.is_covered);
+													setIsGrayscaledState(v.is_grayscaled);
+													setIsMutedState(v.is_muted);
+													openModal(v);
+												}}
 												sx={{
 													color: "#424242",
 													"&:hover": { color: "#229799" },
@@ -230,18 +247,21 @@ export default function Blockings(): React.JSX.Element {
 											>
 												{v.group_name}
 											</Typography>
-
-											<Switch
-												checked={Boolean(v.is_activated)}
-												size="medium"
-												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-													ipcRendererSend("blockgroup/set/isactivated", {
-														group_id: v.id,
-														is_activated: e.target.checked,
-													});
-													ipcRendererSend("blockgroup/get", {});
-												}}
-											/>
+											<div style={{ display: "inline-block" }}>
+												<Switch
+													checked={Boolean(v.is_activated)}
+													size="medium"
+													onChange={(
+														e: React.ChangeEvent<HTMLInputElement>,
+													) => {
+														ipcRendererSend("blockgroup/set/isactivated", {
+															group_id: v.id,
+															is_activated: e.target.checked,
+														});
+														ipcRendererSend("blockgroup/get", {});
+													}}
+												/>
+											</div>
 										</Stack>
 									</CardContent>
 									<CardActions sx={{ flex: 1 }}>
@@ -254,9 +274,10 @@ export default function Blockings(): React.JSX.Element {
 										>
 											<Button
 												size="small"
+												variant="outlined"
 												onClick={(e) => {
 													e.stopPropagation();
-													setSelectedBlockGroup(v.id);
+													setSelectedBlockGroup(v);
 													setIsDeleteGroupModalOpen(true);
 												}}
 												sx={menuButtonStyle}
@@ -265,16 +286,37 @@ export default function Blockings(): React.JSX.Element {
 											</Button>
 											<Button
 												size="small"
+												variant="outlined"
 												onClick={(e) => {
 													e.stopPropagation();
-													setSelectedBlockGroup(v.id);
+													setSelectedBlockGroup(v);
 													setIsRenameGroupModalOpen(true);
-													setRenameOldGroupName(v.group_name);
 												}}
 												sx={menuButtonStyle}
 											>
 												Rename
 											</Button>
+											{/* <Button
+												disabled={v.lock_type !== null}
+												variant="text"
+												size="small"
+												disableRipple
+												color="secondary"
+												sx={menuButtonStyle}
+												onClick={(e) => {
+													e.stopPropagation();
+													setSelectedBlockGroup(v.id);
+													ipcRendererSend("blockgroup/get/usage", { id: v.id });
+													setUsageLimitModalOpen(true);
+												}}
+											>
+												Usage limit{" "}
+												{v.usage_time_left === null
+													? "(not set)"
+													: v.lock_type === null
+														? "(locked)"
+														: null}
+											</Button> */}
 										</Stack>
 									</CardActions>
 								</Card>
@@ -287,7 +329,9 @@ export default function Blockings(): React.JSX.Element {
 					color="primary"
 					variant="extended"
 					disableRipple
-					onClick={() => setIsNewGroupModalOpen(true)}
+					onClick={() => {
+						setIsNewGroupModalOpen(true);
+					}}
 					sx={{
 						position: "fixed",
 						bottom: 90,
@@ -304,16 +348,7 @@ export default function Blockings(): React.JSX.Element {
 			<NewBlockGroupModal />
 			<DeleteBlockGroupModal />
 			<RenameBlockGroupModal />
-			<Toaster
-				position="top-center"
-				toastOptions={{
-					className: "roboto-toast",
-					duration: 1200,
-					style: {
-						fontWeight: "600",
-					},
-				}}
-			/>
+			{/* <UsageLimitModal /> */}
 		</>
 	);
 }
