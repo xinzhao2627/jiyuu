@@ -54,7 +54,10 @@ export default function BlockingModal(): React.JSX.Element {
 		} else {
 			setBlockedSitesData([
 				...blockedSitesData,
-				{ block_group_id: selectedBlockGroup, target_text: targetTextInput },
+				{
+					block_group_id: selectedBlockGroup?.id,
+					target_text: targetTextInput,
+				},
 			]);
 		}
 	};
@@ -67,18 +70,18 @@ export default function BlockingModal(): React.JSX.Element {
 		setTargetTextInput("");
 	};
 	const saveNewBlockGroup_and_BlockedSitesData = (): void => {
-		setSelectedBlockGroup({
-			...selectedBlockGroup,
-			is_grayscaled: isGrayscaledState,
-			is_covered: isCoveredState,
-			is_muted: isMutedState,
-		});
 		ipcRendererSend("blockgroup_blockedsites/set", {
-			group: selectedBlockGroup,
+			group: {
+				...selectedBlockGroup,
+				is_grayscaled: isGrayscaledState ? 1 : 0,
+				is_covered: isCoveredState ? 1 : 0,
+				is_muted: isMutedState ? 1 : 0,
+			},
 			blocked_sites_data: blockedSitesData,
 		});
+
 		// refesh block group if needed (optional)
-		// ipcRendererSend("blockgroup/get", {});
+		ipcRendererSend("blockgroup/get", {});
 	};
 	return (
 		<Modal

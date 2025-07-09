@@ -69,6 +69,14 @@ export const useStore = create<Store>((set) => ({
 	selectedPeriod: "1d",
 	setSelectedPeriod: (c: "1d" | "1w" | "1m") =>
 		set(() => ({ selectedPeriod: c })),
+
+	// CONFIG MODAL
+	isConfigModalOpen: false,
+	setIsConfigModalOpen: (c: boolean) => set(() => ({ isConfigModalOpen: c })),
+
+	// config type (from config modal)
+	configType: "",
+	setConfigType: (c: string) => set(() => ({ configType: c })),
 }));
 
 interface Store {
@@ -126,6 +134,14 @@ interface Store {
 
 	selectedPeriod: "1d" | "1w" | "1m";
 	setSelectedPeriod: empty_func;
+
+	// CONFIG MODAL
+	isConfigModalOpen: boolean;
+	setIsConfigModalOpen: empty_func;
+
+	// config type (from config modal)
+	configType: string;
+	setConfigType: empty_func;
 }
 
 export const menuButtonStyle = {

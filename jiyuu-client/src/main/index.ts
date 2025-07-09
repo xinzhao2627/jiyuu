@@ -196,10 +196,10 @@ app.whenReady().then(() => {
 			};
 
 			setBlockGroup(group, new_group_name);
-			event.reply("blockgroup/set/response", { info: "Rename successful" });
+			event.reply("blockgroup/set/response", { info: "Successful" });
 		} catch (err) {
 			const errorMsg = err instanceof Error ? err.message : String(err);
-			console.error("error renaming in blockgroup: ", errorMsg);
+			console.error("Error in blockgroup: ", errorMsg);
 			event.reply("blockgroup/set/response", { error: errorMsg });
 		}
 	});
@@ -207,9 +207,10 @@ app.whenReady().then(() => {
 	// delete a block group and corresponding blocked sites of that group
 	ipcMain.on("blockgroup/delete", (event: Electron.IpcMainEvent, data) => {
 		try {
-			const { id } = data;
+			const { id } = data as { id: number };
 			if (!id)
 				throw "Invalid data provided for deleting block group and blocked sites data";
+			console.log(id);
 
 			blockGroupDelete(id);
 			event.reply("blockgroup/delete/response", {
@@ -493,6 +494,7 @@ function setBlockGroup(
 			group.is_grayscaled,
 			group.is_covered,
 			group.is_muted,
+			group.id,
 		);
 }
 
@@ -518,7 +520,7 @@ function initBlockGroup(): void {
 				is_grayscaled INTEGER DEFAULT 0,
 				is_covered INTEGER DEFAULT 0,
 				is_muted Integer DEFAULT 0,
-				is_activated Integer DEFAULT 0,
+				is_activated Integer DEFAULT 0
 			)`,
 		)
 		.run();
@@ -549,9 +551,11 @@ function initUsageLog(): void {
 		.run();
 }
 
-function blockGroupDelete(id): void {
+function blockGroupDelete(id: number): void {
 	db?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?").run(id);
-	db?.prepare("DELE FROM block_group_config WHERE block_group_id = ?");
+	db
+		?.prepare("DELETE FROM block_group_config WHERE block_group_id = ?")
+		.run(id);
 	db?.prepare("DELETE FROM block_group WHERE id = ?").run(id);
 }
 

@@ -52,6 +52,7 @@ export default function Blockings(): React.JSX.Element {
 			id: v.id,
 			group_name: v.group_name,
 		});
+		setIsBlockingModalOpen(true);
 	};
 
 	useEffect(() => {
@@ -99,7 +100,7 @@ export default function Blockings(): React.JSX.Element {
 				channel: "blockgroup/set/response",
 				handler: (_, data) => {
 					if (data.error) {
-						console.error("Error blockgroup/rename/response: ", data.error);
+						console.error("Error blockgroup/set/response: ", data.error);
 						toast.error(data.error);
 					} else if (data.info) toast.success(data.info);
 				},
@@ -254,9 +255,11 @@ export default function Blockings(): React.JSX.Element {
 													onChange={(
 														e: React.ChangeEvent<HTMLInputElement>,
 													) => {
-														ipcRendererSend("blockgroup/set/isactivated", {
-															group_id: v.id,
-															is_activated: e.target.checked,
+														ipcRendererSend("blockgroup/set", {
+															group: {
+																...v,
+																is_activated: e.target.checked ? 1 : 0,
+															},
 														});
 														ipcRendererSend("blockgroup/get", {});
 													}}
@@ -295,6 +298,14 @@ export default function Blockings(): React.JSX.Element {
 												sx={menuButtonStyle}
 											>
 												Rename
+											</Button>
+											<Button
+												variant="text"
+												color="primary"
+												disableRipple
+												sx={menuButtonStyle}
+											>
+												Blocking config
 											</Button>
 											{/* <Button
 												disabled={v.lock_type !== null}

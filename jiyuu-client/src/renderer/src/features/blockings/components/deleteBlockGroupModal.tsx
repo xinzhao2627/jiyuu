@@ -40,8 +40,8 @@ export default function DeleteBlockGroupModal(): React.JSX.Element {
 							color="primary"
 							onClick={() => {
 								// send the id that is about to be deleted in the server
-								ipcRendererSend("BlockGroupAndBlockedSitesData/delete", {
-									id: selectedBlockGroup,
+								ipcRendererSend("blockgroup/delete", {
+									id: selectedBlockGroup?.id,
 								});
 								setIsDeleteGroupModalOpen(false);
 								setSelectedBlockGroup(null);
