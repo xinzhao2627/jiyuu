@@ -25,6 +25,7 @@ import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import UsageLimitModal from "./components/usageLimitModal";
 import { BlockGroup } from "@renderer/shared/types/jiyuuInterfaces";
+import ConfigModal from "./components/configModal";
 
 export default function Blockings(): React.JSX.Element {
 	const {
@@ -39,9 +40,7 @@ export default function Blockings(): React.JSX.Element {
 		setIsBlockingModalOpen,
 		setIsDeleteGroupModalOpen,
 		setIsRenameGroupModalOpen,
-		setRenameOldGroupName,
-		setUsageLimitModalOpen,
-
+		setIsConfigModalOpen,
 		setUsageResetPeriod,
 		setUsageTimeValueNumber,
 	} = useStore();
@@ -304,6 +303,7 @@ export default function Blockings(): React.JSX.Element {
 												color="primary"
 												disableRipple
 												sx={menuButtonStyle}
+												onClick={() => setIsConfigModalOpen(true)}
 											>
 												Blocking config
 											</Button>
@@ -359,6 +359,7 @@ export default function Blockings(): React.JSX.Element {
 			<NewBlockGroupModal />
 			<DeleteBlockGroupModal />
 			<RenameBlockGroupModal />
+			<ConfigModal />
 			{/* <UsageLimitModal /> */}
 		</>
 	);

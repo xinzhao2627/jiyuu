@@ -112,9 +112,12 @@ app.whenReady().then(() => {
 				blockGroupSettings: blockGroupSettings,
 			});
 		} catch (err) {
-			const errorMsg = err instanceof Error ? err.message : String(err);
-			console.error("error getting block sites: ", errorMsg);
-			event.reply("blockedsites/get/response", { error: errorMsg, data: [] });
+			showError(
+				err,
+				event,
+				"Error getting block sites: ",
+				"blockedsites/get/response",
+			);
 		}
 	});
 
@@ -130,9 +133,12 @@ app.whenReady().then(() => {
 				.run(data.target_text, data.group_id);
 			event.reply("blockedsites/put/response", { error: "" });
 		} catch (err) {
-			const errorMsg = err instanceof Error ? err.message : String(err);
-			console.error("error inserting in block_site: ", errorMsg);
-			event.reply("blockedsites/put/response", { error: errorMsg });
+			showError(
+				err,
+				event,
+				"Error inserting in block_site: ",
+				"blockedsites/put/response",
+			);
 		}
 	});
 
@@ -142,8 +148,12 @@ app.whenReady().then(() => {
 			const rows = getBlockGroup()?.all() || [];
 			event.reply("blockgroup/get/response", { data: rows });
 		} catch (err) {
-			const errorMsg = err instanceof Error ? err.message : String(err);
-			event.reply("blockgroup/get/response", { error: errorMsg, data: [] });
+			showError(
+				err,
+				event,
+				"Error getting block groups: ",
+				"blockgroup/get/response",
+			);
 		}
 	});
 
@@ -158,8 +168,12 @@ app.whenReady().then(() => {
 			if (!row) throw new Error(`Block group with ID ${id} not found`);
 			event.reply("blockgroup/get/id/response", { data: row });
 		} catch (err) {
-			const errorMsg = err instanceof Error ? err.message : String(err);
-			event.reply("blockgroup/get/id/response", { error: errorMsg });
+			showError(
+				err,
+				event,
+				"Error getting block group by ID: ",
+				"blockgroup/get/id/response",
+			);
 		}
 	});
 
@@ -182,8 +196,12 @@ app.whenReady().then(() => {
 				info: `Group ${_data.group_name} added.`,
 			});
 		} catch (err) {
-			const errorMsg = err instanceof Error ? err.message : String(err);
-			event.reply("blockgroup/put/response", { error: errorMsg, data: [] });
+			showError(
+				err,
+				event,
+				"Error creating block group: ",
+				"blockgroup/put/response",
+			);
 		}
 	});
 
@@ -198,9 +216,12 @@ app.whenReady().then(() => {
 			setBlockGroup(group, new_group_name);
 			event.reply("blockgroup/set/response", { info: "Successful" });
 		} catch (err) {
-			const errorMsg = err instanceof Error ? err.message : String(err);
-			console.error("Error in blockgroup: ", errorMsg);
-			event.reply("blockgroup/set/response", { error: errorMsg });
+			showError(
+				err,
+				event,
+				"Error setting block group: ",
+				"blockgroup/set/response",
+			);
 		}
 	});
 
@@ -217,14 +238,12 @@ app.whenReady().then(() => {
 				info: "Deleted successfully",
 			});
 		} catch (err) {
-			const errorMsg = err instanceof Error ? err.message : String(err);
-			console.error(
+			showError(
+				err,
+				event,
 				"There was an error deleting block group including blocked sites data: ",
-				errorMsg,
+				"blockgroup/delete/response",
 			);
-			event.reply("blockgroup/delete/response", {
-				error: errorMsg,
-			});
 		}
 	});
 
@@ -264,17 +283,29 @@ app.whenReady().then(() => {
 					info: "MODIFYING THE ENTIRE GROUP SUCCESS",
 				});
 			} catch (err) {
-				const errorMsg = err instanceof Error ? err.message : String(err);
-				console.error(
-					"There was an error setting both the block gorup and blocked sites data: ",
-					errorMsg,
+				showError(
+					err,
+					event,
+					"Error setting both the block group and blocked sites data: ",
+					"blockgroup_blockedsites/set/response",
 				);
-				event.reply("blockgroup_blockedsites/set/response", {
-					error: errorMsg,
-				});
 			}
 		},
 	);
+
+	ipcMain.on("blockgroupconfig/set", (event: Electron.IpcMainEvent, data) => {
+		try {
+			const { id, config_type, config_data } = data;
+			if (!(id && config_type && config_data)) throw "invalid post input...";
+		} catch (err) {
+			showError(
+				err,
+				event,
+				"Error setting up group config",
+				"blockgroupconfig/set",
+			);
+		}
+	});
 
 	createWindow();
 
@@ -301,7 +332,8 @@ app.whenReady().then(() => {
 					validateTimelist(data, ws);
 				}
 			} catch (e) {
-				console.log("e: ", e);
+				const errorMsg = e instanceof Error ? e.message : String(e);
+				console.error("WebSocket message parsing error: ", errorMsg);
 				console.log("Received non-JSON message:", message.toString());
 			}
 		});
@@ -373,8 +405,8 @@ function validateTimelist(data, ws): void {
 			validateWebpage({ data: v, tabId: v.tabId }, ws);
 		}
 	} catch (error) {
-		const errMsg = error instanceof Error ? error.message : String(error);
-		console.log("validate timelist error: ", errMsg);
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		console.error("Validate timelist error: ", errorMsg);
 	}
 }
 
@@ -426,10 +458,8 @@ function validateWebpage(data, ws): void {
 			}),
 		);
 	} catch (err) {
-		console.log(
-			"unable to block sites, cause: ",
-			err instanceof Error ? err.message : String(err),
-		);
+		const errorMsg = err instanceof Error ? err.message : String(err);
+		console.error("Unable to block sites, cause: ", errorMsg);
 	}
 }
 
@@ -570,6 +600,18 @@ function siteIncludes(
 		siteData.title?.includes(target) ||
 		siteData.url?.includes(target)
 	);
+}
+function showError(
+	err: unknown,
+	event: Electron.IpcMainEvent,
+	indication: string,
+	channel: string,
+): void {
+	const errorMsg = err instanceof Error ? err.message : String(err);
+	console.error(indication, errorMsg);
+	event.reply(channel, {
+		error: errorMsg,
+	});
 }
 
 // initialize time for today when the app opens, and also initialize it every minute
