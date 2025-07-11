@@ -44,15 +44,17 @@ async function log_to_server() {
 				const tabData = timeList.get(baseUrl);
 
 				// put the content here, as well as initialize the seconds and startTime to prevent NaN
-				timeList.set(baseUrl, {
+				timeList.set(tab.url, {
 					...tabData,
 					...feedback.data,
 					secondsElapsed: tabData?.secondsElapsed || 0,
 					startTime: tabData?.startTime || currentTime,
 					tabId: tabData?.tabId ? tabData.tabId : tab.id,
 					day: currentTime.getDate(),
-					hour: currentTime.getHours() + 1,
+					hour: currentTime.getHours(),
 					month: currentTime.getMonth() + 1,
+					baseUrl: baseUrl,
+					fullUrl: tab.url,
 				});
 			}
 		}
@@ -88,13 +90,13 @@ function incrementor() {
 	chrome.tabs.query({ active: true }, (tabs) => {
 		for (let tab of tabs) {
 			if (/^https?:\/\//.test(tab.url)) {
-				const baseUrl = getBaseUrl(tab);
-				const tabData = timeList.get(baseUrl);
+				// const baseUrl = getBaseUrl(tab);
+				const tabData = timeList.get(tab.url);
 				const secondsElapsed = Math.floor(
 					(currentTime - (tabData?.startTime || currentTime)) / 1000
 				);
 				timeList.set(
-					baseUrl,
+					tab.url,
 					// only update the seconds elapsed, else initialize it
 					{
 						...tabData,

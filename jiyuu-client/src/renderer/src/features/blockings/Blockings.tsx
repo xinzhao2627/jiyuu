@@ -26,6 +26,7 @@ import "@fontsource/roboto/700.css";
 import UsageLimitModal from "./components/usageLimitModal";
 import { BlockGroup } from "@renderer/shared/types/jiyuuInterfaces";
 import ConfigModal from "./components/configModal";
+import { scrollbarStyle } from "@renderer/assets/shared/modalStyle";
 
 export default function Blockings(): React.JSX.Element {
 	const {
@@ -142,6 +143,24 @@ export default function Blockings(): React.JSX.Element {
 					} else if (data.info) toast.success(data.info);
 				},
 			},
+			{
+				channel: "blockgroupconfig/set",
+				handler: (_, data) => {
+					if (data.error) {
+						console.error("Error setting a block group config: ", data.error);
+						toast.error(data.error);
+					} else if (data.info) toast.success(data.info);
+				},
+			},
+			{
+				channel: "blockgroupconfig/get",
+				handler: (_, data) => {
+					if (data.error) {
+						console.error("Error getting a block group config: ", data.error);
+						toast.error(data.error);
+					} else if (data.info) toast.success(data.info);
+				},
+			},
 		];
 		listeners.forEach((v) => {
 			ipcRendererOn(v.channel, v.handler);
@@ -181,19 +200,7 @@ export default function Blockings(): React.JSX.Element {
 						flex: 1,
 						overflowY: "auto",
 						paddingBottom: 1,
-						"&::-webkit-scrollbar": {
-							width: "6px",
-						},
-						"&::-webkit-scrollbar-track": {
-							backgroundColor: "transparent",
-						},
-						"&::-webkit-scrollbar-thumb": {
-							backgroundColor: "#d0d0d0",
-							borderRadius: "3px",
-						},
-						"&::-webkit-scrollbar-thumb:hover": {
-							backgroundColor: "#b0b0b0",
-						},
+						...scrollbarStyle,
 					}}
 				>
 					{blockGroupData &&
@@ -303,7 +310,11 @@ export default function Blockings(): React.JSX.Element {
 												color="primary"
 												disableRipple
 												sx={menuButtonStyle}
-												onClick={() => setIsConfigModalOpen(true)}
+												onClick={(e) => {
+													e.stopPropagation();
+													setSelectedBlockGroup(v);
+													setIsConfigModalOpen(true);
+												}}
 											>
 												Blocking config
 											</Button>

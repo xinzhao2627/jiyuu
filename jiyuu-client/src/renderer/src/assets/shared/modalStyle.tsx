@@ -34,3 +34,19 @@ export const modalTextFieldStyle: SxProps<Theme> = {
 		},
 	},
 };
+
+export const scrollbarStyle = {
+	"&::-webkit-scrollbar": {
+		width: "6px",
+	},
+	"&::-webkit-scrollbar-track": {
+		backgroundColor: "transparent",
+	},
+	"&::-webkit-scrollbar-thumb": {
+		backgroundColor: "#d0d0d0",
+		borderRadius: "3px",
+	},
+	"&::-webkit-scrollbar-thumb:hover": {
+		backgroundColor: "#b0b0b0",
+	},
+};

@@ -57,13 +57,14 @@
 
 -- select * from blocked_sites
 
--- CREATE TABLE IF NOT EXISTS usage_log (
+-- CREATE TABLE  usage_log (
 --         id INTEGER PRIMARY KEY,
 --         base_url TEXT NOT NULL,
 --         full_url TEXT NOT NULL,
 --         recorded_day INTEGER NOT NULL,
 --         recorded_hour INTEGER NOT NULL,
---         recorded_month INTEGER NOT NULL
+--         recorded_month INTEGER NOT NULL,
+--         seconds_elapsed INTEGER
 -- )
 -- PRAGMA table_info(usage_log)
 -- DROP table usage_log
@@ -79,12 +80,14 @@ CREATE TABLE date_today (
         
 )
 
-drop table block_group
+drop table block_group_config
 
 CREATE TABLE block_group_config (
         id INTEGER PRIMARY KEY,
         block_group_id INTEGER NOT NULL REFERENCES block_group(id),
         config_type VARCHAR(255),
         config_data JSON,
-        FOREIGN KEY (block_group_id) REFERENCES block_group(id)
-)
+        UNIQUE(block_group_id, config_type) ON CONFLICT REPLACE
+);
+
+select * from block_group_config

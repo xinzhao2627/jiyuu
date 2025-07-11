@@ -7,15 +7,17 @@ export interface SiteAttribute {
 	descDoc: string;
 	keywordsDoc: string;
 }
-export interface SiteTime extends SiteAttribute {
+export interface TimeListInterface extends SiteAttribute {
 	secondsElapsed: number;
 	startTime: Date;
-	lastLogTime: Date;
+	tabId: number;
+	day: number;
+	hour: number;
+	month: number;
+	baseUrl: string;
+	fullUrl: string;
 }
 
-export interface SiteTime_with_tabId extends SiteTime {
-	tabId: number;
-}
 ////
 export interface BlockedSites {
 	target_text: string;
@@ -38,3 +40,36 @@ export interface BlockGroup {
 	is_muted: 0 | 1;
 	is_activated: 0 | 1;
 }
+
+export type ConfigType =
+	| "usageLimit"
+	| "randomText"
+	| "restrictTimer"
+	| "password";
+export interface ConfigCommonType {
+	config_type: ConfigType;
+}
+export interface UsageLimitData_Config {
+	usage_time_left: number;
+	usage_reset_value: number;
+	usage_reset_type: "daily" | "weekly" | "hourly";
+	config_type: "usageLimit";
+}
+export interface Password_Config {
+	password: string;
+	config_type: "password";
+}
+export interface RestrictTimer_Config {
+	start_date: Date;
+	end_date: Date;
+	config_type: "restrictTimer";
+}
+
+export interface RandomText_Config {
+	randomizeText: boolean;
+	config_type: "randomText";
+}
+
+// export interface BlockGroupConfig {
+
+// }

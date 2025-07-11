@@ -22,6 +22,7 @@ import { ipcRendererSend } from "../blockingAPI";
 import {
 	modalStyle,
 	modalTextFieldStyle,
+	scrollbarStyle,
 } from "@renderer/assets/shared/modalStyle";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -69,7 +70,7 @@ export default function ConfigModal(): React.JSX.Element {
 			title: "Random Text",
 			type: "randomText",
 			description:
-				"Encrypts the block group with random text. When deactivating the block group, you need to type the presented text to unlock.",
+				"Restrict the block group with random text. When deactivating the block group, you need to type the presented text to unlock.",
 		},
 		{
 			title: "Restrict Timer",
@@ -80,9 +81,29 @@ export default function ConfigModal(): React.JSX.Element {
 		{
 			title: "Password",
 			type: "password",
-			description: "Set up password to modify this blockgroup",
+			description: "Set up password to restrict access for this blockgroup",
 		},
 	];
+	// TODO: ADD ENDPOINTS FOR ALL configtypoes
+	const resetButton = (): React.JSX.Element => {
+		return (
+			<Button
+				color="error"
+				variant="outlined"
+				onClick={() => {
+					if (configType === "password") {
+						console.log("verify password");
+					}
+					ipcRendererSend("blockgroupconfig/delete", {
+						id: selectedBlockGroup?.id,
+						config_type: configType,
+					});
+				}}
+			>
+				Reset
+			</Button>
+		);
+	};
 	return (
 		<>
 			<Dialog
@@ -94,22 +115,33 @@ export default function ConfigModal(): React.JSX.Element {
 					Configure block settings
 				</DialogTitle>
 
-				<DialogContent>
+				<DialogContent sx={{ overflowY: "auto", ...scrollbarStyle }}>
 					{configType === "" && (
 						<Box
 							sx={{
 								width: "100%",
 								display: "grid",
-								gridTemplateColumns:
-									"repeat(auto-fill, minmax(min(200px, 100%), 1fr))",
+								gridTemplateColumns: "repeat(3, 1fr)",
 								gap: 2,
 							}}
 						>
 							{configTypeList.map((card, i): React.JSX.Element => {
 								return (
-									<Card key={"config - " + i}>
+									<Card
+										key={"config - " + i}
+										sx={{
+											gridColumn:
+												card.type === "usageLimit" ? "1 / -1" : "auto", // Full width for usageLimit
+										}}
+									>
 										<CardActionArea
-											onClick={() => setConfigType(card.type)}
+											onClick={() => {
+												ipcRendererSend("blockgroupconfig/get", {
+													id: selectedBlockGroup?.id,
+													config_type: card.type,
+												});
+												setConfigType(card.type);
+											}}
 											sx={{
 												height: "100%",
 
@@ -140,6 +172,23 @@ export default function ConfigModal(): React.JSX.Element {
 							})}
 						</Box>
 					)}
+					{configType === "" && (
+						<Typography
+							variant="overline"
+							color="initial"
+							sx={{
+								width: "100%",
+								textAlign: "center",
+								// fontStyle: "italic",
+								justifyContent: "center",
+								display: "flex",
+								mt: 2,
+								fontWeight: "600",
+							}}
+						>
+							You can add restriction for this block group
+						</Typography>
+					)}
 					{configType === "usageLimit" && (
 						<form
 							noValidate
@@ -155,19 +204,22 @@ export default function ConfigModal(): React.JSX.Element {
 								) {
 									const res = val * (mode == "minutes" ? 60 : 60 * 60);
 									const data = {
-										block_group_id: selectedBlockGroup?.id,
+										resetPeriod: period,
+										allocatedLimit: res,
 										config_type: configType,
-										config_data: {
-											resetPeriod: period,
-											allocatedLimit: res,
-										},
 									};
+									ipcRendererSend("blockgroupconfig/set", {
+										id: selectedBlockGroup?.id,
+										config_data: data,
+									});
+									toast.success("adding usage successful");
 								} else {
 									toast.error("Error submitting usage limit");
 									console.log(val);
 									console.log(["minutes", "hours"].includes(mode));
 									console.log(["d", "w", "h"].includes(period));
 								}
+								handleClose();
 							})}
 							style={{
 								display: "flex",
@@ -177,7 +229,7 @@ export default function ConfigModal(): React.JSX.Element {
 						>
 							<Stack gap={2}>
 								<Stack direction={"row"} gap={2}>
-									<Box sx={modalTextFieldStyle}>
+									<Box sx={{ ...modalTextFieldStyle }}>
 										<input
 											type="number"
 											id="usageValue"
@@ -201,13 +253,13 @@ export default function ConfigModal(): React.JSX.Element {
 									</Box>
 								</Stack>
 
-								<Box sx={modalTextFieldStyle}>
+								<Box sx={{ ...modalTextFieldStyle }}>
 									<Controller
 										name="usageResetPeriod"
 										defaultValue={usageResetPeriod || "h"}
 										control={control}
 										render={({ field }) => (
-											<Select {...field} size="small">
+											<Select {...field} fullWidth size="small">
 												<MenuItem value={"d"}>Resets daily</MenuItem>
 												<MenuItem value={"w"}>Resets weekly</MenuItem>
 												<MenuItem value={"h"}>Resets hourly</MenuItem>
@@ -215,10 +267,15 @@ export default function ConfigModal(): React.JSX.Element {
 										)}
 									/>
 								</Box>
+								<Button
+									type="submit"
+									variant="contained"
+									sx={{ fontWeight: "600" }}
+								>
+									Submit
+								</Button>
+								{resetButton()}
 							</Stack>
-							<Button type="submit" sx={{ fontWeight: "600" }}>
-								Submit
-							</Button>
 						</form>
 					)}
 				</DialogContent>

@@ -15,9 +15,13 @@ import {
 	BlockedSites,
 	BlockedSites_with_configs,
 	BlockGroup,
+	ConfigType,
+	Password_Config,
+	RandomText_Config,
+	RestrictTimer_Config,
 	SiteAttribute,
-	SiteTime,
-	SiteTime_with_tabId,
+	TimeListInterface,
+	UsageLimitData_Config,
 } from "./jiyuuInterfaces";
 // const connections: WebSocket[] = [];
 // let connections: WebSocket[] = [];
@@ -292,11 +296,73 @@ app.whenReady().then(() => {
 			}
 		},
 	);
+	ipcMain.on("blockgroupconfig/get", (event: Electron.IpcMainEvent, data) => {
+		try {
+			const { id, config_data } = data as {
+				id: number;
+				config_data:
+					| UsageLimitData_Config
+					| RestrictTimer_Config
+					| Password_Config
+					| RandomText_Config;
+			};
+			console.log("data: ", data);
+			if (!(id && config_data)) throw "invalid post input...";
 
+			if (
+				config_data.config_type === "usageLimit" ||
+				config_data.config_type === "password" ||
+				config_data.config_type === "randomText" ||
+				config_data.config_type === "restrictTimer"
+			) {
+				const row = db
+					?.prepare(
+						`
+					SELECT * FROM block_group_config WHERE block_group_id = ? AND config_type = ?
+				`,
+					)
+					.get(id, config_data.config_type);
+
+				event.reply("blockgroupconfig/get/response", { data: row });
+			} else throw "the config type is invalid: " + config_data;
+		} catch (err) {
+			showError(
+				err,
+				event,
+				"Error setting up group config",
+				"blockgroupconfig/get/response",
+			);
+		}
+	});
 	ipcMain.on("blockgroupconfig/set", (event: Electron.IpcMainEvent, data) => {
 		try {
-			const { id, config_type, config_data } = data;
-			if (!(id && config_type && config_data)) throw "invalid post input...";
+			const { id, config_data } = data as {
+				id: number;
+				config_data:
+					| UsageLimitData_Config
+					| RestrictTimer_Config
+					| Password_Config
+					| RandomText_Config;
+			};
+			console.log("data: ", data);
+			if (!(id && config_data)) throw "invalid post input...";
+
+			if (
+				config_data.config_type === "usageLimit" ||
+				config_data.config_type === "password" ||
+				config_data.config_type === "randomText" ||
+				config_data.config_type === "restrictTimer"
+			) {
+				db
+					?.prepare(
+						`
+					INSERT INTO block_group_config(block_group_id, config_type, config_data)
+					VALUES(?, ?, ?)
+				`,
+					)
+					.run(id, config_data.config_type, JSON.stringify(config_data));
+				console.log("successfully changed time");
+			} else throw "the config type is invalid: " + config_data;
 		} catch (err) {
 			showError(
 				err,
@@ -354,23 +420,52 @@ function validateTimelist(data, ws): void {
 	// meaning there could be more than 1 tabs that are sent
 
 	try {
-		console.log(data);
-		const siteData = new Map<string, SiteTime_with_tabId>(
+		// console.log(data);
+		const siteData = new Map<string, TimeListInterface>(
 			Object.entries(data.data),
 		);
-		// const tabId: number = data.tabId;
-
+		// remove tabs with 0 secons consumption
 		function removeNoConsumptions(): void {
 			const keylist = siteData.keys();
 			for (let sd of keylist) {
-				if (!siteData.get(sd)!.secondsElapsed) {
+				if (!siteData.get(sd)?.secondsElapsed) {
 					siteData.delete(sd);
 				}
 			}
 		}
 		removeNoConsumptions();
 
-		// get all listed sites/keyword in jiyuu
+		// TODO: then log the sites in siteData to the usage table (done)
+		function logToUsageLog(): void {
+			const insert = db?.prepare(`
+				INSERT INTO usage_log(base_url, full_url, recorded_day, recorded_hour, recorded_month, seconds_elapsed)
+				VALUES (@base_url, @full_url, @recorded_day, @recorded_hour, @recorded_month, @seconds_elapsed)
+			`);
+			// sitesdatas
+			const insertMany = db?.transaction((sds: Array<TimeListInterface>) => {
+				for (let sd of sds) {
+					if (sd.baseUrl && sd.fullUrl) {
+						console.log("sdd: ", sd);
+
+						const res = {
+							base_url: sd.baseUrl,
+							full_url: sd.fullUrl,
+							recorded_day: sd.day,
+							recorded_hour: sd.hour,
+							recorded_month: sd.month,
+							seconds_elapsed: sd.secondsElapsed,
+						};
+						insert?.run(res);
+					}
+				}
+			});
+			if (insertMany) {
+				insertMany([...siteData.values()]);
+			}
+		}
+		logToUsageLog();
+
+		// then get all listed sites/keyword in jiyuu
 		const rows =
 			(getBlockedSitesDataAll()?.all() as Array<BlockedSites_with_configs>) ||
 			[];
@@ -396,10 +491,43 @@ function validateTimelist(data, ws): void {
 				}
 			}
 		}
+		console.log("available block lists... ", blockGroupsList);
 
-		// TODO: then log the sites in siteData to the usage table
-		// TODO:  with the collected blockgroups list, update the time usage
+		// TODO:  with the collected blockgroups list, update the time usage in config table
+		function updateUsage(): void {
+			console.log("updating...");
+			for (const [k, v] of blockGroupsList) {
+				const configRow = db
+					?.prepare(
+						"SELECT config_type, config_data, block_group_id FROM block_group_config WHERE id = ? AND config_type = usageLimit",
+					)
+					.get(k) as {
+					config_type: ConfigType;
+					config_data: string;
+					block_group_id: number;
+				};
+				if (!configRow) {
+					continue;
+				}
+				const usageLimitData = JSON.parse(
+					configRow.config_data,
+				) as UsageLimitData_Config;
 
+				// here just edit the timeleft, leave the other config data as it is
+				const timeLeft = usageLimitData.usage_time_left - v;
+				const newConfig: UsageLimitData_Config = {
+					...usageLimitData,
+					usage_time_left: timeLeft < 0 ? 0 : timeLeft,
+				};
+
+				db
+					?.prepare(
+						"UPDATE block_group_config SET config_data = ? WHERE id = ?",
+					)
+					.run(JSON.stringify(newConfig), k);
+			}
+		}
+		updateUsage();
 		// then validate if its blocked or not
 		for (let [k, v] of siteData) {
 			validateWebpage({ data: v, tabId: v.tabId }, ws);
@@ -413,7 +541,7 @@ function validateTimelist(data, ws): void {
 // validates 1 site/webpage
 function validateWebpage(data, ws): void {
 	try {
-		const siteData: SiteAttribute | SiteTime | SiteTime_with_tabId = data.data;
+		const siteData: SiteAttribute | TimeListInterface = data.data;
 		const tabId: number = data.tabId;
 
 		// get all blocked sites and their corresponding effects (grayscale, cover, mute)
@@ -590,7 +718,7 @@ function blockGroupDelete(id: number): void {
 }
 
 function siteIncludes(
-	siteData: SiteAttribute | SiteTime,
+	siteData: SiteAttribute | TimeListInterface,
 	target: string,
 	isact: 0 | 1,
 ): boolean {
