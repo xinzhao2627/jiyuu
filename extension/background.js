@@ -53,6 +53,7 @@ async function log_to_server() {
 					day: currentTime.getDate(),
 					hour: currentTime.getHours(),
 					month: currentTime.getMonth() + 1,
+					year: currentTime.getFullYear(),
 					baseUrl: baseUrl,
 					fullUrl: tab.url,
 				});

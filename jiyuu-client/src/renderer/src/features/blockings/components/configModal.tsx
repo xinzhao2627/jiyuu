@@ -26,6 +26,7 @@ import {
 } from "@renderer/assets/shared/modalStyle";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
+import { UsageLimitData_Config } from "@renderer/shared/types/jiyuuInterfaces";
 export default function ConfigModal(): React.JSX.Element {
 	const {
 		register,
@@ -136,6 +137,8 @@ export default function ConfigModal(): React.JSX.Element {
 									>
 										<CardActionArea
 											onClick={() => {
+												console.log(selectedBlockGroup, card.type);
+
 												ipcRendererSend("blockgroupconfig/get", {
 													id: selectedBlockGroup?.id,
 													config_type: card.type,
@@ -202,10 +205,11 @@ export default function ConfigModal(): React.JSX.Element {
 									["minutes", "hours"].includes(mode) &&
 									["d", "w", "h"].includes(period)
 								) {
+									// converts minutes and hours to seconds
 									const res = val * (mode == "minutes" ? 60 : 60 * 60);
 									const data = {
-										resetPeriod: period,
-										allocatedLimit: res,
+										usage_reset_type: period,
+										usage_reset_value: res,
 										config_type: configType,
 									};
 									ipcRendererSend("blockgroupconfig/set", {

@@ -14,6 +14,7 @@ export interface TimeListInterface extends SiteAttribute {
 	day: number;
 	hour: number;
 	month: number;
+	year: number;
 	baseUrl: string;
 	fullUrl: string;
 }
@@ -50,9 +51,9 @@ export interface ConfigCommonType {
 	config_type: ConfigType;
 }
 export interface UsageLimitData_Config {
-	usage_time_left: number;
 	usage_reset_value: number;
-	usage_reset_type: "daily" | "weekly" | "hourly";
+	usage_reset_type: "d" | "w" | "h";
+	usage_time_left: number;
 	config_type: "usageLimit";
 }
 export interface Password_Config {

@@ -57,15 +57,16 @@
 
 -- select * from blocked_sites
 
--- CREATE TABLE  usage_log (
---         id INTEGER PRIMARY KEY,
---         base_url TEXT NOT NULL,
---         full_url TEXT NOT NULL,
---         recorded_day INTEGER NOT NULL,
---         recorded_hour INTEGER NOT NULL,
---         recorded_month INTEGER NOT NULL,
---         seconds_elapsed INTEGER
--- )
+CREATE TABLE  usage_log (
+        id INTEGER PRIMARY KEY,
+        base_url TEXT NOT NULL,
+        full_url TEXT NOT NULL,
+        recorded_day INTEGER NOT NULL,
+        recorded_hour INTEGER NOT NULL,
+        recorded_month INTEGER NOT NULL,
+        recorded_year INTEGER NOT NULL,
+        seconds_elapsed INTEGER
+)
 -- PRAGMA table_info(usage_log)
 -- DROP table usage_log
 
@@ -73,12 +74,14 @@
 -- SELECT * from block_group
 
 
-CREATE TABLE date_today (
+CREATE TABLE IF NOT EXISTS date_today (
         id INTEGER PRIMARY KEY,
-        day_number INTEGER NOT NULL,
-        hour_number INTEGER NOT NULL
-        
+        recorded_day INTEGER NOT NULL,
+        recorded_hour INTEGER NOT NULL,
+        recorded_month INTEGER NOT NULL,
+        recorded_year INTEGER NOT NULL
 )
+drop table date_today
 
 drop table block_group_config
 
@@ -91,3 +94,4 @@ CREATE TABLE block_group_config (
 );
 
 select * from block_group_config
+select * from usage_log

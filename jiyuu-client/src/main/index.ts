@@ -298,22 +298,18 @@ app.whenReady().then(() => {
 	);
 	ipcMain.on("blockgroupconfig/get", (event: Electron.IpcMainEvent, data) => {
 		try {
-			const { id, config_data } = data as {
+			const { id, config_type } = data as {
 				id: number;
-				config_data:
-					| UsageLimitData_Config
-					| RestrictTimer_Config
-					| Password_Config
-					| RandomText_Config;
+				config_type: string;
 			};
-			console.log("data: ", data);
-			if (!(id && config_data)) throw "invalid post input...";
+			// console.log("data: ", data);
+			if (!(id && config_type)) throw "invalid post input...";
 
 			if (
-				config_data.config_type === "usageLimit" ||
-				config_data.config_type === "password" ||
-				config_data.config_type === "randomText" ||
-				config_data.config_type === "restrictTimer"
+				config_type === "usageLimit" ||
+				config_type === "password" ||
+				config_type === "randomText" ||
+				config_type === "restrictTimer"
 			) {
 				const row = db
 					?.prepare(
@@ -321,10 +317,11 @@ app.whenReady().then(() => {
 					SELECT * FROM block_group_config WHERE block_group_id = ? AND config_type = ?
 				`,
 					)
-					.get(id, config_data.config_type);
+					.get(id, config_type);
+				// console.log("row: ", row);
 
-				event.reply("blockgroupconfig/get/response", { data: row });
-			} else throw "the config type is invalid: " + config_data;
+				event.reply("blockgroupconfig/get/response", { data: row ? row : {} });
+			} else throw "the config type is invalid: " + config_type;
 		} catch (err) {
 			showError(
 				err,
@@ -336,7 +333,8 @@ app.whenReady().then(() => {
 	});
 	ipcMain.on("blockgroupconfig/set", (event: Electron.IpcMainEvent, data) => {
 		try {
-			const { id, config_data } = data as {
+			let { id, config_data } = data as {
+				// group id and config data
 				id: number;
 				config_data:
 					| UsageLimitData_Config
@@ -344,24 +342,29 @@ app.whenReady().then(() => {
 					| Password_Config
 					| RandomText_Config;
 			};
-			console.log("data: ", data);
 			if (!(id && config_data)) throw "invalid post input...";
-
-			if (
-				config_data.config_type === "usageLimit" ||
+			if (config_data.config_type === "usageLimit") {
+				db
+					?.prepare(
+						`
+							INSERT INTO block_group_config(block_group_id, config_type, config_data)
+							VALUES(?, ?, ?)
+						`,
+					)
+					.run(
+						id,
+						config_data.config_type,
+						JSON.stringify({
+							...config_data,
+							usage_time_left: config_data.usage_reset_value,
+						}),
+					);
+			} else if (
 				config_data.config_type === "password" ||
 				config_data.config_type === "randomText" ||
 				config_data.config_type === "restrictTimer"
 			) {
-				db
-					?.prepare(
-						`
-					INSERT INTO block_group_config(block_group_id, config_type, config_data)
-					VALUES(?, ?, ?)
-				`,
-					)
-					.run(id, config_data.config_type, JSON.stringify(config_data));
-				console.log("successfully changed time");
+				console.log("not yet finish");
 			} else throw "the config type is invalid: " + config_data;
 		} catch (err) {
 			showError(
@@ -438,8 +441,8 @@ function validateTimelist(data, ws): void {
 		// TODO: then log the sites in siteData to the usage table (done)
 		function logToUsageLog(): void {
 			const insert = db?.prepare(`
-				INSERT INTO usage_log(base_url, full_url, recorded_day, recorded_hour, recorded_month, seconds_elapsed)
-				VALUES (@base_url, @full_url, @recorded_day, @recorded_hour, @recorded_month, @seconds_elapsed)
+				INSERT INTO usage_log(base_url, full_url, recorded_day, recorded_hour, recorded_month, recorded_year, seconds_elapsed)
+				VALUES (@base_url, @full_url, @recorded_day, @recorded_hour, @recorded_month, @recorded_year, @seconds_elapsed)
 			`);
 			// sitesdatas
 			const insertMany = db?.transaction((sds: Array<TimeListInterface>) => {
@@ -453,6 +456,7 @@ function validateTimelist(data, ws): void {
 							recorded_day: sd.day,
 							recorded_hour: sd.hour,
 							recorded_month: sd.month,
+							recorded_year: sd.year,
 							seconds_elapsed: sd.secondsElapsed,
 						};
 						insert?.run(res);
@@ -478,7 +482,7 @@ function validateTimelist(data, ws): void {
 
 			for (let [k, v] of siteData) {
 				// if one of the tab is included in the active block...
-				if (siteIncludes(v, target, isact)) {
+				if (siteIncludes(v, target, 1)) {
 					let s = blockGroupsList.get(r.block_group_id);
 
 					// get the corresponding blockgroup/s of the data
@@ -499,7 +503,7 @@ function validateTimelist(data, ws): void {
 			for (const [k, v] of blockGroupsList) {
 				const configRow = db
 					?.prepare(
-						"SELECT config_type, config_data, block_group_id FROM block_group_config WHERE id = ? AND config_type = usageLimit",
+						"SELECT config_type, config_data, block_group_id FROM block_group_config WHERE block_group_id = ? AND config_type = 'usageLimit'",
 					)
 					.get(k) as {
 					config_type: ConfigType;
@@ -520,9 +524,15 @@ function validateTimelist(data, ws): void {
 					usage_time_left: timeLeft < 0 ? 0 : timeLeft,
 				};
 
+				// if this group has no time left, activate its block
+				if (newConfig.usage_time_left <= 0) {
+					db
+						?.prepare("UPDATE block_group SET is_activated = 1 WHERE id = ?")
+						.run(k);
+				}
 				db
 					?.prepare(
-						"UPDATE block_group_config SET config_data = ? WHERE id = ?",
+						"UPDATE block_group_config SET config_data = ? WHERE block_group_id = ? AND config_type = 'usageLimit'",
 					)
 					.run(JSON.stringify(newConfig), k);
 			}
@@ -563,6 +573,8 @@ function validateWebpage(data, ws): void {
 			if (siteIncludes(siteData, target, isact)) {
 				// and if matches, get the effects
 				console.log("found");
+				console.log(r);
+
 				grayscale_count += r.is_grayscaled;
 				muted_count += r.is_muted;
 				covered_count += r.is_covered;
@@ -570,6 +582,20 @@ function validateWebpage(data, ws): void {
 			}
 		}
 		let is_blocked = covered_count + muted_count + grayscale_count > 0;
+		console.log({
+			tabId: tabId,
+			isBlocked: is_blocked,
+			message: is_blocked
+				? "Blocking will proceed..."
+				: "Not blocking this webpage",
+			following_detected_texts: following_detected_texts,
+			blockParam: {
+				is_covered: covered_count > 0 ? 1 : 0,
+				is_muted: muted_count > 0 ? 1 : 0,
+				is_grayscaled: grayscale_count > 0 ? 1 : 0,
+			},
+		});
+
 		ws.send(
 			JSON.stringify({
 				tabId: tabId,
@@ -613,7 +639,8 @@ function getBlockedSitesDataAll(): Statement<unknown[], unknown> | undefined {
 		`SELECT 
 				bs.target_text, bg.is_grayscaled, 
 				bg.is_covered, bg.is_muted, 
-				bg.group_name, bg.is_activated
+				bg.group_name, bg.is_activated,
+				bs.block_group_id
 			FROM blocked_sites as bs 
 			INNER JOIN block_group as bg ON 
 				bg.id = bs.block_group_id`,
@@ -703,7 +730,9 @@ function initUsageLog(): void {
 					full_url TEXT NOT NULL,
 					recorded_day INTEGER NOT NULL,
 					recorded_hour INTEGER NOT NULL,
-					recorded_month INTEGER NOT NULL
+					recorded_month INTEGER NOT NULL,
+					recorded_year INTEGER NOT NULL,
+					seconds_elapsed INTEGER
 			)`,
 		)
 		.run();
@@ -723,10 +752,11 @@ function siteIncludes(
 	isact: 0 | 1,
 ): boolean {
 	return (
-		(isact && siteData.desc?.includes(target)) ||
-		siteData.keywords?.includes(target) ||
-		siteData.title?.includes(target) ||
-		siteData.url?.includes(target)
+		Boolean(isact) &&
+		(siteData.desc?.includes(target) ||
+			siteData.keywords?.includes(target) ||
+			siteData.title?.includes(target) ||
+			siteData.url?.includes(target))
 	);
 }
 function showError(
@@ -748,38 +778,48 @@ function initToday(): void {
 		?.prepare(
 			`CREATE TABLE IF NOT EXISTS date_today (
 				id INTEGER PRIMARY KEY,
-				day_number INTEGER NOT NULL,
-				hour_number INTEGER NOT NULL
+				recorded_day INTEGER NOT NULL,
+				recorded_hour INTEGER NOT NULL,
+				recorded_month INTEGER NOT NULL,
+				recorded_year INTEGER NOT NULL
 			)`,
 		)
 		.run();
-	const d = new Date();
-	const today = {
-		day: d.getDate(),
-		hour: d.getHours() + 1,
-	};
-	const row = db?.prepare(`SELECT * FROM date_today`).get() as {
-		id: number;
-		day_number: number;
-		hour_number: number;
-	};
-	if (!row) {
-		console.log("no date, adding date today...");
-		db
-			?.prepare(`INSERT INTO date_today(day_number, hour_number) VALUES(?, ?)`)
-			.run(today.day, today.hour);
-	} // else {
-	// 	console.log(
-	// 		`today is ${today}.. the one in the database is ${row.day_number} ${row.hour_number}`,
-	// 	);
-	// 	if (row.date_number !== today) {
-	// 		console.log("replacing day to: ", today);
-	// 		db?.prepare("UPDATE date_today set date_number = ?").run(today);
-	// 	}
-	// }
+	function insertTodayIfNotExists(): void {
+		const d = new Date();
+		const today = {
+			recorded_day: d.getDate(),
+			recorded_hour: d.getHours(),
+			recorded_month: d.getMonth() + 1,
+			recorded_year: d.getFullYear(),
+		};
+		const row = db?.prepare(`SELECT * FROM date_today`).get() as {
+			id: number;
+			recorded_day: number;
+			recorded_hour: number;
+			recorded_month: number;
+			recorded_year: number;
+		};
+		if (!row) {
+			console.log("no date, adding date today...");
+			db
+				?.prepare(
+					`INSERT INTO date_today(recorded_day, recorded_hour, recorded_month, recorded_year) VALUES(?, ?, ?, ?)`,
+				)
+				.run(
+					today.recorded_day,
+					today.recorded_hour,
+					today.recorded_month,
+					today.recorded_year,
+				);
+		}
+	}
+	insertTodayIfNotExists();
+
+	// updates the date today every 1 minute
 	let lastTime = new Date();
-	const one_minute = 60 * 1000;
 	function recursiveTimeChecker(): void {
+		const one_minute = 60 * 1000;
 		const currentTime = new Date();
 
 		if (currentTime.getTime() - lastTime.getTime() < one_minute) {
@@ -789,8 +829,15 @@ function initToday(): void {
 		console.log("renewing date..");
 
 		db
-			?.prepare("UPDATE date_today set day_number = ?, hour_number = ?")
-			.run(currentTime.getDate(), currentTime.getHours() + 1);
+			?.prepare(
+				"UPDATE date_today set recorded_day = ?, recorded_hour = ?, recorded_month = ?, recorded_year = ?",
+			)
+			.run(
+				currentTime.getDate(),
+				currentTime.getHours(),
+				currentTime.getMonth() + 1,
+				currentTime.getFullYear(),
+			);
 		lastTime = currentTime;
 		setTimeout(recursiveTimeChecker, one_minute);
 	}

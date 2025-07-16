@@ -24,7 +24,13 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import UsageLimitModal from "./components/usageLimitModal";
-import { BlockGroup } from "@renderer/shared/types/jiyuuInterfaces";
+import {
+	BlockGroup,
+	Password_Config,
+	RandomText_Config,
+	RestrictTimer_Config,
+	UsageLimitData_Config,
+} from "@renderer/shared/types/jiyuuInterfaces";
 import ConfigModal from "./components/configModal";
 import { scrollbarStyle } from "@renderer/assets/shared/modalStyle";
 
@@ -83,20 +89,6 @@ export default function Blockings(): React.JSX.Element {
 				},
 			},
 			{
-				// RECEIVE BLOCK GROUP (USAGE ONLY) RESPONSE
-				channel: "blockgroup/get/usage/response",
-				handler: (_, data) => {
-					if (data.error)
-						console.error("Error blockgroup/get/usage/response: ", data.error);
-					else {
-						console.log(data);
-
-						setUsageResetPeriod(data.period);
-						setUsageTimeValueNumber(data.timeLeft);
-					}
-				},
-			},
-			{
 				channel: "blockgroup/set/response",
 				handler: (_, data) => {
 					if (data.error) {
@@ -144,7 +136,7 @@ export default function Blockings(): React.JSX.Element {
 				},
 			},
 			{
-				channel: "blockgroupconfig/set",
+				channel: "blockgroupconfig/set/response",
 				handler: (_, data) => {
 					if (data.error) {
 						console.error("Error setting a block group config: ", data.error);
@@ -153,12 +145,22 @@ export default function Blockings(): React.JSX.Element {
 				},
 			},
 			{
-				channel: "blockgroupconfig/get",
+				channel: "blockgroupconfig/get/response",
 				handler: (_, data) => {
 					if (data.error) {
 						console.error("Error getting a block group config: ", data.error);
 						toast.error(data.error);
-					} else if (data.info) toast.success(data.info);
+					} else if (data.data) {
+						const d = data.data as
+							| UsageLimitData_Config
+							| Password_Config
+							| RandomText_Config
+							| RestrictTimer_Config;
+						if (d.config_type === "usageLimit") {
+							setUsageTimeValueNumber(d.usage_reset_value);
+							setUsageResetPeriod(d.usage_reset_type);
+						}
+					}
 				},
 			},
 		];
@@ -318,27 +320,6 @@ export default function Blockings(): React.JSX.Element {
 											>
 												Blocking config
 											</Button>
-											{/* <Button
-												disabled={v.lock_type !== null}
-												variant="text"
-												size="small"
-												disableRipple
-												color="secondary"
-												sx={menuButtonStyle}
-												onClick={(e) => {
-													e.stopPropagation();
-													setSelectedBlockGroup(v.id);
-													ipcRendererSend("blockgroup/get/usage", { id: v.id });
-													setUsageLimitModalOpen(true);
-												}}
-											>
-												Usage limit{" "}
-												{v.usage_time_left === null
-													? "(not set)"
-													: v.lock_type === null
-														? "(locked)"
-														: null}
-											</Button> */}
 										</Stack>
 									</CardActions>
 								</Card>
