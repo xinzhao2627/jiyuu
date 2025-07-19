@@ -50,23 +50,13 @@ async function log_to_server() {
 					secondsElapsed: tabData?.secondsElapsed || 0,
 					startTime: tabData?.startTime || currentTime,
 					tabId: tabData?.tabId ? tabData.tabId : tab.id,
-					day: currentTime.getDate(),
-					hour: currentTime.getHours(),
-					month: currentTime.getMonth() + 1,
-					year: currentTime.getFullYear(),
+					date_object: currentTime.toISOString(),
 					baseUrl: baseUrl,
 					fullUrl: tab.url,
 				});
 			}
 		}
 	});
-	console.log("From log_to_server sec elapsed: ");
-
-	console.log(
-		"From log_to_server list of recorded: ",
-		Object.fromEntries(timeList)
-	);
-
 	// finally send it to server and empty the timelist records (do this if its already connected to the database)
 	async function sendToServer() {
 		await sendMessage({

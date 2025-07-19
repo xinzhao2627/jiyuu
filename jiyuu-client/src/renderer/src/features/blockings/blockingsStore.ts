@@ -56,13 +56,8 @@ export const useStore = create<Store>((set) => ({
 	setIsBlockingModalOpen: (c: boolean) =>
 		set(() => ({ isBlockingModalOpen: c })),
 
-	// USAGE TIMER LIMIT MODAL COMPONENT - Added implementations
-	isUsageLimitModalOpen: false,
-	setUsageLimitModalOpen: (c: boolean) =>
-		set(() => ({ isUsageLimitModalOpen: c })),
-	usageTimeValueNumber: 0,
-	setUsageTimeValueNumber: (c: number) =>
-		set(() => ({ usageTimeValueNumber: c })),
+	usageTimeValueNumber: undefined,
+	setUsageTimeValueNumber: (c) => set(() => ({ usageTimeValueNumber: c })),
 	usageResetPeriod: 0,
 	setUsageResetPeriod: (c: number) => set(() => ({ usageResetPeriod: c })),
 
@@ -121,9 +116,7 @@ interface Store {
 	setRenameOldGroupName: empty_func;
 
 	// USAGE TIMER LIMIT MODAL COMPONENT
-	isUsageLimitModalOpen: boolean;
-	setUsageLimitModalOpen: empty_func;
-	usageTimeValueNumber: number;
+	usageTimeValueNumber: { val: number; mode: string } | undefined;
 	setUsageTimeValueNumber: empty_func;
 	usageResetPeriod: number;
 	setUsageResetPeriod: empty_func;
@@ -132,6 +125,7 @@ interface Store {
 	isBlockingModalOpen: boolean;
 	setIsBlockingModalOpen: empty_func;
 
+	// DASHBOARD
 	selectedPeriod: "1d" | "1w" | "1m";
 	setSelectedPeriod: empty_func;
 

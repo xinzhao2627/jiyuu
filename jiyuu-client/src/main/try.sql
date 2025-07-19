@@ -16,10 +16,13 @@
         -- insert into block_group(group_name, is_grayscaled, is_muted, is_activated) VALUES("main", 1, 1, 1);
         -- SELECT * from block_group;
 
-    -- ALTER TABLE block_group
-    -- ADD is_activated Integer default 0
-    -- UPDATE block_group SET is_activated=1 WHERE group_name='group1'
-    -- SELECT * from block_group
+    ALTER TABLE block_group
+    DROP COLUMN aiut;
+        PRAGMA table_info(block_group);
+
+
+    UPDATE block_group SET is_activated=1 WHERE group_name='group1'
+    SELECT * from block_group
 -- CREATE TABLE blocked_sites (
 --     target_text text NOT NULL,
 --     block_group_id INTEGER NOT NULL REFERENCES block_group(id),
@@ -61,10 +64,7 @@ CREATE TABLE  usage_log (
         id INTEGER PRIMARY KEY,
         base_url TEXT NOT NULL,
         full_url TEXT NOT NULL,
-        recorded_day INTEGER NOT NULL,
-        recorded_hour INTEGER NOT NULL,
-        recorded_month INTEGER NOT NULL,
-        recorded_year INTEGER NOT NULL,
+        date_object VARCHAR(255) NOT NULL,
         seconds_elapsed INTEGER
 )
 -- PRAGMA table_info(usage_log)
@@ -76,11 +76,9 @@ CREATE TABLE  usage_log (
 
 CREATE TABLE IF NOT EXISTS date_today (
         id INTEGER PRIMARY KEY,
-        recorded_day INTEGER NOT NULL,
-        recorded_hour INTEGER NOT NULL,
-        recorded_month INTEGER NOT NULL,
-        recorded_year INTEGER NOT NULL
+        date_object VARCHAR(255) NOT NULL
 )
+select * from date_today
 drop table date_today
 
 drop table block_group_config
@@ -95,3 +93,11 @@ CREATE TABLE block_group_config (
 
 select * from block_group_config
 select * from usage_log
+
+
+
+DROP TABLE IF EXISTS block_group;
+DROP TABLE IF EXISTS blocked_sites;
+DROP TABLE IF EXISTS usage_log;
+DROP TABLE IF EXISTS block_group_config;
+DROP TABLE IF EXISTS date_today;

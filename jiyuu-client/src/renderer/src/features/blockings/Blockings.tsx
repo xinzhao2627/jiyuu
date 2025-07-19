@@ -23,9 +23,9 @@ import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
-import UsageLimitModal from "./components/usageLimitModal";
 import {
 	BlockGroup,
+	ConfigType,
 	Password_Config,
 	RandomText_Config,
 	RestrictTimer_Config,
@@ -151,14 +151,29 @@ export default function Blockings(): React.JSX.Element {
 						console.error("Error getting a block group config: ", data.error);
 						toast.error(data.error);
 					} else if (data.data) {
-						const d = data.data as
-							| UsageLimitData_Config
-							| Password_Config
-							| RandomText_Config
-							| RestrictTimer_Config;
-						if (d.config_type === "usageLimit") {
-							setUsageTimeValueNumber(d.usage_reset_value);
-							setUsageResetPeriod(d.usage_reset_type);
+						const d = data.data as {
+							block_group_id: number;
+							config_type: ConfigType;
+							config_data: string;
+						};
+						console.log("d isL: ", d);
+
+						if (d && d.config_data) {
+							console.log(d);
+
+							const cd = JSON.parse(d.config_data) as
+								| UsageLimitData_Config
+								| Password_Config
+								| RandomText_Config
+								| RestrictTimer_Config;
+
+							if (cd && cd.config_type === "usageLimit") {
+								setUsageTimeValueNumber({
+									val: cd.usage_reset_value,
+									mode: cd.usage_reset_value_mode,
+								});
+								setUsageResetPeriod(cd.usage_reset_type);
+							}
 						}
 					}
 				},
@@ -171,17 +186,17 @@ export default function Blockings(): React.JSX.Element {
 		ipcRendererSend("blockgroup/get", { init: true });
 
 		// UPDATES GROUP EVERY MINUTE
-		let lt = new Date();
-		function recursiveGroupChecker(): void {
-			const ct = new Date();
-			if (ct.getTime() - lt.getTime() < 60000) {
-				setTimeout(recursiveGroupChecker, 1000);
-				return;
-			}
-			lt = ct;
-			ipcRendererSend("blockgroup/get", {});
-		}
-		recursiveGroupChecker();
+		// let lt = new Date();
+		// function recursiveGroupChecker(): void {
+		// 	const ct = new Date();
+		// 	if (ct.getTime() - lt.getTime() < 60000) {
+		// 		setTimeout(recursiveGroupChecker, 1000);
+		// 		return;
+		// 	}
+		// 	lt = ct;
+		// 	ipcRendererSend("blockgroup/get", {});
+		// }
+		// recursiveGroupChecker();
 
 		return () => {
 			listeners.forEach((v) => {
@@ -352,7 +367,6 @@ export default function Blockings(): React.JSX.Element {
 			<DeleteBlockGroupModal />
 			<RenameBlockGroupModal />
 			<ConfigModal />
-			{/* <UsageLimitModal /> */}
 		</>
 	);
 }

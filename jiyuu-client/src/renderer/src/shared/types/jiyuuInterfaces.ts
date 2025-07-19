@@ -11,10 +11,7 @@ export interface TimeListInterface extends SiteAttribute {
 	secondsElapsed: number;
 	startTime: Date;
 	tabId: number;
-	day: number;
-	hour: number;
-	month: number;
-	year: number;
+	dateObject: string;
 	baseUrl: string;
 	fullUrl: string;
 }
@@ -40,6 +37,8 @@ export interface BlockGroup {
 	is_covered: 0 | 1;
 	is_muted: 0 | 1;
 	is_activated: 0 | 1;
+	is_restricted: 0 | 1;
+	auto_deactivate: 0 | 1;
 }
 
 export type ConfigType =
@@ -54,7 +53,9 @@ export interface UsageLimitData_Config {
 	usage_reset_value: number;
 	usage_reset_type: "d" | "w" | "h";
 	usage_time_left: number;
+	usage_reset_value_mode: string;
 	config_type: "usageLimit";
+	last_updated_date: string;
 }
 export interface Password_Config {
 	password: string;

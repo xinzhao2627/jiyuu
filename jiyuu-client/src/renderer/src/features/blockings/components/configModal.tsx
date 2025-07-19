@@ -44,21 +44,22 @@ export default function ConfigModal(): React.JSX.Element {
 		setSelectedBlockGroup,
 		setUsageResetPeriod,
 		setUsageTimeValueNumber,
-		setUsageLimitModalOpen,
 		usageTimeValueNumber,
 		usageResetPeriod,
 	} = useStore();
 
 	const handleClose = (): void => {
 		setIsConfigModalOpen(false);
+
 		setSelectedBlockGroup(null);
 		setUsageResetPeriod(null);
+		setUsageTimeValueNumber(undefined);
 
-		setUsageTimeValueNumber(null);
-		setUsageLimitModalOpen(false);
 		setTimeout(() => {
 			setConfigType("");
 		}, 150);
+
+		reset();
 	};
 	const configTypeList = [
 		{
@@ -196,20 +197,44 @@ export default function ConfigModal(): React.JSX.Element {
 						<form
 							noValidate
 							onSubmit={handleSubmit((fv) => {
-								const val = Number(fv.usageValue);
-								const mode = fv.timeValueMode;
-								const period = fv.usageResetPeriod;
+								try {
+									const val = Number(fv.usageValue);
+									const mode = fv.timeValueMode;
+									const period = fv.usageResetPeriod;
 
-								if (
-									!Number.isNaN(val) &&
-									["minutes", "hours"].includes(mode) &&
-									["d", "w", "h"].includes(period)
-								) {
-									// converts minutes and hours to seconds
-									const res = val * (mode == "minutes" ? 60 : 60 * 60);
+									// check if input is valid
+									if (
+										!(
+											!Number.isNaN(val) &&
+											["minute", "hour"].includes(mode) &&
+											["d", "w", "h"].includes(period)
+										)
+									) {
+										toast.error("Invalid input");
+										throw `Error ${{ val: val, mode: mode, period: period }}`;
+									}
+
+									// also check if the time value does exceed the reset period they chose
+									const rawVal =
+										mode === "minute"
+											? val * 60
+											: mode === "hour"
+												? val * 60 * 60
+												: val;
+
+									if (
+										(period === "d" && rawVal > 86400) ||
+										(period === "w" && rawVal > 604800) ||
+										(period === "h" && rawVal > 3600)
+									) {
+										toast.error("Invalid time value");
+										throw `Error, time value exceeds the chosen period: ${{ period: period, val_second: rawVal, mode: mode }}`;
+									}
+
 									const data = {
 										usage_reset_type: period,
-										usage_reset_value: res,
+										usage_reset_value: val,
+										usage_reset_value_mode: mode,
 										config_type: configType,
 									};
 									ipcRendererSend("blockgroupconfig/set", {
@@ -217,12 +242,10 @@ export default function ConfigModal(): React.JSX.Element {
 										config_data: data,
 									});
 									toast.success("adding usage successful");
-								} else {
-									toast.error("Error submitting usage limit");
-									console.log(val);
-									console.log(["minutes", "hours"].includes(mode));
-									console.log(["d", "w", "h"].includes(period));
+								} catch (error) {
+									console.log(error);
 								}
+
 								handleClose();
 							})}
 							style={{
@@ -236,21 +259,37 @@ export default function ConfigModal(): React.JSX.Element {
 									<Box sx={{ ...modalTextFieldStyle }}>
 										<input
 											type="number"
+											{...(selectedBlockGroup?.is_restricted && {
+												max: usageTimeValueNumber?.val,
+											})}
 											id="usageValue"
 											placeholder="Enter value"
 											{...register("usageValue")}
-											defaultValue={usageTimeValueNumber}
+											defaultValue={
+												usageTimeValueNumber
+													? usageTimeValueNumber.val
+													: undefined
+											}
 										/>
 									</Box>
 									<Box sx={{ ...modalTextFieldStyle }}>
 										<Controller
 											name="timeValueMode"
 											control={control}
-											defaultValue={"minutes"}
+											defaultValue={
+												usageTimeValueNumber
+													? usageTimeValueNumber.mode
+													: "minute"
+											}
 											render={({ field }) => (
 												<Select {...field} size="small" fullWidth>
-													<MenuItem value={"minutes"}>minute</MenuItem>
-													<MenuItem value={"hours"}>hour</MenuItem>
+													<MenuItem value={"minute"}>minute</MenuItem>
+													{!selectedBlockGroup?.is_restricted ? (
+														<MenuItem value={"hour"}>hour</MenuItem>
+													) : typeof usageTimeValueNumber === "undefined" ||
+													  usageTimeValueNumber?.mode === "hour" ? (
+														<MenuItem value={"hour"}>hour</MenuItem>
+													) : undefined}
 												</Select>
 											)}
 										/>
@@ -285,7 +324,14 @@ export default function ConfigModal(): React.JSX.Element {
 				</DialogContent>
 				<DialogActions sx={{ mt: 2 }}>
 					{configType !== "" && (
-						<Button onClick={() => setConfigType("")}>Go back</Button>
+						<Button
+							onClick={() => {
+								setConfigType("");
+								reset();
+							}}
+						>
+							Go back
+						</Button>
 					)}
 					<Button onClick={handleClose}>Close</Button>
 				</DialogActions>
