@@ -22,14 +22,17 @@ export const useStore = create<Store>((set) => ({
 	setSelectedBlockGroup: (c: BlockGroup) =>
 		set(() => ({ selectedBlockGroup: c })),
 
-	isCoveredState: 0,
-	setIsCoveredState: (c: number) => set(() => ({ isCoveredState: c })),
+	isCoveredState: false,
+	setIsCoveredState: (c: boolean) => set(() => ({ isCoveredState: c })),
 
-	isMutedState: 0,
-	setIsMutedState: (c: number) => set(() => ({ isMutedState: c })),
+	isMutedState: false,
+	setIsMutedState: (c: boolean) => set(() => ({ isMutedState: c })),
 
-	isGrayscaledState: 0,
-	setIsGrayscaledState: (c: number) => set(() => ({ isGrayscaledState: c })),
+	isGrayscaledState: false,
+	setIsGrayscaledState: (c: boolean) => set(() => ({ isGrayscaledState: c })),
+
+	isBlurredState: false,
+	setIsBlurredState: (c: boolean) => set(() => ({ isBlurredState: c })),
 
 	isNewGroupModalOpen: false,
 	setIsNewGroupModalOpen: (c: boolean) =>
@@ -88,14 +91,17 @@ interface Store {
 	selectedBlockGroup: BlockGroup | null;
 	setSelectedBlockGroup: empty_func;
 
-	isCoveredState: number;
+	isCoveredState: boolean;
 	setIsCoveredState: empty_func;
 
-	isMutedState: number;
+	isMutedState: boolean;
 	setIsMutedState: empty_func;
 
-	isGrayscaledState: number;
+	isGrayscaledState: boolean;
 	setIsGrayscaledState: empty_func;
+
+	isBlurredState: boolean;
+	setIsBlurredState: empty_func;
 
 	// NEW GROUP MODAL COMPONENT
 	isNewGroupModalOpen: boolean;
@@ -139,8 +145,9 @@ interface Store {
 }
 
 export const menuButtonStyle = {
-	letterSpacing: 0.5,
-	fontWeight: 700,
+	letterSpacing: 0.8,
+	fontWeight: 400,
 	textTransform: "none",
 	fontSize: "16px",
+	borderRadius: 0,
 };

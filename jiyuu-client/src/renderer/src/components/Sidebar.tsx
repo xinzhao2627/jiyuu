@@ -32,7 +32,7 @@ const ConfigItem: React.FC<{ text: string; callback: (c) => void }> = ({
 		</ListItem>
 	);
 };
-const actionStyle: SxProps<Theme> = { fontWeight: 600 };
+const actionStyle: SxProps<Theme> = { fontWeight: 500, letterSpacing: 1 };
 const iconActionStyle: SxProps<Theme> = { mb: "2px" };
 export default function Sidebar(): React.JSX.Element {
 	const location = useLocation();

@@ -24,9 +24,11 @@ import {
 	modalTextFieldStyle,
 	scrollbarStyle,
 } from "@renderer/assets/shared/modalStyle";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, FieldValues, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { UsageLimitData_Config } from "@renderer/shared/types/jiyuuInterfaces";
+import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 export default function ConfigModal(): React.JSX.Element {
 	const {
 		register,
@@ -106,12 +108,95 @@ export default function ConfigModal(): React.JSX.Element {
 			</Button>
 		);
 	};
+	const quickSendForms = (data): void => {
+		ipcRendererSend("blockgroupconfig/set", {
+			id: selectedBlockGroup?.id,
+			config_data: data,
+		});
+		toast.success("adding usage successful");
+	};
+	const usageSubmit = (fv: FieldValues): void => {
+		try {
+			const val = Number(fv.usageValue);
+			const mode = fv.timeValueMode;
+			const period = fv.usageResetPeriod;
+			// check if input is valid
+			if (
+				!(
+					!Number.isNaN(val) &&
+					["minute", "hour"].includes(mode) &&
+					["d", "w", "h"].includes(period)
+				)
+			) {
+				toast.error("Invalid input");
+				throw `Error ${{ val: val, mode: mode, period: period }}`;
+			}
+			// also check if the time value does exceed the reset period they chose
+			const rawVal =
+				mode === "minute" ? val * 60 : mode === "hour" ? val * 60 * 60 : val;
+			if (
+				(period === "d" && rawVal > 86400) ||
+				(period === "w" && rawVal > 604800) ||
+				(period === "h" && rawVal > 3600)
+			) {
+				toast.error("Invalid time value");
+				throw `Error, time value exceeds the chosen period: ${{ period: period, val_second: rawVal, mode: mode }}`;
+			}
+			const data = {
+				usage_reset_type: period,
+				usage_reset_value: val,
+				usage_reset_value_mode: mode,
+				config_type: configType,
+			};
+			quickSendForms(data);
+		} catch (error) {
+			console.log(error);
+		}
+
+		handleClose();
+	};
+	const passwordSubmit = (fv: FieldValues): void => {
+		try {
+			const password = fv.password;
+			if (!password) throw "The input field is empty";
+			quickSendForms({ password: password, config_type: "password" });
+		} catch (error) {
+			console.log(error);
+		}
+		handleClose();
+	};
+	const randomTextSubmit = (fv: FieldValues): void => {
+		try {
+			const randomTextCount = fv.randomTextCount;
+			if (!randomTextCount) throw "The input field is empty";
+			quickSendForms({
+				randomTextCount: randomTextCount,
+				config_type: "randomText",
+			});
+		} catch (error) {
+			console.log(error);
+		}
+	};
+	const restrictTimerSubmit = (fv: FieldValues): void => {
+		try {
+			console.log("hi", fv);
+		} catch (error) {
+			console.log(error);
+		}
+	};
 	return (
 		<>
 			<Dialog
 				open={isConfigModalOpen}
 				onClose={handleClose}
 				disableEscapeKeyDown
+				sx={{
+					"& .MuiDialog-paper": {
+						minHeight: "400px", // ✅ Stable dialog height
+						overflow: "hidden",
+					},
+				}}
+				disablePortal={false} // ✅ Ensure proper portal behavior
 			>
 				<DialogTitle sx={{ fontFamily: "roboto" }}>
 					Configure block settings
@@ -196,58 +281,7 @@ export default function ConfigModal(): React.JSX.Element {
 					{configType === "usageLimit" && (
 						<form
 							noValidate
-							onSubmit={handleSubmit((fv) => {
-								try {
-									const val = Number(fv.usageValue);
-									const mode = fv.timeValueMode;
-									const period = fv.usageResetPeriod;
-
-									// check if input is valid
-									if (
-										!(
-											!Number.isNaN(val) &&
-											["minute", "hour"].includes(mode) &&
-											["d", "w", "h"].includes(period)
-										)
-									) {
-										toast.error("Invalid input");
-										throw `Error ${{ val: val, mode: mode, period: period }}`;
-									}
-
-									// also check if the time value does exceed the reset period they chose
-									const rawVal =
-										mode === "minute"
-											? val * 60
-											: mode === "hour"
-												? val * 60 * 60
-												: val;
-
-									if (
-										(period === "d" && rawVal > 86400) ||
-										(period === "w" && rawVal > 604800) ||
-										(period === "h" && rawVal > 3600)
-									) {
-										toast.error("Invalid time value");
-										throw `Error, time value exceeds the chosen period: ${{ period: period, val_second: rawVal, mode: mode }}`;
-									}
-
-									const data = {
-										usage_reset_type: period,
-										usage_reset_value: val,
-										usage_reset_value_mode: mode,
-										config_type: configType,
-									};
-									ipcRendererSend("blockgroupconfig/set", {
-										id: selectedBlockGroup?.id,
-										config_data: data,
-									});
-									toast.success("adding usage successful");
-								} catch (error) {
-									console.log(error);
-								}
-
-								handleClose();
-							})}
+							onSubmit={handleSubmit(usageSubmit)}
 							style={{
 								display: "flex",
 								flexWrap: "wrap",
@@ -320,6 +354,83 @@ export default function ConfigModal(): React.JSX.Element {
 								{resetButton()}
 							</Stack>
 						</form>
+					)}
+					{configType === "password" && (
+						<form
+							noValidate
+							style={{
+								display: "flex",
+								flexWrap: "wrap",
+								width: "fit-content",
+							}}
+							onSubmit={handleSubmit(passwordSubmit)}
+						>
+							<Stack gap={2} direction={"row"}>
+								<Box sx={{ ...modalTextFieldStyle }}>
+									<input
+										type="text"
+										id="password"
+										placeholder="Enter a password"
+										{...register("password")}
+									/>
+								</Box>
+							</Stack>
+						</form>
+					)}
+					{configType === "randomText" && (
+						<form
+							noValidate
+							style={{
+								display: "flex",
+								flexWrap: "wrap",
+								width: "fit-content",
+							}}
+							onSubmit={randomTextSubmit}
+						>
+							<Stack gap={2} direction={"row"}>
+								<Box sx={{ ...modalTextFieldStyle }}>
+									<input
+										type="number"
+										id="randomTextCount"
+										{...register("randomTextCount")}
+									/>
+								</Box>
+								<span>Input how many random characters would it generate</span>
+							</Stack>
+						</form>
+					)}
+					{configType === "restrictTimer" && (
+						<LocalizationProvider dateAdapter={AdapterDayjs}>
+							<form
+								noValidate
+								style={{
+									display: "flex",
+									flexWrap: "wrap",
+									width: "fit-content",
+								}}
+								onSubmit={handleSubmit(restrictTimerSubmit)}
+							>
+								<Stack gap={2} direction={"row"}>
+									<Controller
+										name="restrictTimer"
+										defaultValue={null}
+										control={control}
+										render={({ field }) => <DateTimePicker {...field} />}
+									/>
+
+									<span>
+										Input how many random characters would it generate
+									</span>
+								</Stack>
+								<Button
+									type="submit"
+									variant="contained"
+									sx={{ fontWeight: "600" }}
+								>
+									Submit
+								</Button>
+							</form>
+						</LocalizationProvider>
 					)}
 				</DialogContent>
 				<DialogActions sx={{ mt: 2 }}>

@@ -51,8 +51,6 @@ export default function NewBlockGroupModal(): React.JSX.Element {
 								});
 								setIsNewGroupModalOpen(false);
 								setNewGroupModalInput("");
-
-								ipcRendererSend("blockgroup/get", {});
 							}}
 							sx={{ ...menuButtonStyle, fontWeight: 400 }}
 						>

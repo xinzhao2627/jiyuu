@@ -63,7 +63,6 @@ export default function RenameBlockGroupModal(): React.JSX.Element {
 									});
 
 									handleClose();
-									ipcRendererSend("blockgroup/get", {});
 								}
 							}}
 							sx={{ ...menuButtonStyle, fontWeight: 400 }}

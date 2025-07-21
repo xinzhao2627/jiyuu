@@ -31,7 +31,10 @@ export function setBlockGroup(
 					is_activated = ?, 
 					is_grayscaled = ?, 
 					is_covered = ?, 
-					is_muted = ? 
+					is_muted = ?,
+					is_restricted = ?,
+					auto_deactivate = ?,
+					is_blurred = ?
 				WHERE id = ?`,
 		)
 		.run(
@@ -40,6 +43,9 @@ export function setBlockGroup(
 			group.is_grayscaled,
 			group.is_covered,
 			group.is_muted,
+			group.is_restricted,
+			group.auto_deactivate,
+			group.is_blurred,
 			group.id,
 		);
 }
@@ -112,6 +118,9 @@ export function updateBlockGroup(): void {
 			}
 		}
 		// TODO: else if ... do also for restricted timer
+		else if (cd.config_type === "restrictTimer") {
+			console.log("timer");
+		}
 	}
 
 	// then update it back to config data

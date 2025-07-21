@@ -24,6 +24,7 @@ export interface BlockedSites {
 
 export interface BlockedSites_with_configs extends BlockedSites {
 	is_grayscaled: 0 | 1;
+	is_blurred: 0 | 1;
 	is_covered: 0 | 1;
 	is_muted: 0 | 1;
 	group_name: string;
@@ -34,6 +35,7 @@ export interface BlockGroup {
 	id: number;
 	group_name: string;
 	is_grayscaled: 0 | 1;
+	is_blurred: 0 | 1;
 	is_covered: 0 | 1;
 	is_muted: 0 | 1;
 	is_activated: 0 | 1;
@@ -68,7 +70,7 @@ export interface RestrictTimer_Config {
 }
 
 export interface RandomText_Config {
-	randomizeText: boolean;
+	randomTextCount: number;
 	config_type: "randomText";
 }
 

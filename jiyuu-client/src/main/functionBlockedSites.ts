@@ -24,7 +24,7 @@ export function getBlockedSitesDataAll():
 				bs.target_text, bg.is_grayscaled, 
 				bg.is_covered, bg.is_muted, 
 				bg.group_name, bg.is_activated,
-				bs.block_group_id
+				bs.block_group_id, bg.is_blurred
 			FROM blocked_sites as bs 
 			INNER JOIN block_group as bg ON 
 				bg.id = bs.block_group_id`,

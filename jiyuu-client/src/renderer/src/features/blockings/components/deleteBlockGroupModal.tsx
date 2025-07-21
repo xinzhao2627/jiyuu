@@ -45,9 +45,6 @@ export default function DeleteBlockGroupModal(): React.JSX.Element {
 								});
 								setIsDeleteGroupModalOpen(false);
 								setSelectedBlockGroup(null);
-
-								// refresh the group list
-								ipcRendererSend("blockgroup/get", {});
 							}}
 							sx={{ ...menuButtonStyle, fontWeight: 400 }}
 						>

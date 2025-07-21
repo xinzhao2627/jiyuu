@@ -41,7 +41,7 @@ import { showError } from "./functionHelper";
 import {
 	validateTimelist,
 	validateWebpage,
-} from "./functionsExtensionReciever";
+} from "./functionsExtensionReceiver";
 export let db: BetterSqlite3.Database | undefined;
 export let mainWindow: BrowserWindow;
 function createWindow(): void {
@@ -120,6 +120,7 @@ app.whenReady().then(() => {
 			mainWindow.webContents.send("blockgroup/get/response", {
 				data: r,
 			});
+			setTimeout(recursiveGroupChecker, 1000);
 		}
 		recursiveGroupChecker();
 	} catch (e) {
@@ -140,7 +141,7 @@ app.whenReady().then(() => {
 				blockGroupSettings =
 					db
 						?.prepare(
-							"SELECT id, is_grayscaled, is_covered, is_muted FROM block_group WHERE id = ?",
+							"SELECT id, is_grayscaled, is_covered, is_muted, is_blurred FROM block_group WHERE id = ?",
 						)
 						.get(_data.id) || null;
 			}
@@ -240,6 +241,12 @@ app.whenReady().then(() => {
 				"Error creating block group: ",
 				"blockgroup/put/response",
 			);
+		} finally {
+			// resend the updated block
+			const r = getBlockGroup()?.all() || [];
+			mainWindow.webContents.send("blockgroup/get/response", {
+				data: r,
+			});
 		}
 	});
 
@@ -252,6 +259,7 @@ app.whenReady().then(() => {
 			};
 
 			setBlockGroup(group, new_group_name);
+
 			event.reply("blockgroup/set/response", { info: "Successful" });
 		} catch (err) {
 			showError(
@@ -260,6 +268,12 @@ app.whenReady().then(() => {
 				"Error setting block group: ",
 				"blockgroup/set/response",
 			);
+		} finally {
+			// resend the updated block
+			const r = getBlockGroup()?.all() || [];
+			mainWindow.webContents.send("blockgroup/get/response", {
+				data: r,
+			});
 		}
 	});
 
@@ -282,6 +296,12 @@ app.whenReady().then(() => {
 				"There was an error deleting block group including blocked sites data: ",
 				"blockgroup/delete/response",
 			);
+		} finally {
+			// resend the updated block
+			const r = getBlockGroup()?.all() || [];
+			mainWindow.webContents.send("blockgroup/get/response", {
+				data: r,
+			});
 		}
 	});
 
@@ -327,6 +347,12 @@ app.whenReady().then(() => {
 					"Error setting both the block group and blocked sites data: ",
 					"blockgroup_blockedsites/set/response",
 				);
+			} finally {
+				// resend the updated block
+				const r = getBlockGroup()?.all() || [];
+				mainWindow.webContents.send("blockgroup/get/response", {
+					data: r,
+				});
 			}
 		},
 	);
@@ -339,34 +365,21 @@ app.whenReady().then(() => {
 			// console.log("data: ", data);
 			if (!(id && config_type)) throw "invalid post input...";
 
-			if (config_type === "usageLimit") {
-				const isRestricted = db
-					?.prepare(
-						`
-						SELECT * FROM block_group_config
-						WHERE
-							block_group_id = ? AND
-							config_type IN ('restrictTimer', 'password', 'randomText')
-						`,
-					)
-					.all(id);
-
-				const row = db
-					?.prepare(
-						`
+			const row = db
+				?.prepare(
+					`
 						SELECT * FROM block_group_config 
 						WHERE 
 							block_group_id = ? AND 
 							config_type = ? 
 						`,
-					)
-					.get(id, config_type);
-				// console.log("row: ", row);
+				)
+				.get(id, config_type);
+			// console.log("row: ", row);
 
-				event.reply("blockgroupconfig/get/response", {
-					data: row ? row : {},
-				});
-			} else throw "the config type is invalid: " + config_type;
+			event.reply("blockgroupconfig/get/response", {
+				data: row ? row : {},
+			});
 		} catch (err) {
 			showError(
 				err,
@@ -411,12 +424,18 @@ app.whenReady().then(() => {
 							last_updated_date: new Date().toISOString(),
 						}),
 					);
-			} else if (
-				config_data.config_type === "password" ||
-				config_data.config_type === "randomText" ||
-				config_data.config_type === "restrictTimer"
-			) {
-				console.log("not yet finish");
+			} else if (config_data.config_type === "password") {
+				db
+					?.prepare(
+						`
+							INSERT INTO block_group_config(block_group_id, config_type, config_data)
+							VALUES(?, ?, ?)
+						`,
+					)
+					.run(id, config_data.config_type, JSON.stringify(config_data));
+				db
+					?.prepare("UPDATE block_group SET is_restricted = 1 WHERE id = ?")
+					.run(id);
 			} else throw "the config type is invalid: " + config_data;
 		} catch (err) {
 			showError(
@@ -425,6 +444,12 @@ app.whenReady().then(() => {
 				"Error setting up group config",
 				"blockgroupconfig/set",
 			);
+		} finally {
+			// resend the updated block
+			const r = getBlockGroup()?.all() || [];
+			mainWindow.webContents.send("blockgroup/get/response", {
+				data: r,
+			});
 		}
 	});
 

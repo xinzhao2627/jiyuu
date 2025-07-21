@@ -8,6 +8,13 @@ import { createTheme, ThemeProvider } from "@mui/material";
 const THEME = createTheme({
 	typography: {
 		fontFamily: "roboto, Arial, sans-serif",
+		allVariants: {
+			letterSpacing: "0.8px",
+		},
+		button: {
+			letterSpacing: "0.8px",
+			textTransform: "none",
+		},
 	},
 });
 createRoot(document.getElementById("root")!).render(

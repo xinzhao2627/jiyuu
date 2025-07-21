@@ -23,8 +23,9 @@ export function initBlockGroup(): void {
                 is_covered INTEGER DEFAULT 0,
                 is_muted Integer DEFAULT 0,
                 is_activated Integer DEFAULT 0,
+				is_blurred INTEGER DEFAULT 0,
                 auto_deactivate INTEGER DEFAULT 0,
-                is_restricted INTEGER DEFAULT 0,
+                is_restricted INTEGER DEFAULT 0
             )`,
 		)
 		.run();

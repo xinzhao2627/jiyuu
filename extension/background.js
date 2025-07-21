@@ -50,7 +50,7 @@ async function log_to_server() {
 					secondsElapsed: tabData?.secondsElapsed || 0,
 					startTime: tabData?.startTime || currentTime,
 					tabId: tabData?.tabId ? tabData.tabId : tab.id,
-					date_object: currentTime.toISOString(),
+					dateObject: currentTime.toISOString(),
 					baseUrl: baseUrl,
 					fullUrl: tab.url,
 				});

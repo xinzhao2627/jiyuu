@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
 	Box,
 	Button,
@@ -12,6 +13,7 @@ import {
 import { menuButtonStyle, useStore } from "../blockingsStore";
 import { ipcRendererSend } from "../blockingAPI";
 import ClearIcon from "@mui/icons-material/Clear";
+import { blue, blueGrey, teal } from "@mui/material/colors";
 
 const modalStyle = {
 	position: "absolute",
@@ -24,6 +26,18 @@ const modalStyle = {
 	color: "black",
 	outline: "none",
 };
+const toggleButtonStyle = {
+	"&.Mui-selected": {
+		color: teal[500],
+		backgroundColor: teal[50],
+		"&:hover": {
+			backgroundColor: "rgba(0, 150, 136, 0.15)",
+		},
+	},
+	"&:hover": {
+		backgroundColor: "rgba(0, 0, 0, 0.04)",
+	},
+};
 export default function BlockingModal(): React.JSX.Element {
 	const {
 		selectedBlockGroup,
@@ -35,6 +49,8 @@ export default function BlockingModal(): React.JSX.Element {
 		isCoveredState,
 		isGrayscaledState,
 		isMutedState,
+		isBlurredState,
+		setIsBlurredState,
 		setIsCoveredState,
 		setIsGrayscaledState,
 		setIsMutedState,
@@ -64,10 +80,12 @@ export default function BlockingModal(): React.JSX.Element {
 	const handleClose = (): void => {
 		setSelectedBlockGroup(null);
 		setIsBlockingModalOpen(false);
-		setIsCoveredState(0);
-		setIsGrayscaledState(0);
-		setIsMutedState(0);
+		setIsCoveredState(false);
+		setIsGrayscaledState(false);
+		setIsBlurredState(false);
+		setIsMutedState(false);
 		setTargetTextInput("");
+		setBlockedSitesData([]);
 	};
 	const saveNewBlockGroup_and_BlockedSitesData = (): void => {
 		ipcRendererSend("blockgroup_blockedsites/set", {
@@ -76,12 +94,10 @@ export default function BlockingModal(): React.JSX.Element {
 				is_grayscaled: isGrayscaledState ? 1 : 0,
 				is_covered: isCoveredState ? 1 : 0,
 				is_muted: isMutedState ? 1 : 0,
+				is_blurred: isBlurredState ? 1 : 0,
 			},
 			blocked_sites_data: blockedSitesData,
 		});
-
-		// refesh block group if needed (optional)
-		ipcRendererSend("blockgroup/get", {});
 	};
 	return (
 		<Modal
@@ -94,34 +110,36 @@ export default function BlockingModal(): React.JSX.Element {
 				<Stack>
 					<ToggleButtonGroup fullWidth>
 						<ToggleButton
-							color="warning"
 							value="covered"
-							selected={Boolean(isCoveredState)}
-							disableRipple
+							selected={isCoveredState}
 							onClick={() => setIsCoveredState(!isCoveredState)}
-							sx={menuButtonStyle}
+							sx={toggleButtonStyle}
 						>
 							Covered
 						</ToggleButton>
 						<ToggleButton
-							color="primary"
 							value="grayscaled"
-							disableRipple
-							selected={Boolean(isGrayscaledState)}
+							selected={isGrayscaledState}
 							onClick={() => setIsGrayscaledState(!isGrayscaledState)}
-							sx={menuButtonStyle}
+							sx={toggleButtonStyle}
 						>
 							Grayscaled
 						</ToggleButton>
 						<ToggleButton
-							color="success"
 							value="muted"
-							disableRipple
-							selected={Boolean(isMutedState)}
+							selected={isMutedState}
 							onClick={() => setIsMutedState(!isMutedState)}
-							sx={menuButtonStyle}
+							sx={toggleButtonStyle}
 						>
 							Muted
+						</ToggleButton>
+						<ToggleButton
+							value="blurred"
+							selected={isBlurredState}
+							onClick={() => setIsBlurredState(!isBlurredState)}
+							sx={toggleButtonStyle}
+						>
+							Blurred
 						</ToggleButton>
 					</ToggleButtonGroup>
 				</Stack>
@@ -165,19 +183,21 @@ export default function BlockingModal(): React.JSX.Element {
 										{v.target_text}
 									</Typography>
 									{/* remove the element */}
-									<IconButton
-										size="small"
-										onClick={() => {
-											setBlockedSitesData(
-												blockedSitesData.filter((item) => {
-													console.log(item);
-													return item.target_text !== v.target_text;
-												}),
-											);
-										}}
-									>
-										<ClearIcon />
-									</IconButton>
+									{!selectedBlockGroup?.is_restricted && (
+										<IconButton
+											size="small"
+											onClick={() => {
+												setBlockedSitesData(
+													blockedSitesData.filter((item) => {
+														console.log(item);
+														return item.target_text !== v.target_text;
+													}),
+												);
+											}}
+										>
+											<ClearIcon />
+										</IconButton>
+									)}
 								</Stack>
 							);
 						})}

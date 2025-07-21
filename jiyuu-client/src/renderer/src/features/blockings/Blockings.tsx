@@ -3,6 +3,23 @@ import * as React from "react";
 import { useEffect } from "react";
 import { menuButtonStyle, useStore } from "./blockingsStore";
 import toast from "react-hot-toast";
+import DeleteIcon from "@mui/icons-material/Delete";
+import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
+import SettingsIcon from "@mui/icons-material/Settings";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
+import LockIcon from "@mui/icons-material/Lock";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import {
+	amber,
+	blue,
+	blueGrey,
+	indigo,
+	lightGreen,
+	lime,
+	pink,
+	teal,
+} from "@mui/material/colors";
+import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import {
 	Button,
 	Card,
@@ -12,7 +29,17 @@ import {
 	CardActions,
 	Switch,
 	Fab,
+	ToggleButton,
+	Menu,
+	IconButton,
+	Chip,
+	MenuItem,
+	ListItemIcon,
+	ListItemText,
+	Box,
+	SxProps,
 } from "@mui/material";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import AddIcon from "@mui/icons-material/Add";
 import { ipcRendererOn, ipcRendererSend } from "./blockingAPI";
 import BlockingModal from "./components/blockingModal";
@@ -33,14 +60,52 @@ import {
 } from "@renderer/shared/types/jiyuuInterfaces";
 import ConfigModal from "./components/configModal";
 import { scrollbarStyle } from "@renderer/assets/shared/modalStyle";
-
+import MenuIcon from "@mui/icons-material/Menu";
+import { Theme } from "@emotion/react";
+function customChip(
+	optionalIcon: React.JSX.Element | undefined = undefined,
+	label: string | undefined = undefined,
+	chipStyle: SxProps<Theme> | undefined = undefined,
+	optionalOnClick:
+		| React.MouseEventHandler<SVGSwitchElement>
+		| undefined = undefined,
+): React.JSX.Element {
+	return (
+		<Chip
+			component={"switch"}
+			size="small"
+			variant="outlined"
+			label={
+				<Stack direction={"row"} alignItems={"center"} spacing={0.5}>
+					{optionalIcon}
+					<Typography
+						variant="caption"
+						sx={{
+							fontSize: "12px",
+							lineHeight: 1.2,
+						}}
+					>
+						{label}
+					</Typography>
+				</Stack>
+			}
+			sx={chipStyle}
+			onClick={optionalOnClick}
+		/>
+	);
+}
 export default function Blockings(): React.JSX.Element {
+	const [menuAnchor, setmenuAnchor] = React.useState<null | {
+		el: HTMLElement;
+		v: BlockGroup;
+	}>(null);
 	const {
 		blockGroupData,
 		setBlockGroupData,
 		setBlockedSitesData,
 		setSelectedBlockGroup,
 		setIsCoveredState,
+		setIsBlurredState,
 		setIsGrayscaledState,
 		setIsMutedState,
 		setIsNewGroupModalOpen,
@@ -185,19 +250,6 @@ export default function Blockings(): React.JSX.Element {
 		// GET ALL BLOCK GROUP (INITIALIZATION)
 		ipcRendererSend("blockgroup/get", { init: true });
 
-		// UPDATES GROUP EVERY MINUTE
-		// let lt = new Date();
-		// function recursiveGroupChecker(): void {
-		// 	const ct = new Date();
-		// 	if (ct.getTime() - lt.getTime() < 60000) {
-		// 		setTimeout(recursiveGroupChecker, 1000);
-		// 		return;
-		// 	}
-		// 	lt = ct;
-		// 	ipcRendererSend("blockgroup/get", {});
-		// }
-		// recursiveGroupChecker();
-
 		return () => {
 			listeners.forEach((v) => {
 				window.electron.ipcRenderer.removeAllListeners(v.channel);
@@ -237,25 +289,110 @@ export default function Blockings(): React.JSX.Element {
 								>
 									{/* <Box sx={{ backgroundColor: "#b5d9a3", height: 100 }}></Box> */}
 									<CardContent sx={{ paddingBottom: 0 }}>
-										<Typography
-											gutterBottom
-											sx={{
-												color: "text.secondary",
-												fontSize: 14,
-												fontWeight: v.is_activated ? 600 : "initial",
-											}}
-										>
-											{v.is_activated ? "Active" : "Inactive"}
-										</Typography>
 										<Stack direction={"row"} justifyContent={"space-between"}>
+											<Stack direction={"row"} gap={1}>
+												{customChip(
+													<Box
+														sx={{
+															width: 6,
+															height: 6,
+															borderRadius: "50%",
+															backgroundColor: v.is_activated
+																? teal[500]
+																: "grey.400",
+														}}
+													/>,
+													v.is_activated ? "Active" : "Inactive",
+													{
+														color: v.is_activated
+															? teal[500]
+															: "text.secondary",
+														fontWeight: v.is_activated ? 600 : "initial",
+														borderColor: v.is_activated
+															? teal[500]
+															: "grey.300",
+													},
+													!v.is_restricted
+														? () => {
+																ipcRendererSend("blockgroup/set", {
+																	group: {
+																		...v,
+																		is_activated: v.is_activated ? 0 : 1,
+																	},
+																});
+															}
+														: undefined,
+												)}
+												{v.is_restricted
+													? customChip(
+															<LockIcon
+																sx={{
+																	width: 12,
+																	height: 12,
+																	borderRadius: "50%",
+																	color: "grey.600",
+																}}
+															/>,
+															"Locked",
+															{
+																color: "grey.600",
+																borderColor: "grey.500",
+															},
+														)
+													: undefined}
+												{/* TODO ADD USAGE TIME IN DISPLAY (CHIP & TIME LEFT) */}
+												{}
+												{v.is_covered
+													? customChip(undefined, "Covered", {
+															color: pink[500],
+															borderColor: pink[500],
+														})
+													: undefined}
+												{v.is_muted
+													? customChip(undefined, "Muted", {
+															color: indigo[500],
+															borderColor: indigo[500],
+														})
+													: undefined}
+												{v.is_grayscaled
+													? customChip(undefined, "Grayscaled", {
+															color: blueGrey[800],
+															borderColor: blueGrey[800],
+														})
+													: undefined}
+												{v.is_blurred
+													? customChip(undefined, "Blurred", {
+															color: lightGreen[900],
+															borderColor: lightGreen[900],
+														})
+													: undefined}
+											</Stack>
+											<IconButton
+												sx={{ p: 0 }}
+												disableRipple
+												onClick={(e) => {
+													setmenuAnchor({ el: e.currentTarget, v: v });
+												}}
+											>
+												<MoreHorizIcon sx={{ color: "black" }} />
+											</IconButton>
+										</Stack>
+
+										<Stack
+											direction={"row"}
+											mt={2}
+											justifyContent={"space-between"}
+										>
 											<Typography
 												variant="h5"
+												letterSpacing={1}
 												component={"div"}
 												onClick={() => {
 													setSelectedBlockGroup(v);
 													setIsCoveredState(v.is_covered);
 													setIsGrayscaledState(v.is_grayscaled);
 													setIsMutedState(v.is_muted);
+													setIsBlurredState(v.is_blurred);
 													openModal(v);
 												}}
 												sx={{
@@ -264,79 +401,30 @@ export default function Blockings(): React.JSX.Element {
 													transition: "all 0.15s ease-in-out",
 													cursor: "pointer",
 													width: "fit-content",
-													fontWeight: 600,
+													fontWeight: 500,
 												}}
-												pr={2}
 												py={"2px"}
 											>
 												{v.group_name}
 											</Typography>
-											<div style={{ display: "inline-block" }}>
-												<Switch
-													checked={Boolean(v.is_activated)}
-													size="medium"
-													onChange={(
-														e: React.ChangeEvent<HTMLInputElement>,
-													) => {
-														ipcRendererSend("blockgroup/set", {
-															group: {
-																...v,
-																is_activated: e.target.checked ? 1 : 0,
-															},
-														});
-														ipcRendererSend("blockgroup/get", {});
-													}}
-												/>
-											</div>
-										</Stack>
-									</CardContent>
-									<CardActions sx={{ flex: 1 }}>
-										<Stack
-											direction={{ xs: "column", sm: "row" }}
-											spacing={1}
-											sx={{
-												width: "100%",
-											}}
-										>
 											<Button
-												size="small"
-												variant="outlined"
-												onClick={(e) => {
-													e.stopPropagation();
-													setSelectedBlockGroup(v);
-													setIsDeleteGroupModalOpen(true);
-												}}
-												sx={menuButtonStyle}
-											>
-												Delete
-											</Button>
-											<Button
-												size="small"
-												variant="outlined"
-												onClick={(e) => {
-													e.stopPropagation();
-													setSelectedBlockGroup(v);
-													setIsRenameGroupModalOpen(true);
-												}}
-												sx={menuButtonStyle}
-											>
-												Rename
-											</Button>
-											<Button
-												variant="text"
-												color="primary"
 												disableRipple
-												sx={menuButtonStyle}
+												size="small"
+												variant="contained"
+												disableElevation
 												onClick={(e) => {
 													e.stopPropagation();
 													setSelectedBlockGroup(v);
 													setIsConfigModalOpen(true);
 												}}
 											>
-												Blocking config
+												{v.is_restricted ? <LockIcon /> : <LockOpenIcon />}{" "}
+												<Typography ml={0.5} fontSize={"14px"}>
+													{v.is_restricted ? "Locked" : "Unlocked"}
+												</Typography>
 											</Button>
 										</Stack>
-									</CardActions>
+									</CardContent>
 								</Card>
 							);
 						})}
@@ -354,12 +442,12 @@ export default function Blockings(): React.JSX.Element {
 						position: "fixed",
 						bottom: 90,
 						right: 20,
-
+						letterSpacing: 1,
 						zIndex: 100,
-						fontWeight: 600,
+						fontWeight: 500,
 					}}
 				>
-					<AddIcon /> Add group
+					<AddIcon sx={{ mr: 1 }} /> Add group
 				</Fab>
 			</Stack>
 			<BlockingModal />
@@ -367,6 +455,55 @@ export default function Blockings(): React.JSX.Element {
 			<DeleteBlockGroupModal />
 			<RenameBlockGroupModal />
 			<ConfigModal />
+			<Menu
+				anchorEl={menuAnchor?.el}
+				open={Boolean(menuAnchor?.el)}
+				onClose={() => {
+					setmenuAnchor(null);
+				}}
+			>
+				<MenuItem
+					onClick={(e) => {
+						e.stopPropagation();
+						setSelectedBlockGroup(menuAnchor?.v);
+						setIsDeleteGroupModalOpen(true);
+						setmenuAnchor(null);
+					}}
+				>
+					<ListItemIcon>
+						<DeleteIcon fontSize="small" />
+					</ListItemIcon>
+					<ListItemText sx={{ letterSpacing: 0.7 }}>Delete</ListItemText>
+				</MenuItem>
+				<MenuItem
+					onClick={(e) => {
+						e.stopPropagation();
+						setSelectedBlockGroup(menuAnchor?.v);
+						setIsRenameGroupModalOpen(true);
+						setmenuAnchor(null);
+					}}
+				>
+					<ListItemIcon>
+						<DriveFileRenameOutlineIcon fontSize="small" />
+					</ListItemIcon>
+					<ListItemText sx={{ letterSpacing: 0.7 }}>Rename</ListItemText>
+				</MenuItem>
+				<MenuItem
+					onClick={(e) => {
+						e.stopPropagation();
+						setSelectedBlockGroup(menuAnchor?.v);
+						setIsConfigModalOpen(true);
+						setmenuAnchor(null);
+					}}
+				>
+					<ListItemIcon>
+						<SettingsIcon fontSize="small" />
+					</ListItemIcon>
+					<ListItemText sx={{ letterSpacing: 0.7 }}>
+						Open configuration
+					</ListItemText>
+				</MenuItem>
+			</Menu>
 		</>
 	);
 }
