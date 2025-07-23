@@ -52,6 +52,7 @@ import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import {
 	BlockGroup,
+	BlockGroup_Full,
 	ConfigType,
 	Password_Config,
 	RandomText_Config,
@@ -62,19 +63,20 @@ import ConfigModal from "./components/configModal";
 import { scrollbarStyle } from "@renderer/assets/shared/modalStyle";
 import MenuIcon from "@mui/icons-material/Menu";
 import { Theme } from "@emotion/react";
+import { CheckBox } from "@mui/icons-material";
 function customChip(
 	optionalIcon: React.JSX.Element | undefined = undefined,
 	label: string | undefined = undefined,
 	chipStyle: SxProps<Theme> | undefined = undefined,
 	optionalOnClick:
-		| React.MouseEventHandler<SVGSwitchElement>
+		| React.MouseEventHandler<HTMLDivElement>
 		| undefined = undefined,
 ): React.JSX.Element {
 	return (
 		<Chip
-			component={"switch"}
 			size="small"
 			variant="outlined"
+			clickable={Boolean(optionalOnClick)}
 			label={
 				<Stack direction={"row"} alignItems={"center"} spacing={0.5}>
 					{optionalIcon}
@@ -125,7 +127,22 @@ export default function Blockings(): React.JSX.Element {
 		});
 		setIsBlockingModalOpen(true);
 	};
-
+	const modifyActivateButton = (v: BlockGroup_Full): void => {
+		ipcRendererSend("blockgroup/set", {
+			group: {
+				...v,
+				is_activated: v.is_activated ? 0 : 1,
+			},
+		});
+	};
+	const modifyAutoDeactivateButton = (v: BlockGroup_Full): void => {
+		ipcRendererSend("blockgroup/set", {
+			group: {
+				...v,
+				auto_deactivate: v.auto_deactivate ? 0 : 1,
+			},
+		});
+	};
 	useEffect(() => {
 		const listeners = [
 			{
@@ -142,6 +159,7 @@ export default function Blockings(): React.JSX.Element {
 				handler: (_, data) => {
 					if (data.error)
 						console.error("Error blockgroup/get/response: ", data.error);
+
 					setBlockGroupData(data.data);
 				},
 			},
@@ -273,7 +291,7 @@ export default function Blockings(): React.JSX.Element {
 					}}
 				>
 					{blockGroupData &&
-						blockGroupData.map((v: BlockGroup, i) => {
+						blockGroupData.map((v, i) => {
 							// console.log(v);
 
 							return (
@@ -312,18 +330,32 @@ export default function Blockings(): React.JSX.Element {
 															? teal[500]
 															: "grey.300",
 													},
-													!v.is_restricted
-														? () => {
-																ipcRendererSend("blockgroup/set", {
-																	group: {
-																		...v,
-																		is_activated: v.is_activated ? 0 : 1,
-																	},
-																});
-															}
-														: undefined,
+													v.restriction_type && v.is_activated
+														? undefined
+														: () => modifyActivateButton(v),
 												)}
-												{v.is_restricted
+												{customChip(
+													undefined,
+													`Auto deactivate ${v.auto_deactivate ? "on" : "off"}`,
+													{
+														color: v.auto_deactivate
+															? blue[800]
+															: "text.secondary",
+														fontWeight: v.auto_deactivate ? 600 : "initial",
+														borderColor: v.auto_deactivate
+															? blue[800]
+															: "grey.300",
+													},
+													() => {
+														ipcRendererSend("blockgroup/set", {
+															group: {
+																...v,
+																auto_deactivate: v.auto_deactivate ? 0 : 1,
+															},
+														});
+													},
+												)}
+												{v.restriction_type
 													? customChip(
 															<LockIcon
 																sx={{
@@ -341,7 +373,12 @@ export default function Blockings(): React.JSX.Element {
 														)
 													: undefined}
 												{/* TODO ADD USAGE TIME IN DISPLAY (CHIP & TIME LEFT) */}
-												{}
+												{v.usage_label
+													? customChip(undefined, "Usage limit", {
+															color: blue[900],
+															borderColor: blue[900],
+														})
+													: undefined}
 												{v.is_covered
 													? customChip(undefined, "Covered", {
 															color: pink[500],
@@ -389,10 +426,22 @@ export default function Blockings(): React.JSX.Element {
 												component={"div"}
 												onClick={() => {
 													setSelectedBlockGroup(v);
-													setIsCoveredState(v.is_covered);
-													setIsGrayscaledState(v.is_grayscaled);
-													setIsMutedState(v.is_muted);
-													setIsBlurredState(v.is_blurred);
+													setIsCoveredState({
+														val: v.is_covered,
+														init_val: v.is_covered,
+													});
+													setIsGrayscaledState({
+														val: v.is_grayscaled,
+														init_val: v.is_grayscaled,
+													});
+													setIsMutedState({
+														val: v.is_muted,
+														init_val: v.is_muted,
+													});
+													setIsBlurredState({
+														val: v.is_blurred,
+														init_val: v.is_blurred,
+													});
 													openModal(v);
 												}}
 												sx={{
@@ -407,6 +456,13 @@ export default function Blockings(): React.JSX.Element {
 											>
 												{v.group_name}
 											</Typography>
+											<Typography
+												color="initial"
+												variant={"subtitle2"}
+												alignContent={"center"}
+											>
+												{v.usage_label}
+											</Typography>
 											<Button
 												disableRipple
 												size="small"
@@ -418,9 +474,9 @@ export default function Blockings(): React.JSX.Element {
 													setIsConfigModalOpen(true);
 												}}
 											>
-												{v.is_restricted ? <LockIcon /> : <LockOpenIcon />}{" "}
+												{v.restriction_type ? <LockIcon /> : <LockOpenIcon />}{" "}
 												<Typography ml={0.5} fontSize={"14px"}>
-													{v.is_restricted ? "Locked" : "Unlocked"}
+													{v.restriction_type ? "Locked" : "Unlocked"}
 												</Typography>
 											</Button>
 										</Stack>

@@ -75,12 +75,6 @@ export default function Sidebar(): React.JSX.Element {
 				icon={<DashboardIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
-
-			<BottomNavigationAction
-				label="WORD BANK"
-				icon={<FontDownloadIcon sx={iconActionStyle} />}
-				sx={actionStyle}
-			/>
 			<BottomNavigationAction
 				label="OPTIONS"
 				icon={<TuneIcon sx={iconActionStyle} />}

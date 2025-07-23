@@ -42,6 +42,7 @@ import {
 	validateTimelist,
 	validateWebpage,
 } from "./functionsExtensionReceiver";
+import { getBlockGroup_with_config } from "./functionConfig";
 export let db: BetterSqlite3.Database | undefined;
 export let mainWindow: BrowserWindow;
 function createWindow(): void {
@@ -116,7 +117,7 @@ app.whenReady().then(() => {
 			}
 			lt = ct;
 			updateBlockGroup();
-			const r = getBlockGroup()?.all() || [];
+			const r = getBlockGroup_with_config();
 			mainWindow.webContents.send("blockgroup/get/response", {
 				data: r,
 			});
@@ -184,8 +185,8 @@ app.whenReady().then(() => {
 	// retrieve all the blockgroup
 	ipcMain.on("blockgroup/get", (event: Electron.IpcMainEvent, _data) => {
 		try {
-			const rows = getBlockGroup()?.all() || [];
-			event.reply("blockgroup/get/response", { data: rows });
+			const r = getBlockGroup_with_config();
+			event.reply("blockgroup/get/response", { data: r });
 		} catch (err) {
 			showError(
 				err,
@@ -243,7 +244,7 @@ app.whenReady().then(() => {
 			);
 		} finally {
 			// resend the updated block
-			const r = getBlockGroup()?.all() || [];
+			const r = getBlockGroup_with_config();
 			mainWindow.webContents.send("blockgroup/get/response", {
 				data: r,
 			});
@@ -270,7 +271,7 @@ app.whenReady().then(() => {
 			);
 		} finally {
 			// resend the updated block
-			const r = getBlockGroup()?.all() || [];
+			const r = getBlockGroup_with_config();
 			mainWindow.webContents.send("blockgroup/get/response", {
 				data: r,
 			});
@@ -298,7 +299,7 @@ app.whenReady().then(() => {
 			);
 		} finally {
 			// resend the updated block
-			const r = getBlockGroup()?.all() || [];
+			const r = getBlockGroup_with_config();
 			mainWindow.webContents.send("blockgroup/get/response", {
 				data: r,
 			});
@@ -349,7 +350,7 @@ app.whenReady().then(() => {
 				);
 			} finally {
 				// resend the updated block
-				const r = getBlockGroup()?.all() || [];
+				const r = getBlockGroup_with_config();
 				mainWindow.webContents.send("blockgroup/get/response", {
 					data: r,
 				});
@@ -408,6 +409,7 @@ app.whenReady().then(() => {
 						: config_data.usage_reset_value_mode === "hour"
 							? config_data.usage_reset_value * 120
 							: config_data.usage_reset_value;
+				// update the config table with the followin data
 				db
 					?.prepare(
 						`
@@ -434,7 +436,9 @@ app.whenReady().then(() => {
 					)
 					.run(id, config_data.config_type, JSON.stringify(config_data));
 				db
-					?.prepare("UPDATE block_group SET is_restricted = 1 WHERE id = ?")
+					?.prepare(
+						"UPDATE block_group SET restriction_type = 'password' WHERE id = ?",
+					)
 					.run(id);
 			} else throw "the config type is invalid: " + config_data;
 		} catch (err) {
@@ -446,7 +450,7 @@ app.whenReady().then(() => {
 			);
 		} finally {
 			// resend the updated block
-			const r = getBlockGroup()?.all() || [];
+			const r = getBlockGroup_with_config();
 			mainWindow.webContents.send("blockgroup/get/response", {
 				data: r,
 			});

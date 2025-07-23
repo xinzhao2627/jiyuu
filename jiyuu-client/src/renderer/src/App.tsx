@@ -45,6 +45,7 @@ function App(): React.JSX.Element {
 						duration: 1200,
 						style: {
 							fontWeight: "600",
+							fontFamily: "roboto, Roboto",
 						},
 					}}
 				/>

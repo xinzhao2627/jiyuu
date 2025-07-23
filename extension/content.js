@@ -29,39 +29,22 @@ async function manipulate(request, sender, sendResponse) {
 			descDoc: descDoc,
 			keywordsDoc: keywordsDoc,
 		};
-
-		// //backdoor
-		// let toBlock = [
-		// 	"reddit",
-		// 	"x.com",
-		// 	" jav ",
-		// 	" sex ",
-		// 	"porn",
-		// 	"hentai",
-		// 	"facebook",
-		// ];
-		// for (let v of [desc, keywords, data.tabUrl, title]) {
-		// 	for (let tb of toBlock) {
-		// 		if (v && v.includes(tb)) {
-		// 			blockOverride();
-		// 		}
-		// 		if (v && v.includes("youtube")) {
-		// 			blockGrayscale();
-		// 		}
-		// 	}
-		// }
-		// // if (data.tabUrl.includes("youtube")) {
-		// // 	blockGrayscale();
-		// // }
-
 		sendResponse({ status: 200, data: siteContent });
 	} catch (e) {
 		sendResponse({ status: 400, error: e.message });
 	}
 }
 
-function blockGrayscale() {
+function blockBlur() {
 	document.documentElement.style.filter = "blur(5px)";
+}
+
+function blockGrayscale() {
+	document.documentElement.style.filter = "grayscale(100%)";
+}
+
+function blockGrayscaleBlur() {
+	document.documentElement.style.filter = "blur(5px) grayscale(100%)";
 }
 
 function blockOverride() {
@@ -87,8 +70,15 @@ function blockOverride() {
 }
 
 function blockMute() {
-	//wdwdwd
-	//wdwdwd
+	const observer = new MutationObserver(() => {
+		setTimeout(() => {
+			document.querySelectorAll("audio, video").forEach((el) => {
+				el.muted = true;
+				el.volume = 0;
+			});
+		}, 1000);
+	});
+	observer.observe(document.body, { childList: true, subtree: true });
 }
 
 async function blockProcessor(blockParam, sendResponse) {
@@ -97,7 +87,11 @@ async function blockProcessor(blockParam, sendResponse) {
 
 		if (blockParam.is_muted) blockMute();
 		if (blockParam.is_covered) blockOverride();
-		if (blockParam.is_grayscaled) blockGrayscale();
+
+		if (blockParam.is_grayscaled && blockParam.is_blurred)
+			blockGrayscaleBlur();
+		else if (blockParam.is_grayscaled) blockGrayscale();
+		else if (blockParam.is_blurred) blockBlur();
 
 		sendResponse({
 			status: 200,

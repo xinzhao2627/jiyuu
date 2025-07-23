@@ -1,9 +1,10 @@
-// TODO: modify the websocket receiver to block the tabid (line 210+)
-
-console.log("top started");
+let _socket = null;
+chrome.runtime.onStartup.addListener(() => {
+	window_started = true;
+});
 // time list is a map <key_url, blocked_site>
 let timeList = new Map();
-let _socket = null;
+
 const interval = 500;
 let lastLogTime = new Date();
 async function initialize_intervals() {
@@ -28,48 +29,50 @@ async function log_to_server() {
 		setTimeout(log_to_server, 100);
 		return;
 	}
+	console.log("log to server runnin");
 
-	// this will run after 5 seconds elapsed from the lastLogTime and the currentTime
-	chrome.tabs.query({ active: true }, async (tabs) => {
-		for (let tab of tabs) {
-			// make sure the active tab is not a system tab
-			if (/^https?:\/\//.test(tab.url)) {
-				// get the content of that tab
-				const feedback = await reqManipulate({ tabId: tab.id });
-				if (!(feedback && feedback.data)) {
-					console.log("skipping empty content");
-					continue;
+	try {
+		// this will run after 5 seconds elapsed from the lastLogTime and the currentTime
+		chrome.tabs.query({ active: true }, async (tabs) => {
+			for (let tab of tabs) {
+				// make sure the active tab is not a system tab
+				if (/^https?:\/\//.test(tab.url)) {
+					// get the content of that tab
+					const feedback = await reqManipulate({ tabId: tab.id });
+					if (!(feedback && feedback.data)) {
+						continue;
+					}
+					const baseUrl = getBaseUrl(tab);
+					const tabData = timeList.get(baseUrl);
+
+					// put the content here, as well as initialize the seconds and startTime to prevent NaN
+					timeList.set(tab.url, {
+						...tabData,
+						...feedback.data,
+						secondsElapsed: tabData?.secondsElapsed || 0,
+						startTime: tabData?.startTime || currentTime,
+						tabId: tabData?.tabId ? tabData.tabId : tab.id,
+						dateObject: currentTime.toISOString(),
+						baseUrl: baseUrl,
+						fullUrl: tab.url,
+					});
 				}
-				const baseUrl = getBaseUrl(tab);
-				const tabData = timeList.get(baseUrl);
-
-				// put the content here, as well as initialize the seconds and startTime to prevent NaN
-				timeList.set(tab.url, {
-					...tabData,
-					...feedback.data,
-					secondsElapsed: tabData?.secondsElapsed || 0,
-					startTime: tabData?.startTime || currentTime,
-					tabId: tabData?.tabId ? tabData.tabId : tab.id,
-					dateObject: currentTime.toISOString(),
-					baseUrl: baseUrl,
-					fullUrl: tab.url,
-				});
 			}
-		}
-	});
-	// finally send it to server and empty the timelist records (do this if its already connected to the database)
-	async function sendToServer() {
+		});
+		// finally send it to server and empty the timelist records (do this if its already connected to the database)
+
 		await sendMessage({
 			isTimelist: true,
 			data: Object.fromEntries(timeList),
 		});
 		timeList = new Map();
+	} catch (error) {
+		console.log("sending to server error: ", error);
+	} finally {
+		lastLogTime = currentTime;
+		// repeat again after 5 seconds have passed
+		setTimeout(log_to_server, 5000);
 	}
-
-	await sendToServer();
-	lastLogTime = currentTime;
-	// repeat again after 5 seconds have passed
-	setTimeout(log_to_server, 5000);
 }
 
 // every sec increments all active tabs time by 1
@@ -106,23 +109,6 @@ function incrementor() {
 	setTimeout(incrementor, 1000);
 }
 
-async function sendMessage(data) {
-	// if the websocket is not yet initialized, run it
-	if (!(_socket && _socket.readyState === WebSocket.OPEN)) {
-		console.log("no socket yet, initializing...");
-
-		await connectWebSocket();
-	}
-
-	// if websocket is running, send the parameter to
-	if (_socket && _socket.readyState === WebSocket.OPEN) {
-		console.log("socket ready, sending data...");
-
-		_socket.send(JSON.stringify(data));
-	} else {
-		console.warn(_socket.readyState);
-	}
-}
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
 	try {
 		const feedback = await reqManipulate(activeInfo);
@@ -171,8 +157,6 @@ async function reqManipulate(activeInfo) {
 						target: { tabId: tab.id },
 						files: ["content.js"],
 					});
-
-					console.log("ACTIVE TAB DETECTED - from reqManipulate()");
 					// sends the url in content js and get the web content/details as feedback
 					const feedback = await chrome.tabs.sendMessage(
 						activeInfo.tabId,
@@ -187,7 +171,6 @@ async function reqManipulate(activeInfo) {
 						throw new Error(feedback.error);
 					resolve(feedback);
 				} else {
-					console.log("Tab not examined as it is not a webpage");
 					resolve(null);
 				}
 			} catch (error) {
@@ -198,54 +181,57 @@ async function reqManipulate(activeInfo) {
 	});
 }
 
+async function sendMessage(data) {
+	try {
+		// if the websocket is not yet initialized, run it
+		if (!(_socket && _socket.readyState === WebSocket.OPEN)) {
+			console.log("no socket yet, initializing...");
+
+			await connectWebSocket();
+		}
+
+		// if websocket is running, send the parameter to
+		if (_socket && _socket.readyState === WebSocket.OPEN) {
+			_socket.send(JSON.stringify(data));
+		} else {
+			console.warn(_socket.readyState);
+		}
+	} catch (error) {
+		console.log("error from sendMessage");
+
+		throw error;
+	}
+}
+
 // initialize websocket
 async function connectWebSocket() {
 	try {
 		// connect to websocket on port 8080
-		const socket = new WebSocket("ws://localhost:8080");
+		_socket = new WebSocket("ws://localhost:8080");
+		await new Promise((resolve, reject) => {
+			_socket.onopen = (e) => {
+				console.log("websocket open");
+				keepAlive();
+				resolve();
+			};
+			_socket.onerror = (err) => {
+				console.error("websocket onerror: ", err);
+				_socket = null;
+				reject(new Error("Websocket connection failed"));
+			};
+		});
 
 		// here we receive any incoming message from backend
-		socket.onmessage = async (event) => {
+		_socket.onmessage = async (event) => {
 			const d = JSON.parse(event.data);
-			console.log(d.isBlocked);
-			console.log("sent from electron: ", d.blockParam);
-
 			// electron will reply if we should block the tab or not
 			if (d.isBlocked && d.tabId) {
-				// chrome.tabs.query(
-				// 	{ active: true, currentWindow: true },
-				// 	async (tabs) => {
-				// 		if (tabs[0]) {
-				// 			try {
-				// 				// here we will send message to content.js to block the tab with the corresponding configs
-				// 				const feedback = await chrome.tabs.sendMessage(
-				// 					tabs[0].id,
-				// 					{
-				// 						toBlockData: true, // meaning this sendMessage will attempt to block the data
-				// 						data: d.blockParam,
-				// 					}
-				// 				);
-
-				// 				// we can see if the block is successful or error based on the feedback message
-				// 				console.log("feedback: ", feedback);
-				// 			} catch (err) {
-				// 				console.error(
-				// 					"Error sending block message:",
-				// 					err
-				// 				);
-				// 			}
-				// 		}
-				// 	}
-				// );
 				const feedback = await chrome.tabs.sendMessage(d.tabId, {
 					toBlockData: true, // meaning this sendMessage will attempt to block the data
 					data: d.blockParam,
 				});
 				if (feedback.status != 200) {
-					throw new Error(
-						"there was a problem blocking the tab: ",
-						feedback.error
-					);
+					console.log("status prob: ", feedback.error);
 				} else {
 					console.log(
 						"blocking successfully executed, feedback: ",
@@ -256,31 +242,28 @@ async function connectWebSocket() {
 				console.log(`from websocket not blocked: ${d}`);
 			}
 		};
-
-		// log an error if the electron websocket port is offloine
-		socket.onerror = (err) => {
-			console.error("websocket error", err);
+		_socket.onclose = () => {
+			console.log("connection closed");
+			_socket = null;
 		};
-
-		// log an info if its disconnected otherwise
-		socket.onclose = () => {
-			console.log("disconnected");
-		};
-
-		// wait until the socket is open to give additional buffer window
-		await new Promise((resolve) => {
-			socket.onopen = () => {
-				socket.send(JSON.stringify({ data: "haai" }));
-				resolve();
-			};
-		});
-		_socket = socket;
 	} catch (err) {
 		console.error("failed to connect", err);
 		throw err;
 	}
 }
-
+function keepAlive() {
+	const keepAliveIntervalId = setInterval(
+		() => {
+			if (_socket) {
+				_socket.send("keepalive");
+			} else {
+				clearInterval(keepAliveIntervalId);
+			}
+		},
+		// Set the interval to 20 seconds to prevent the service worker from becoming inactive.
+		20 * 1000
+	);
+}
 // minor functions
 
 function getBaseUrl(tab) {

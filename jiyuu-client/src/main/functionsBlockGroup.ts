@@ -32,7 +32,7 @@ export function setBlockGroup(
 					is_grayscaled = ?, 
 					is_covered = ?, 
 					is_muted = ?,
-					is_restricted = ?,
+					restriction_type = ?,
 					auto_deactivate = ?,
 					is_blurred = ?
 				WHERE id = ?`,
@@ -43,7 +43,7 @@ export function setBlockGroup(
 			group.is_grayscaled,
 			group.is_covered,
 			group.is_muted,
-			group.is_restricted,
+			group.restriction_type,
 			group.auto_deactivate,
 			group.is_blurred,
 			group.id,
@@ -82,14 +82,14 @@ export function updateBlockGroup(): void {
 			| UsageLimitData_Config
 			| RestrictTimer_Config;
 		if (cd.config_type === "usageLimit") {
-			let candiDate = new Date(cd.last_updated_date);
+			const candiDate = new Date(cd.last_updated_date);
 			switch (cd.usage_reset_type) {
 				// if there is a block that has a day reset,
 				// check if the day is new then if it is, reset the timeleft.. do also for hour and week
 				case "d": {
 					// we also check month and year besides the they if a user didnt logged in for 1 month or 1 year
 					if (!isSameDay(candiDate, currentDate)) {
-						candiDate = currentDate;
+						cd.last_updated_date = currentDate.toISOString();
 						cd.usage_time_left = cd.usage_reset_value;
 						groupAutoDeact(r.block_group_id);
 					}
@@ -97,15 +97,17 @@ export function updateBlockGroup(): void {
 				}
 				case "h": {
 					if (!isSameHour(candiDate, currentDate)) {
-						candiDate = currentDate;
-						cd.usage_time_left = cd.usage_reset_value;
+						cd.last_updated_date = currentDate.toISOString();
+						cd.usage_time_left =
+							cd.usage_reset_value *
+							(cd.usage_reset_value_mode === "minute" ? 60 : 60 * 60);
 						groupAutoDeact(r.block_group_id);
 					}
 					break;
 				}
 				case "w": {
 					if (!isSameWeek(candiDate, currentDate)) {
-						candiDate = currentDate;
+						cd.last_updated_date = currentDate.toISOString();
 						cd.usage_time_left = cd.usage_reset_value;
 						groupAutoDeact(r.block_group_id);
 					}
@@ -121,6 +123,7 @@ export function updateBlockGroup(): void {
 		else if (cd.config_type === "restrictTimer") {
 			console.log("timer");
 		}
+		r.config_data = JSON.stringify(cd);
 	}
 
 	// then update it back to config data

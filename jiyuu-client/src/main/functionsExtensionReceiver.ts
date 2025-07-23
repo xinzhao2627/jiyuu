@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { db, mainWindow } from ".";
 import { getBlockedSitesDataAll } from "./functionBlockedSites";
+import { getBlockGroup_with_config } from "./functionConfig";
 import { siteIncludes } from "./functionHelper";
 import { getBlockGroup } from "./functionsBlockGroup";
 import {
@@ -152,7 +153,7 @@ export function validateWebpage(data, ws): void {
 		let grayscale_count = 0;
 		let muted_count = 0;
 		let covered_count = 0;
-
+		let blurred_count = 0;
 		// list of sites/keywords that are blocked
 		const following_detected_texts: string[] = [];
 
@@ -161,32 +162,29 @@ export function validateWebpage(data, ws): void {
 			const isact = r.is_activated;
 			const target = r.target_text;
 			if (siteIncludes(siteData, target, isact)) {
-				// and if matches, get the effects
-				console.log("found");
-				console.log(r);
-
 				grayscale_count += r.is_grayscaled;
 				muted_count += r.is_muted;
 				covered_count += r.is_covered;
+				blurred_count += r.is_blurred;
 				following_detected_texts.push(r.target_text);
 			}
 		}
 		const is_blocked = covered_count + muted_count + grayscale_count > 0;
-		console.log({
-			tabId: tabId,
-			isBlocked: is_blocked,
-			message: is_blocked
-				? "Blocking will proceed..."
-				: "Not blocking this webpage",
-			following_detected_texts: following_detected_texts,
-			blockParam: {
-				is_covered: covered_count > 0 ? 1 : 0,
-				is_muted: muted_count > 0 ? 1 : 0,
-				is_grayscaled: grayscale_count > 0 ? 1 : 0,
-			},
-		});
+		// console.log({
+		// 	tabId: tabId,
+		// 	isBlocked: is_blocked,
+		// 	message: is_blocked
+		// 		? "Blocking will proceed..."
+		// 		: "Not blocking this webpage",
+		// 	following_detected_texts: following_detected_texts,
+		// 	blockParam: {
+		// 		is_covered: covered_count > 0 ? 1 : 0,
+		// 		is_muted: muted_count > 0 ? 1 : 0,
+		// 		is_grayscaled: grayscale_count > 0 ? 1 : 0,
+		// 	},
+		// });
 		console.log("now sending msg to react...");
-		const blockgroup_rows = getBlockGroup()?.all() || [];
+		const blockgroup_rows = getBlockGroup_with_config();
 		mainWindow.webContents.send("blockgroup/get/response", {
 			data: blockgroup_rows,
 		});
@@ -202,6 +200,7 @@ export function validateWebpage(data, ws): void {
 					is_covered: covered_count > 0 ? 1 : 0,
 					is_muted: muted_count > 0 ? 1 : 0,
 					is_grayscaled: grayscale_count > 0 ? 1 : 0,
+					is_blurred: blurred_count > 0 ? 1 : 0,
 				},
 			}),
 		);

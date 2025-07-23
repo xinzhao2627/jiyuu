@@ -80,7 +80,7 @@ export default function ConfigModal(): React.JSX.Element {
 			title: "Restrict Timer",
 			type: "restrictTimer",
 			description:
-				"Restrict/lock block group modification if there is an active restrict timer.",
+				"Use this to restrict a block group, disabling you from modifying until it reaches the specified date.",
 		},
 		{
 			title: "Password",
@@ -293,7 +293,7 @@ export default function ConfigModal(): React.JSX.Element {
 									<Box sx={{ ...modalTextFieldStyle }}>
 										<input
 											type="number"
-											{...(selectedBlockGroup?.is_restricted && {
+											{...(selectedBlockGroup?.restriction_type && {
 												max: usageTimeValueNumber?.val,
 											})}
 											id="usageValue"
@@ -318,7 +318,7 @@ export default function ConfigModal(): React.JSX.Element {
 											render={({ field }) => (
 												<Select {...field} size="small" fullWidth>
 													<MenuItem value={"minute"}>minute</MenuItem>
-													{!selectedBlockGroup?.is_restricted ? (
+													{!selectedBlockGroup?.restriction_type ? (
 														<MenuItem value={"hour"}>hour</MenuItem>
 													) : typeof usageTimeValueNumber === "undefined" ||
 													  usageTimeValueNumber?.mode === "hour" ? (
@@ -415,7 +415,9 @@ export default function ConfigModal(): React.JSX.Element {
 										name="restrictTimer"
 										defaultValue={null}
 										control={control}
-										render={({ field }) => <DateTimePicker {...field} />}
+										render={({ field }) => (
+											<DateTimePicker {...field} disablePast />
+										)}
 									/>
 
 									<span>

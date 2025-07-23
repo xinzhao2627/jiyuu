@@ -91,10 +91,10 @@ export default function BlockingModal(): React.JSX.Element {
 		ipcRendererSend("blockgroup_blockedsites/set", {
 			group: {
 				...selectedBlockGroup,
-				is_grayscaled: isGrayscaledState ? 1 : 0,
-				is_covered: isCoveredState ? 1 : 0,
-				is_muted: isMutedState ? 1 : 0,
-				is_blurred: isBlurredState ? 1 : 0,
+				is_grayscaled: isGrayscaledState?.val ? 1 : 0,
+				is_covered: isCoveredState?.val ? 1 : 0,
+				is_muted: isMutedState?.val ? 1 : 0,
+				is_blurred: isBlurredState?.val ? 1 : 0,
 			},
 			blocked_sites_data: blockedSitesData,
 		});
@@ -103,40 +103,71 @@ export default function BlockingModal(): React.JSX.Element {
 		<Modal
 			open={isBlockingModalOpen && Boolean(selectedBlockGroup)}
 			onClose={handleClose}
-			aria-labelledby="modal-modal-title"
-			aria-describedby="modal-modal-description"
 		>
 			<Box sx={modalStyle}>
 				<Stack>
 					<ToggleButtonGroup fullWidth>
 						<ToggleButton
 							value="covered"
-							selected={isCoveredState}
-							onClick={() => setIsCoveredState(!isCoveredState)}
+							selected={isCoveredState?.val}
+							disabled={
+								Boolean(selectedBlockGroup?.restriction_type) &&
+								isCoveredState?.init_val
+							}
+							onClick={() =>
+								setIsCoveredState({
+									...isCoveredState,
+									val: !isCoveredState?.val,
+								})
+							}
 							sx={toggleButtonStyle}
 						>
 							Covered
 						</ToggleButton>
 						<ToggleButton
 							value="grayscaled"
-							selected={isGrayscaledState}
-							onClick={() => setIsGrayscaledState(!isGrayscaledState)}
+							selected={isGrayscaledState?.val}
+							disabled={
+								Boolean(selectedBlockGroup?.restriction_type) &&
+								isGrayscaledState?.init_val
+							}
+							onClick={() =>
+								setIsGrayscaledState({
+									...isGrayscaledState,
+									val: !isGrayscaledState?.val,
+								})
+							}
 							sx={toggleButtonStyle}
 						>
 							Grayscaled
 						</ToggleButton>
 						<ToggleButton
 							value="muted"
-							selected={isMutedState}
-							onClick={() => setIsMutedState(!isMutedState)}
+							selected={isMutedState?.val}
+							disabled={
+								Boolean(selectedBlockGroup?.restriction_type) &&
+								isMutedState?.init_val
+							}
+							onClick={() =>
+								setIsMutedState({ ...isMutedState, val: !isMutedState?.val })
+							}
 							sx={toggleButtonStyle}
 						>
 							Muted
 						</ToggleButton>
 						<ToggleButton
 							value="blurred"
-							selected={isBlurredState}
-							onClick={() => setIsBlurredState(!isBlurredState)}
+							selected={isBlurredState?.val}
+							disabled={
+								Boolean(selectedBlockGroup?.restriction_type) &&
+								isBlurredState?.init_val
+							}
+							onClick={() =>
+								setIsBlurredState({
+									...isBlurredState,
+									val: !isBlurredState?.val,
+								})
+							}
 							sx={toggleButtonStyle}
 						>
 							Blurred
@@ -183,7 +214,7 @@ export default function BlockingModal(): React.JSX.Element {
 										{v.target_text}
 									</Typography>
 									{/* remove the element */}
-									{!selectedBlockGroup?.is_restricted && (
+									{!selectedBlockGroup?.restriction_type && (
 										<IconButton
 											size="small"
 											onClick={() => {

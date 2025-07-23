@@ -39,7 +39,7 @@ export interface BlockGroup {
 	is_covered: 0 | 1;
 	is_muted: 0 | 1;
 	is_activated: 0 | 1;
-	is_restricted: 0 | 1;
+	restriction_type: string | null;
 	auto_deactivate: 0 | 1;
 }
 
@@ -74,6 +74,21 @@ export interface RandomText_Config {
 	config_type: "randomText";
 }
 
+export interface BlockGroupConfig {
+	block_group_id: number;
+	config_data:
+		| UsageLimitData_Config
+		| Password_Config
+		| RestrictTimer_Config
+		| RandomText_Config;
+	config_type: ConfigType;
+}
 // export interface BlockGroupConfig {
 
 // }
+// for full block groups with ui indications
+export interface BlockGroup_Full extends BlockGroup {
+	configs_json: string;
+	usage_label: string;
+	restriction_label: string;
+}

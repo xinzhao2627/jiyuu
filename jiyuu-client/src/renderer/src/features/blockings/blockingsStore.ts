@@ -1,6 +1,7 @@
 import {
 	BlockedSites,
 	BlockGroup,
+	BlockGroup_Full,
 } from "@renderer/shared/types/jiyuuInterfaces";
 import { create } from "zustand";
 
@@ -8,7 +9,7 @@ type empty_func = (c) => void;
 
 export const useStore = create<Store>((set) => ({
 	blockGroupData: [],
-	setBlockGroupData: (c: Array<BlockGroup>) =>
+	setBlockGroupData: (c: Array<BlockGroup_Full>) =>
 		set(() => ({ blockGroupData: c })),
 
 	blockedSitesData: [],
@@ -22,17 +23,21 @@ export const useStore = create<Store>((set) => ({
 	setSelectedBlockGroup: (c: BlockGroup) =>
 		set(() => ({ selectedBlockGroup: c })),
 
-	isCoveredState: false,
-	setIsCoveredState: (c: boolean) => set(() => ({ isCoveredState: c })),
+	isCoveredState: undefined,
+	setIsCoveredState: (c: { val: boolean; init_val: boolean } | undefined) =>
+		set(() => ({ isCoveredState: c })),
 
-	isMutedState: false,
-	setIsMutedState: (c: boolean) => set(() => ({ isMutedState: c })),
+	isMutedState: undefined,
+	setIsMutedState: (c: { val: boolean; init_val: boolean } | undefined) =>
+		set(() => ({ isMutedState: c })),
 
-	isGrayscaledState: false,
-	setIsGrayscaledState: (c: boolean) => set(() => ({ isGrayscaledState: c })),
+	isGrayscaledState: undefined,
+	setIsGrayscaledState: (c: { val: boolean; init_val: boolean } | undefined) =>
+		set(() => ({ isGrayscaledState: c })),
 
-	isBlurredState: false,
-	setIsBlurredState: (c: boolean) => set(() => ({ isBlurredState: c })),
+	isBlurredState: undefined,
+	setIsBlurredState: (c: { val: boolean; init_val: boolean } | undefined) =>
+		set(() => ({ isBlurredState: c })),
 
 	isNewGroupModalOpen: false,
 	setIsNewGroupModalOpen: (c: boolean) =>
@@ -78,7 +83,7 @@ export const useStore = create<Store>((set) => ({
 }));
 
 interface Store {
-	blockGroupData: Array<BlockGroup>;
+	blockGroupData: Array<BlockGroup_Full>;
 	setBlockGroupData: empty_func;
 
 	blockedSitesData: Array<BlockedSites>;
@@ -91,16 +96,16 @@ interface Store {
 	selectedBlockGroup: BlockGroup | null;
 	setSelectedBlockGroup: empty_func;
 
-	isCoveredState: boolean;
+	isCoveredState: { val: boolean; init_val: boolean } | undefined;
 	setIsCoveredState: empty_func;
 
-	isMutedState: boolean;
+	isMutedState: { val: boolean; init_val: boolean } | undefined;
 	setIsMutedState: empty_func;
 
-	isGrayscaledState: boolean;
+	isGrayscaledState: { val: boolean; init_val: boolean } | undefined;
 	setIsGrayscaledState: empty_func;
 
-	isBlurredState: boolean;
+	isBlurredState: { val: boolean; init_val: boolean } | undefined;
 	setIsBlurredState: empty_func;
 
 	// NEW GROUP MODAL COMPONENT

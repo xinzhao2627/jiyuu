@@ -93,6 +93,7 @@ CREATE TABLE block_group_config (
 
 select * from block_group_config
 select * from usage_log
+select * from block_group
 
 
 
@@ -101,3 +102,28 @@ DROP TABLE IF EXISTS blocked_sites;
 DROP TABLE IF EXISTS usage_log;
 DROP TABLE IF EXISTS block_group_config;
 DROP TABLE IF EXISTS date_today;
+
+
+CREATE TABLE IF NOT EXISTS block_group(
+                id INTEGER PRIMARY KEY,
+                group_name VARCHAR(255) NOT NULL,
+                is_grayscaled INTEGER DEFAULT 0,
+                is_covered INTEGER DEFAULT 0,
+                is_muted Integer DEFAULT 0,
+                is_activated Integer DEFAULT 0,
+				is_blurred INTEGER DEFAULT 0,
+                auto_deactivate INTEGER DEFAULT 0,
+                restriction_type VARCHAR(255) DEFAULT NULl)
+
+SELECT bg.*, GROUP_CONCAT(
+            CASE WHEN bgc.id IS NOT NULL
+            THEN json_object(
+                    'id', bgc.id,
+                    'config_type', bgc.config_type,
+                    'config_data', bgc.config_data
+            ) END
+        ) AS configs_json 
+        FROM block_group bg 
+        LEFT JOIN block_group_config bgc 
+        ON bg.id = bgc.block_group_id
+        GROUP BY  bg.id

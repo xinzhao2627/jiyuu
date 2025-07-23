@@ -25,7 +25,8 @@ export function initBlockGroup(): void {
                 is_activated Integer DEFAULT 0,
 				is_blurred INTEGER DEFAULT 0,
                 auto_deactivate INTEGER DEFAULT 0,
-                is_restricted INTEGER DEFAULT 0
+                restriction_type VARCHAR(255) DEFAULT NULL
+
             )`,
 		)
 		.run();
