@@ -1,6 +1,12 @@
 {
 	"extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
-	"include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*"],
+	"include": [
+		"electron.vite.config.*",
+		"src/main/**/*",
+		"src/preload/**/*",
+		"src/lib/electron-router-dom.ts",
+		"src/lib/jiyuuInterfaces.ts"
+	],
 	"compilerOptions": {
 		"composite": true,
 		"types": ["electron-vite/node"]

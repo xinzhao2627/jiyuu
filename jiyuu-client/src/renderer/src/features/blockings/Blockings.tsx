@@ -1,35 +1,27 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as React from "react";
 import { useEffect } from "react";
-import { menuButtonStyle, useStore } from "./blockingsStore";
+import { useStore } from "./blockingsStore";
 import toast from "react-hot-toast";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import LockIcon from "@mui/icons-material/Lock";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import {
-	amber,
 	blue,
 	blueGrey,
 	indigo,
 	lightGreen,
-	lime,
 	pink,
 	teal,
 } from "@mui/material/colors";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import {
 	Button,
 	Card,
 	Stack,
 	Typography,
 	CardContent,
-	CardActions,
-	Switch,
 	Fab,
-	ToggleButton,
 	Menu,
 	IconButton,
 	Chip,
@@ -58,12 +50,11 @@ import {
 	RandomText_Config,
 	RestrictTimer_Config,
 	UsageLimitData_Config,
-} from "@renderer/shared/types/jiyuuInterfaces";
+} from "../../jiyuuInterfaces";
 import ConfigModal from "./components/configModal";
 import { scrollbarStyle } from "@renderer/assets/shared/modalStyle";
-import MenuIcon from "@mui/icons-material/Menu";
 import { Theme } from "@emotion/react";
-import { CheckBox } from "@mui/icons-material";
+
 function customChip(
 	optionalIcon: React.JSX.Element | undefined = undefined,
 	label: string | undefined = undefined,
@@ -117,6 +108,7 @@ export default function Blockings(): React.JSX.Element {
 		setIsConfigModalOpen,
 		setUsageResetPeriod,
 		setUsageTimeValueNumber,
+		// selectedBlockGroup,
 	} = useStore();
 
 	const openModal = (v: BlockGroup): void => {
@@ -261,6 +253,16 @@ export default function Blockings(): React.JSX.Element {
 					}
 				},
 			},
+			{
+				channel: "blockgroupconfig/delete/response",
+				handler: (_, data) => {
+					if (data.error) {
+						toast.error(data.error);
+					} else if (data.info) {
+						toast.success("Restriction successfully removed");
+					}
+				},
+			},
 		];
 		listeners.forEach((v) => {
 			ipcRendererOn(v.channel, v.handler);
@@ -347,12 +349,7 @@ export default function Blockings(): React.JSX.Element {
 															: "grey.300",
 													},
 													() => {
-														ipcRendererSend("blockgroup/set", {
-															group: {
-																...v,
-																auto_deactivate: v.auto_deactivate ? 0 : 1,
-															},
-														});
+														modifyAutoDeactivateButton(v);
 													},
 												)}
 												{v.restriction_type
@@ -519,6 +516,7 @@ export default function Blockings(): React.JSX.Element {
 				}}
 			>
 				<MenuItem
+					disabled={Boolean(menuAnchor?.v.restriction_type)}
 					onClick={(e) => {
 						e.stopPropagation();
 						setSelectedBlockGroup(menuAnchor?.v);

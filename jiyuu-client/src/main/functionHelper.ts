@@ -1,4 +1,4 @@
-import { SiteAttribute, TimeListInterface } from "./jiyuuInterfaces";
+import { SiteAttribute, TimeListInterface } from "../lib/jiyuuInterfaces";
 
 export function siteIncludes(
 	siteData: SiteAttribute | TimeListInterface,

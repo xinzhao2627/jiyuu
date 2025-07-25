@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
 	Box,
 	Button,
@@ -13,7 +12,7 @@ import {
 import { menuButtonStyle, useStore } from "../blockingsStore";
 import { ipcRendererSend } from "../blockingAPI";
 import ClearIcon from "@mui/icons-material/Clear";
-import { blue, blueGrey, teal } from "@mui/material/colors";
+import { teal } from "@mui/material/colors";
 
 const modalStyle = {
 	position: "absolute",
@@ -220,7 +219,6 @@ export default function BlockingModal(): React.JSX.Element {
 											onClick={() => {
 												setBlockedSitesData(
 													blockedSitesData.filter((item) => {
-														console.log(item);
 														return item.target_text !== v.target_text;
 													}),
 												);

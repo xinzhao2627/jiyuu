@@ -1,14 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import {
-	Box,
-	Modal,
-	Typography,
-	TextField,
-	Button,
-	Stack,
-} from "@mui/material";
+import { Box, Modal, Typography, Button, Stack } from "@mui/material";
 import * as React from "react";
-import { useState, useEffect } from "react";
 import { menuButtonStyle, useStore } from "../blockingsStore";
 import { ipcRendererSend } from "../blockingAPI";
 import { modalStyle } from "@renderer/assets/shared/modalStyle";
@@ -39,10 +31,12 @@ export default function DeleteBlockGroupModal(): React.JSX.Element {
 							variant="contained"
 							color="primary"
 							onClick={() => {
-								// send the id that is about to be deleted in the server
-								ipcRendererSend("blockgroup/delete", {
-									id: selectedBlockGroup?.id,
-								});
+								if (selectedBlockGroup?.id) {
+									// send the id that is about to be deleted in the server
+									ipcRendererSend("blockgroup/delete", {
+										id: selectedBlockGroup?.id,
+									});
+								}
 								setIsDeleteGroupModalOpen(false);
 								setSelectedBlockGroup(null);
 							}}
@@ -51,7 +45,7 @@ export default function DeleteBlockGroupModal(): React.JSX.Element {
 							Delete
 						</Button>
 						<Button
-							variant="outlined"
+							variant="text"
 							color="primary"
 							onClick={() => {
 								setIsDeleteGroupModalOpen(false);

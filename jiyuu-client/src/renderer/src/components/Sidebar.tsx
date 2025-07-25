@@ -1,37 +1,29 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import * as React from "react";
 import ShieldIcon from "@mui/icons-material/Shield";
 import {
 	BottomNavigation,
 	BottomNavigationAction,
-	ListItem,
-	ListItemButton,
-	ListItemIcon,
-	ListItemText,
 	SxProps,
 	Theme,
 } from "@mui/material";
-import AddLocationIcon from "@mui/icons-material/AddLocation";
-import TuneIcon from "@mui/icons-material/Tune";
+// import TuneIcon from "@mui/icons-material/Tune";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import FontDownloadIcon from "@mui/icons-material/FontDownload";
 // import VpnLockIcon from "@mui/icons-material/VpnLock";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-const ConfigItem: React.FC<{ text: string; callback: (c) => void }> = ({
-	text,
-	callback,
-}) => {
-	return (
-		<ListItem sx={{ padding: "4px", margin: 0 }}>
-			<ListItemButton>
-				<ListItemIcon sx={{ minWidth: "30px" }}>
-					<AddLocationIcon />
-				</ListItemIcon>
-				<ListItemText primary={text} />
-			</ListItemButton>
-		</ListItem>
-	);
-};
+import { useLocation, useNavigate } from "react-router-dom";
+// const ConfigItem: React.FC<{ text: string; callback: (c) => void }> = ({
+// 	text,
+// 	callback,
+// }) => {
+// 	return (
+// 		<ListItem sx={{ padding: "4px", margin: 0 }}>
+// 			<ListItemButton>
+// 				<ListItemIcon sx={{ minWidth: "30px" }}>
+// 					<AddLocationIcon />
+// 				</ListItemIcon>
+// 				<ListItemText primary={text} />
+// 			</ListItemButton>
+// 		</ListItem>
+// 	);
+// };
 const actionStyle: SxProps<Theme> = { fontWeight: 500, letterSpacing: 1 };
 const iconActionStyle: SxProps<Theme> = { mb: "2px" };
 export default function Sidebar(): React.JSX.Element {
@@ -41,7 +33,7 @@ export default function Sidebar(): React.JSX.Element {
 	const routes = ["/", "/dashboard", "/wordbank", "/options"];
 	const currentTab = routes.indexOf(location.pathname);
 	const handleChange = (
-		event: React.SyntheticEvent,
+		_event: React.SyntheticEvent,
 		newValue: number,
 	): void => {
 		navigate(routes[newValue]);
@@ -75,11 +67,11 @@ export default function Sidebar(): React.JSX.Element {
 				icon={<DashboardIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
-			<BottomNavigationAction
+			{/* <BottomNavigationAction
 				label="OPTIONS"
 				icon={<TuneIcon sx={iconActionStyle} />}
 				sx={actionStyle}
-			/>
+			/> */}
 		</BottomNavigation>
 	);
 }

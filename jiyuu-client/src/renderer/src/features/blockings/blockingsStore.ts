@@ -1,9 +1,7 @@
-import {
-	BlockedSites,
-	BlockGroup,
-	BlockGroup_Full,
-} from "@renderer/shared/types/jiyuuInterfaces";
+import { SxProps } from "@mui/material";
+import { BlockedSites, BlockGroup_Full } from "../../jiyuuInterfaces";
 import { create } from "zustand";
+import { Theme } from "@emotion/react";
 
 type empty_func = (c) => void;
 
@@ -20,7 +18,7 @@ export const useStore = create<Store>((set) => ({
 	setTargetTextInput: (c: string) => set(() => ({ targetTextInput: c })),
 
 	selectedBlockGroup: null,
-	setSelectedBlockGroup: (c: BlockGroup) =>
+	setSelectedBlockGroup: (c: BlockGroup_Full) =>
 		set(() => ({ selectedBlockGroup: c })),
 
 	isCoveredState: undefined,
@@ -93,7 +91,7 @@ interface Store {
 	setTargetTextInput: empty_func;
 
 	// the group id of a clicked group
-	selectedBlockGroup: BlockGroup | null;
+	selectedBlockGroup: BlockGroup_Full | null;
 	setSelectedBlockGroup: empty_func;
 
 	isCoveredState: { val: boolean; init_val: boolean } | undefined;
@@ -149,7 +147,7 @@ interface Store {
 	setConfigType: empty_func;
 }
 
-export const menuButtonStyle = {
+export const menuButtonStyle: SxProps<Theme> = {
 	letterSpacing: 0.8,
 	fontWeight: 400,
 	textTransform: "none",

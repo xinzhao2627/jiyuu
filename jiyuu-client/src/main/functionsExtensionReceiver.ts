@@ -1,16 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { db, mainWindow } from ".";
 import { getBlockedSitesDataAll } from "./functionBlockedSites";
 import { getBlockGroup_with_config } from "./functionConfig";
 import { siteIncludes } from "./functionHelper";
-import { getBlockGroup } from "./functionsBlockGroup";
 import {
 	BlockedSites_with_configs,
 	ConfigType,
 	SiteAttribute,
 	TimeListInterface,
 	UsageLimitData_Config,
-} from "./jiyuuInterfaces";
+} from "../lib/jiyuuInterfaces";
 
 export function validateTimelist(data, ws): void {
 	// the site data here is multiple,
@@ -42,7 +40,7 @@ export function validateTimelist(data, ws): void {
 			const insertMany = db?.transaction((sds: Array<TimeListInterface>) => {
 				for (const sd of sds) {
 					if (sd.baseUrl && sd.fullUrl) {
-						console.log("sdd: ", sd);
+						// console.log("sdd: ", sd);
 
 						const res = {
 							base_url: sd.baseUrl,
@@ -68,10 +66,9 @@ export function validateTimelist(data, ws): void {
 		// loops all listed sites/keywords and determine their <group_id, seconds>
 		const blockGroupsList = new Map<number, number>();
 		for (const r of rows) {
-			const isact = r.is_activated;
 			const target = r.target_text;
 
-			for (const [k, v] of siteData) {
+			for (const v of siteData.values()) {
 				// if one of the tab is included in the active block...
 				if (siteIncludes(v, target, 1)) {
 					const s = blockGroupsList.get(r.block_group_id);
@@ -86,11 +83,11 @@ export function validateTimelist(data, ws): void {
 				}
 			}
 		}
-		console.log("available block lists... ", blockGroupsList);
+		// console.log("available block lists... ", blockGroupsList);
 
 		// TODO:  with the collected blockgroups list, update the time usage in config table
 		function updateUsage(): void {
-			console.log("updating...");
+			// console.log("updating...");
 			for (const [k, v] of blockGroupsList) {
 				const configRow = db
 					?.prepare(
@@ -130,7 +127,7 @@ export function validateTimelist(data, ws): void {
 		}
 		updateUsage();
 		// then validate if its blocked or not
-		for (const [k, v] of siteData) {
+		for (const v of siteData.values()) {
 			validateWebpage({ data: v, tabId: v.tabId }, ws);
 		}
 	} catch (error) {
@@ -183,7 +180,7 @@ export function validateWebpage(data, ws): void {
 		// 		is_grayscaled: grayscale_count > 0 ? 1 : 0,
 		// 	},
 		// });
-		console.log("now sending msg to react...");
+		// console.log("now sending msg to react...");
 		const blockgroup_rows = getBlockGroup_with_config();
 		mainWindow.webContents.send("blockgroup/get/response", {
 			data: blockgroup_rows,

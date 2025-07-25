@@ -4,8 +4,8 @@ import {
 	BlockGroup,
 	RestrictTimer_Config,
 	UsageLimitData_Config,
-} from "./jiyuuInterfaces";
-import { isSameDay, isSameHour, isSameWeek } from "date-fns";
+} from "../lib/jiyuuInterfaces";
+import { isBefore, isSameDay, isSameHour, isSameWeek } from "date-fns";
 
 export function getBlockGroup(): Statement<unknown[], unknown> | undefined {
 	return db?.prepare("SELECT * FROM block_group");
@@ -23,9 +23,8 @@ export function setBlockGroup(
 			? new_group_name
 			: group.group_name;
 
-	db
-		?.prepare(
-			`UPDATE block_group 
+	db?.prepare(
+		`UPDATE block_group 
 				SET 
 					group_name = ?, 
 					is_activated = ?, 
@@ -36,30 +35,29 @@ export function setBlockGroup(
 					auto_deactivate = ?,
 					is_blurred = ?
 				WHERE id = ?`,
-		)
-		.run(
-			name,
-			group.is_activated,
-			group.is_grayscaled,
-			group.is_covered,
-			group.is_muted,
-			group.restriction_type,
-			group.auto_deactivate,
-			group.is_blurred,
-			group.id,
-		);
+	).run(
+		name,
+		group.is_activated,
+		group.is_grayscaled,
+		group.is_covered,
+		group.is_muted,
+		group.restriction_type,
+		group.auto_deactivate,
+		group.is_blurred,
+		group.id,
+	);
 }
 
 export function blockGroupDelete(id: number): void {
 	db?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?").run(id);
-	db
-		?.prepare("DELETE FROM block_group_config WHERE block_group_id = ?")
-		.run(id);
+	db?.prepare("DELETE FROM block_group_config WHERE block_group_id = ?").run(
+		id,
+	);
 	db?.prepare("DELETE FROM block_group WHERE id = ?").run(id);
 }
 
 export function updateBlockGroup(): void {
-	const cr = db
+	let cr = db
 		?.prepare(
 			"SELECT config_type, block_group_id, config_data FROM block_group_config WHERE config_type = 'usageLimit' OR config_type = 'restrictTimer'",
 		)
@@ -69,14 +67,17 @@ export function updateBlockGroup(): void {
 		config_data: string;
 	}>;
 	function groupAutoDeact(id: number): void {
-		db
-			?.prepare(
-				"UPDATE block_group SET is_activated = 0 WHERE id = ? AND auto_deactivate = 1",
-			)
-			.run(id);
+		db?.prepare(
+			"UPDATE block_group SET is_activated = 0 WHERE id = ? AND auto_deactivate = 1",
+		).run(id);
 	}
 	// this function updates the usage_time_left
 	const currentDate = new Date();
+	const elRemove: Array<{
+		config_type: "usageLimit" | "restrictTimer";
+		block_group_id: number;
+		config_data: string;
+	}> = [];
 	for (const r of cr) {
 		const cd = JSON.parse(r.config_data) as
 			| UsageLimitData_Config
@@ -121,9 +122,34 @@ export function updateBlockGroup(): void {
 		}
 		// TODO: else if ... do also for restricted timer
 		else if (cd.config_type === "restrictTimer") {
-			console.log("timer");
+			const oldDate = cd.end_date;
+			// if the date has already passed, remove it from the config and also set the restrictio nto null from the block group
+			if (isBefore(oldDate, currentDate)) {
+				elRemove.push(r);
+				db?.prepare(
+					"DELETE FROM block_group_config WHERE config_type = ? AND block_group_id = ?",
+				).run(cd.config_type, r.block_group_id);
+				db?.prepare(
+					"UPDATE block_group SET restriction_type = null WHERE id = ?",
+				).run(r.block_group_id);
+			}
 		}
 		r.config_data = JSON.stringify(cd);
+	}
+
+	// if there are configs that were already removed,
+	// exclude them from the ones that needs to be updated
+	if (elRemove.length > 0) {
+		cr = cr.filter((r) => {
+			// check if r is in elRemove
+			const isInElRemove = elRemove.find(
+				(e) =>
+					e.block_group_id === r.block_group_id &&
+					e.config_type === r.config_type,
+			);
+			// if its in elRemove, make it false to be excluded in the new cr, else keep it by setting it to true
+			return isInElRemove ? false : true;
+		});
 	}
 
 	// then update it back to config data

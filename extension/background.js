@@ -255,7 +255,7 @@ function keepAlive() {
 	const keepAliveIntervalId = setInterval(
 		() => {
 			if (_socket) {
-				_socket.send("keepalive");
+				_socket.send(JSON.stringify({ message: "keepalive" }));
 			} else {
 				clearInterval(keepAliveIntervalId);
 			}

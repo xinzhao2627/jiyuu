@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
 	Box,
 	Modal,
@@ -8,7 +7,6 @@ import {
 	Stack,
 } from "@mui/material";
 import * as React from "react";
-import { useState, useEffect } from "react";
 import { menuButtonStyle, useStore } from "../blockingsStore";
 import { ipcRendererSend } from "../blockingAPI";
 import { modalStyle } from "@renderer/assets/shared/modalStyle";
@@ -22,7 +20,6 @@ export default function RenameBlockGroupModal(): React.JSX.Element {
 		setRenameGroupModalInput,
 		setSelectedBlockGroup,
 		selectedBlockGroup,
-		RenameOldGroupName,
 		setRenameOldGroupName,
 	} = useStore();
 	const handleClose = (): void => {
@@ -56,6 +53,8 @@ export default function RenameBlockGroupModal(): React.JSX.Element {
 							onClick={() => {
 								if (RenameGroupModalInput === selectedBlockGroup?.group_name) {
 									toast.error("group name already exist");
+								} else if (RenameGroupModalInput.length < 3) {
+									toast.error("group name must be at least 4 characters");
 								} else {
 									ipcRendererSend("blockgroup/set", {
 										group: selectedBlockGroup,
@@ -70,7 +69,7 @@ export default function RenameBlockGroupModal(): React.JSX.Element {
 							Save
 						</Button>
 						<Button
-							variant="outlined"
+							variant="text"
 							color="primary"
 							onClick={handleClose}
 							sx={{ ...menuButtonStyle, fontWeight: 400 }}

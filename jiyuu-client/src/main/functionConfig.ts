@@ -5,7 +5,7 @@ import {
 	RandomText_Config,
 	RestrictTimer_Config,
 	UsageLimitData_Config,
-} from "./jiyuuInterfaces";
+} from "../lib/jiyuuInterfaces";
 
 export function getBlockGroup_with_config(): BlockGroup_Full[] | [] {
 	const q = `

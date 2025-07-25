@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
 	Box,
 	Modal,
@@ -11,6 +10,7 @@ import * as React from "react";
 import { menuButtonStyle, useStore } from "../blockingsStore";
 import { ipcRendererSend } from "../blockingAPI";
 import { modalStyle } from "@renderer/assets/shared/modalStyle";
+import toast from "react-hot-toast";
 
 export default function NewBlockGroupModal(): React.JSX.Element {
 	const {
@@ -45,25 +45,32 @@ export default function NewBlockGroupModal(): React.JSX.Element {
 							variant="contained"
 							color="primary"
 							onClick={() => {
-								// TODO
-								ipcRendererSend("blockgroup/put", {
-									group_name: NewGroupModalInput,
-								});
-								setIsNewGroupModalOpen(false);
-								setNewGroupModalInput("");
+								if (!NewGroupModalInput) {
+									toast.error("Invalid group name input");
+								} else if (NewGroupModalInput.length < 3) {
+									toast.error("The group name must be at least 4 characters");
+								} else {
+									ipcRendererSend("blockgroup/put", {
+										group_name: NewGroupModalInput,
+									});
+									setIsNewGroupModalOpen(false);
+									setNewGroupModalInput("");
+								}
 							}}
 							sx={{ ...menuButtonStyle, fontWeight: 400 }}
 						>
 							Save
 						</Button>
 						<Button
-							variant="outlined"
-							color="primary"
+							variant="text"
 							onClick={() => {
 								setIsNewGroupModalOpen(false);
 								setNewGroupModalInput("");
 							}}
-							sx={{ ...menuButtonStyle, fontWeight: 400 }}
+							sx={{
+								...menuButtonStyle,
+								fontWeight: 400,
+							}}
 						>
 							Cancel
 						</Button>

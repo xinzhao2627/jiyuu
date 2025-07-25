@@ -1,12 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as React from "react";
-import { useState } from "react";
-import BlockCounter from "./components/BlockCounter";
+
 import {
 	Box,
 	Grid,
-	Paper,
-	Stack,
 	SxProps,
 	Theme,
 	ToggleButton,
@@ -20,10 +16,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import InterestsIcon from "@mui/icons-material/Interests";
 import { useStore } from "../blockings/blockingsStore";
 
-function miniCardTime(
-	count: number,
-	mode: "day" | "hour" | "min",
-): React.JSX.Element {
+function miniCardTime(count: number): React.JSX.Element {
 	return (
 		<Box
 			sx={{
@@ -38,7 +31,7 @@ function miniCardTime(
 }
 
 export default function Dashboard(): React.JSX.Element {
-	const t1 = miniCardTime(30, "day");
+	const t1 = miniCardTime(30);
 	const { selectedPeriod, setSelectedPeriod } = useStore();
 	const tButtonStyle: SxProps<Theme> = {
 		backgroundColor: "white",
@@ -65,7 +58,7 @@ export default function Dashboard(): React.JSX.Element {
 					value={selectedPeriod}
 					exclusive
 					onChange={(
-						e: React.MouseEvent<HTMLElement>,
+						_e: React.MouseEvent<HTMLElement>,
 						newPeriod: "1d" | "1w" | "1m" | null,
 					) => {
 						if (newPeriod === "1d" || newPeriod == "1w" || newPeriod == "1m") {

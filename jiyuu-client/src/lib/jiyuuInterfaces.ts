@@ -55,7 +55,7 @@ export interface UsageLimitData_Config {
 	usage_reset_value: number;
 	usage_reset_type: "d" | "w" | "h";
 	usage_time_left: number;
-	usage_reset_value_mode: string;
+	usage_reset_value_mode: "minute" | "hour";
 	config_type: "usageLimit";
 	last_updated_date: string;
 }
@@ -64,7 +64,6 @@ export interface Password_Config {
 	config_type: "password";
 }
 export interface RestrictTimer_Config {
-	start_date: Date;
 	end_date: Date;
 	config_type: "restrictTimer";
 }

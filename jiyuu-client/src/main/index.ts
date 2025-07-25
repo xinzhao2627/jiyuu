@@ -1,28 +1,32 @@
 /* eslint-disable prefer-const */
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { app, shell, BrowserWindow, ipcMain } from "electron";
-import { join } from "path";
-import { electronApp, optimizer, is } from "@electron-toolkit/utils";
-import icon from "../../resources/icon.png?asset";
-import { isSameDay, isSameHour, isSameWeek } from "date-fns";
+
+import {
+	app,
+	shell,
+	BrowserWindow,
+	ipcMain,
+	Tray,
+	Menu,
+	nativeImage,
+} from "electron";
+import path, { join } from "path";
+import url from "url";
+// import { registerRoute } from "../lib/electron-router-dom";
+import { electronApp, is, optimizer } from "@electron-toolkit/utils";
+import icon from "../../resources/JY.png?asset";
 import { WebSocketServer } from "ws";
 // import sqlite3 from "sqlite3";
-import Database, { Statement } from "better-sqlite3";
+import Database from "better-sqlite3";
 import BetterSqlite3 from "better-sqlite3";
-import { get } from "http";
 import {
 	BlockedSites,
-	BlockedSites_with_configs,
 	BlockGroup,
-	ConfigType,
 	Password_Config,
 	RandomText_Config,
 	RestrictTimer_Config,
-	SiteAttribute,
-	TimeListInterface,
 	UsageLimitData_Config,
-} from "./jiyuuInterfaces";
+} from "../lib/jiyuuInterfaces";
 import {
 	initBlockedSitesData,
 	initBlockGroup,
@@ -45,18 +49,22 @@ import {
 import { getBlockGroup_with_config } from "./functionConfig";
 export let db: BetterSqlite3.Database | undefined;
 export let mainWindow: BrowserWindow;
+let tray: Tray | null = null;
+let isQuitting: boolean = false;
 function createWindow(): void {
 	// Create the browser window.
 	mainWindow = new BrowserWindow({
-		width: 1000,
+		width: 1100,
 		height: 700,
 		show: false,
+		icon: icon,
+		resizable: false,
 		autoHideMenuBar: true,
 		...(process.platform === "linux" ? { icon } : {}),
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			sandbox: false,
-			nodeIntegration: true, //newly
+			nodeIntegration: false,
 		},
 	});
 
@@ -68,22 +76,113 @@ function createWindow(): void {
 		shell.openExternal(details.url);
 		return { action: "deny" };
 	});
-
+	mainWindow.on("close", (event) => {
+		if (!isQuitting) {
+			event.preventDefault();
+			if (process.platform === "darwin") {
+				app.hide();
+			} else {
+				mainWindow.hide();
+				if (process.platform === "win32" && tray) {
+					// tray.displayBalloon({
+					// 	iconType: "info",
+					// 	title: "Jiyuu",
+					// 	content: "The app is still running in the background",
+					// });
+				}
+			}
+		}
+	});
 	// HMR for renderer base on electron-vite cli.
 	// Load the remote URL for development or the local html file for production.
-	if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-		mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
+	if (is.dev && process.env.ELECTRON_RENDERER_URL) {
+		mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
 	} else {
-		mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+		mainWindow.loadURL(
+			url.format({
+				pathname: path.join(__dirname, "../renderer/index.html"),
+				protocol: "file",
+				slashes: true,
+			}),
+		);
+		// mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
 	}
 }
 
+function createTray(): void {
+	let trayIcon: Electron.NativeImage;
+	if (process.platform === "win32") {
+		trayIcon = nativeImage
+			.createFromPath(icon)
+			.resize({ width: 16, height: 16 });
+	} else if (process.platform === "darwin") {
+		trayIcon = nativeImage
+			.createFromPath(icon)
+			.resize({ width: 16, height: 16 });
+		trayIcon.setTemplateImage(true);
+	} else {
+		trayIcon = nativeImage
+			.createFromPath(icon)
+			.resize({ width: 22, height: 22 });
+	}
+
+	tray = new Tray(icon);
+	const contextMenu = Menu.buildFromTemplate([
+		{
+			label: "Show jiyuu",
+			click: () => {
+				if (process.platform === "darwin") {
+					app.show();
+				} else {
+					mainWindow.show();
+				}
+
+				if (mainWindow.isMinimized()) {
+					mainWindow.restore();
+				}
+				mainWindow.focus();
+			},
+		},
+		{ type: "separator" },
+		{
+			label: "Quit/Exit app",
+			click: () => {
+				isQuitting = true;
+				app.quit();
+			},
+		},
+	]);
+
+	tray.setToolTip("Jiyuu Website Blocker");
+	tray.setContextMenu(contextMenu);
+
+	if (process.platform === "darwin") {
+		tray.on("click", () => {
+			if (mainWindow.isVisible()) {
+				app.hide();
+			} else {
+				app.show();
+				mainWindow.focus();
+			}
+		});
+	} else {
+		tray.on("double-click", () => {
+			if (mainWindow.isVisible()) {
+				mainWindow.hide();
+			} else {
+				mainWindow.show();
+				mainWindow.focus();
+			}
+		});
+	}
+}
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
 	// Set app user model id for windows
-	electronApp.setAppUserModelId("com.electron");
+	createTray();
+	electronApp.setAppUserModelId("com.jiyuu");
 
 	// Default open or close DevTools by F12 in development
 	// and ignore CommandOrControl + R in production.
@@ -166,11 +265,9 @@ app.whenReady().then(() => {
 		try {
 			console.log("put block sites", { a: data.target_text, b: data.group_id });
 
-			db
-				?.prepare(
-					"INSERT INTO blocked_sites(target_text, block_group_id) VALUES(?, ?)",
-				)
-				.run(data.target_text, data.group_id);
+			db?.prepare(
+				"INSERT INTO blocked_sites(target_text, block_group_id) VALUES(?, ?)",
+			).run(data.target_text, data.group_id);
 			event.reply("blockedsites/put/response", { error: "" });
 		} catch (err) {
 			showError(
@@ -183,7 +280,7 @@ app.whenReady().then(() => {
 	});
 
 	// retrieve all the blockgroup
-	ipcMain.on("blockgroup/get", (event: Electron.IpcMainEvent, _data) => {
+	ipcMain.on("blockgroup/get", (event: Electron.IpcMainEvent) => {
 		try {
 			const r = getBlockGroup_with_config();
 			event.reply("blockgroup/get/response", { data: r });
@@ -229,9 +326,9 @@ app.whenReady().then(() => {
 					throw `Group name already exist (${_data.group_name}, ${r.group_name})`;
 			}
 
-			db
-				?.prepare("INSERT INTO block_group(group_name) VALUES(?)")
-				.run(_data.group_name);
+			db?.prepare("INSERT INTO block_group(group_name) VALUES(?)").run(
+				_data.group_name,
+			);
 			event.reply("blockgroup/put/response", {
 				info: `Group ${_data.group_name} added.`,
 			});
@@ -321,9 +418,9 @@ app.whenReady().then(() => {
 				setBlockGroup(group);
 
 				// delete blocked sites of that group first to start fresh
-				db
-					?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?")
-					.run(group.id);
+				db?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?").run(
+					group.id,
+				);
 
 				// then insert the latest collections
 				const inserter = db?.prepare(
@@ -392,6 +489,7 @@ app.whenReady().then(() => {
 	});
 	ipcMain.on("blockgroupconfig/set", (event: Electron.IpcMainEvent, data) => {
 		try {
+			let json_object = "";
 			let { id, config_data } = data as {
 				// group id and config data
 				id: number;
@@ -410,43 +508,41 @@ app.whenReady().then(() => {
 							? config_data.usage_reset_value * 120
 							: config_data.usage_reset_value;
 				// update the config table with the followin data
-				db
-					?.prepare(
-						`
-							INSERT INTO block_group_config(block_group_id, config_type, config_data)
-							VALUES(?, ?, ?)
-						`,
-					)
-					.run(
-						id,
-						config_data.config_type,
-						JSON.stringify({
-							...config_data,
-							usage_time_left: timeLeft,
-							last_updated_date: new Date().toISOString(),
-						}),
-					);
+				json_object = JSON.stringify({
+					...config_data,
+					usage_time_left: timeLeft,
+					last_updated_date: new Date().toISOString(),
+				});
 			} else if (config_data.config_type === "password") {
-				db
-					?.prepare(
-						`
-							INSERT INTO block_group_config(block_group_id, config_type, config_data)
-							VALUES(?, ?, ?)
-						`,
-					)
-					.run(id, config_data.config_type, JSON.stringify(config_data));
-				db
-					?.prepare(
-						"UPDATE block_group SET restriction_type = 'password' WHERE id = ?",
-					)
-					.run(id);
+				json_object = JSON.stringify(config_data);
+			} else if (config_data.config_type === "restrictTimer") {
+				const start_date = new Date();
+				if (start_date > config_data.end_date) throw "Invalid date";
+				json_object = JSON.stringify(config_data);
+			} else if (config_data.config_type === "randomText") {
+				json_object = JSON.stringify(config_data);
 			} else throw "the config type is invalid: " + config_data;
+			db?.prepare(
+				`
+				INSERT OR REPLACE INTO block_group_config(block_group_id, config_type, config_data)
+				VALUES(?, ?, ?)
+			`,
+			).run(id, config_data.config_type, json_object);
+			if (config_data.config_type !== "usageLimit") {
+				db?.prepare(
+					"UPDATE block_group SET restriction_type = ? WHERE id = ?",
+				).run(config_data.config_type, id);
+			}
+
+			event.reply("blockgroupconfig/set/response", {
+				info: "operation success",
+			});
 		} catch (err) {
 			showError(
 				err,
 				event,
 				"Error setting up group config",
-				"blockgroupconfig/set",
+				"blockgroupconfig/set/response",
 			);
 		} finally {
 			// resend the updated block
@@ -456,13 +552,70 @@ app.whenReady().then(() => {
 			});
 		}
 	});
-
+	ipcMain.on(
+		"blockgroupconfig/delete",
+		(event: Electron.IpcMainEvent, data) => {
+			try {
+				const { id, config_data } = data as {
+					id: number;
+					config_data:
+						| UsageLimitData_Config
+						| RestrictTimer_Config
+						| Password_Config
+						| RandomText_Config;
+				};
+				if (!(id && config_data)) throw "invalid post input...";
+				db?.prepare(
+					`
+						DELETE FROM block_group_config 
+						WHERE 
+							block_group_id = ? AND 
+							config_type = ? 
+						`,
+				).run(id, config_data.config_type);
+				db?.prepare(
+					"UPDATE block_group SET restriction_type = null WHERE id = ?",
+				).run(id);
+				event.reply("blockgroupconfig/delete/response", {
+					info: "operation success",
+				});
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error setting up group config",
+					"blockgroupconfig/delete/response",
+				);
+			} finally {
+				// resend the updated block
+				const r = getBlockGroup_with_config();
+				mainWindow.webContents.send("blockgroup/get/response", {
+					data: r,
+				});
+			}
+		},
+	);
 	createWindow();
 
 	app.on("activate", function () {
 		// On macOS it's common to re-create a window in the app when the
 		// dock icon is clicked and there are no other windows open.
 		if (BrowserWindow.getAllWindows().length === 0) createWindow();
+		else {
+			if (process.platform === "darwin") {
+				app.show();
+			} else {
+				mainWindow.show();
+			}
+			mainWindow.focus();
+		}
+	});
+
+	app.on("before-quit", () => {
+		isQuitting = true;
+		if (tray) {
+			tray.destroy();
+		}
 	});
 
 	const wss = new WebSocketServer({ port: 8080 });
@@ -495,8 +648,10 @@ app.whenReady().then(() => {
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") {
-		db?.close();
-		app.quit();
+		if (isQuitting) {
+			db?.close();
+			app.quit();
+		}
 	}
 });
 

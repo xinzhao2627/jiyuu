@@ -1,9 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
 	Box,
-	Modal,
 	Typography,
-	TextField,
 	Button,
 	Stack,
 	Select,
@@ -16,27 +13,33 @@ import {
 	CardContent,
 	CardActionArea,
 } from "@mui/material";
+import "react-datepicker/dist/react-datepicker.css";
 import * as React from "react";
-import { menuButtonStyle, useStore } from "../blockingsStore";
+import { useStore } from "../blockingsStore";
 import { ipcRendererSend } from "../blockingAPI";
 import {
-	modalStyle,
 	modalTextFieldStyle,
 	scrollbarStyle,
 } from "@renderer/assets/shared/modalStyle";
 import { Controller, FieldValues, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { UsageLimitData_Config } from "@renderer/shared/types/jiyuuInterfaces";
-import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import {
+	LocalizationProvider,
+	MobileDateTimePicker,
+} from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
+import {
+	Password_Config,
+	RandomText_Config,
+	RestrictTimer_Config,
+	UsageLimitData_Config,
+} from "@renderer/jiyuuInterfaces";
+import { blue } from "@mui/material/colors";
+import { isBefore } from "date-fns";
 export default function ConfigModal(): React.JSX.Element {
-	const {
-		register,
-		handleSubmit,
-		control,
-		formState: { errors },
-		reset,
-	} = useForm();
+	const [randomTextContent, setRandomTextContent] = React.useState<string>("");
+	const { register, handleSubmit, control, reset } = useForm();
 	const {
 		isConfigModalOpen,
 		setIsConfigModalOpen,
@@ -52,14 +55,11 @@ export default function ConfigModal(): React.JSX.Element {
 
 	const handleClose = (): void => {
 		setIsConfigModalOpen(false);
-
+		setConfigType("");
 		setSelectedBlockGroup(null);
 		setUsageResetPeriod(null);
 		setUsageTimeValueNumber(undefined);
-
-		setTimeout(() => {
-			setConfigType("");
-		}, 150);
+		setRandomTextContent("");
 
 		reset();
 	};
@@ -88,23 +88,18 @@ export default function ConfigModal(): React.JSX.Element {
 			description: "Set up password to restrict access for this blockgroup",
 		},
 	];
-	// TODO: ADD ENDPOINTS FOR ALL configtypoes
+	// reset button for usage limit
 	const resetButton = (): React.JSX.Element => {
 		return (
 			<Button
 				color="error"
 				variant="outlined"
+				disabled={Boolean(selectedBlockGroup?.restriction_type)}
 				onClick={() => {
-					if (configType === "password") {
-						console.log("verify password");
-					}
-					ipcRendererSend("blockgroupconfig/delete", {
-						id: selectedBlockGroup?.id,
-						config_type: configType,
-					});
+					quickUnlock({ config_type: "usageLimit" });
 				}}
 			>
-				Reset
+				Remove usage limit
 			</Button>
 		);
 	};
@@ -113,7 +108,12 @@ export default function ConfigModal(): React.JSX.Element {
 			id: selectedBlockGroup?.id,
 			config_data: data,
 		});
-		toast.success("adding usage successful");
+	};
+	const quickUnlock = (data): void => {
+		ipcRendererSend("blockgroupconfig/delete", {
+			id: selectedBlockGroup?.id,
+			config_data: data,
+		});
 	};
 	const usageSubmit = (fv: FieldValues): void => {
 		try {
@@ -151,6 +151,7 @@ export default function ConfigModal(): React.JSX.Element {
 			quickSendForms(data);
 		} catch (error) {
 			console.log(error);
+			toast.error(error instanceof Error ? error.message : String(error));
 		}
 
 		handleClose();
@@ -160,29 +161,165 @@ export default function ConfigModal(): React.JSX.Element {
 			const password = fv.password;
 			if (!password) throw "The input field is empty";
 			quickSendForms({ password: password, config_type: "password" });
+			handleClose();
 		} catch (error) {
 			console.log(error);
+			toast.error(error instanceof Error ? error.message : String(error));
 		}
-		handleClose();
+	};
+	const passwordUnlock = (fv: FieldValues): void => {
+		try {
+			let isSuccess = false;
+			const password = fv.password;
+			const cj = JSON.parse(`[${selectedBlockGroup?.configs_json}]`) as {
+				config_type: string;
+				config_data: string;
+			}[];
+			for (const c of cj) {
+				const cd = JSON.parse(c.config_data) as
+					| UsageLimitData_Config
+					| Password_Config
+					| RestrictTimer_Config
+					| RandomText_Config;
+				if (cd.config_type === "password" && cd.password === password) {
+					// delete the config to unlock
+					quickUnlock({ config_type: cd.config_type });
+					isSuccess = true;
+				}
+			}
+			if (isSuccess) {
+				// toast.success("Restriction unlocked");
+				handleClose();
+			} else {
+				throw "Password incorrect";
+			}
+		} catch (error) {
+			console.log(error);
+			toast.error(error instanceof Error ? error.message : String(error));
+		}
+	};
+	const randomTextUnlock = (fv: FieldValues): void => {
+		try {
+			const rtcontent = fv.randomTextContent;
+			// if one of the input or content is empty, throw an error
+			if (!(rtcontent && randomTextContent))
+				throw "Invalid input or invalid random generated characters";
+			if (rtcontent === randomTextContent) {
+				quickUnlock({ config_type: "randomText" });
+				handleClose();
+			} else throw "Invalid text input";
+		} catch (error) {
+			console.log(error);
+			toast.error(error instanceof Error ? error.message : String(error));
+		}
 	};
 	const randomTextSubmit = (fv: FieldValues): void => {
 		try {
-			const randomTextCount = fv.randomTextCount;
-			if (!randomTextCount) throw "The input field is empty";
+			const randomTextCount = Number(fv.randomTextCount);
+			if (!randomTextCount || Number.isNaN(randomTextCount))
+				throw "Invalid character count";
+			if (randomTextCount > 999) {
+				throw "Must be at most 3 digits only";
+			}
 			quickSendForms({
 				randomTextCount: randomTextCount,
 				config_type: "randomText",
 			});
+			handleClose();
 		} catch (error) {
 			console.log(error);
+			toast.error(error instanceof Error ? error.message : String(error));
 		}
 	};
 	const restrictTimerSubmit = (fv: FieldValues): void => {
 		try {
-			console.log("hi", fv);
+			const d = new Date(fv.restrictTimer);
+			const currentDate = new Date();
+			if (!fv.restrictTimer || isNaN(d.getTime())) throw "Invalid date";
+			if (isBefore(d, currentDate)) throw "Past dates are not allowed";
+			quickSendForms({
+				end_date: d,
+				config_type: "restrictTimer",
+			});
+			handleClose();
 		} catch (error) {
 			console.log(error);
+			toast.error(error instanceof Error ? error.message : String(error));
 		}
+	};
+	const baseLabel = (): string => {
+		let res = "You can add restriction for this block group";
+
+		if (selectedBlockGroup?.restriction_type === "password") {
+			res = "This block group is locked through password";
+		} else if (selectedBlockGroup?.restriction_type === "restrictTimer") {
+			if (selectedBlockGroup.configs_json) {
+				const cj = JSON.parse(`[${selectedBlockGroup.configs_json}]`) as {
+					config_type: string;
+					config_data: string;
+				}[];
+				for (const c of cj) {
+					const cd = JSON.parse(c.config_data) as
+						| UsageLimitData_Config
+						| Password_Config
+						| RestrictTimer_Config
+						| RandomText_Config;
+					if (cd.config_type === "restrictTimer") {
+						res =
+							"This block group is locked until: " +
+							new Date(cd.end_date).toLocaleString("en-US", {
+								weekday: "short",
+								year: "numeric",
+								month: "long",
+								day: "numeric",
+								hour: "2-digit",
+								minute: "2-digit",
+								hour12: true,
+							});
+					}
+				}
+			}
+		} else if (selectedBlockGroup?.restriction_type === "randomText") {
+			res = "This block group is locked through random text";
+		}
+		return res;
+	};
+	const generateRandomChar = (length: number): void => {
+		let res = "";
+		const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
+		for (let i = 0; i < length; i++) {
+			const randomInd = Math.floor(Math.random() * characters.length);
+			res += characters.charAt(randomInd);
+		}
+		setRandomTextContent(res);
+	};
+	// shows the hour or not depending if there is analready existing resitrction
+	const hourShower = (): React.JSX.Element | undefined => {
+		let component: React.JSX.Element | undefined = (
+			<MenuItem value={"hour"}>hour</MenuItem>
+		);
+		if (selectedBlockGroup?.configs_json) {
+			const cj = JSON.parse(`[${selectedBlockGroup?.configs_json}]`) as {
+				config_type: string;
+				config_data: string;
+			}[];
+			for (const c of cj) {
+				const cd = JSON.parse(c.config_data) as
+					| UsageLimitData_Config
+					| Password_Config
+					| RestrictTimer_Config
+					| RandomText_Config;
+				if (
+					Boolean(selectedBlockGroup?.restriction_type) &&
+					cd.config_type === "usageLimit" &&
+					cd.usage_reset_value_mode === "minute"
+				) {
+					component = undefined;
+				}
+			}
+		}
+
+		return component;
 	};
 	return (
 		<>
@@ -190,13 +327,14 @@ export default function ConfigModal(): React.JSX.Element {
 				open={isConfigModalOpen}
 				onClose={handleClose}
 				disableEscapeKeyDown
+				transitionDuration={0}
 				sx={{
 					"& .MuiDialog-paper": {
-						minHeight: "400px", // ✅ Stable dialog height
+						minHeight: "400px",
 						overflow: "hidden",
 					},
 				}}
-				disablePortal={false} // ✅ Ensure proper portal behavior
+				disablePortal={false}
 			>
 				<DialogTitle sx={{ fontFamily: "roboto" }}>
 					Configure block settings
@@ -222,13 +360,38 @@ export default function ConfigModal(): React.JSX.Element {
 										}}
 									>
 										<CardActionArea
+											disabled={
+												card.type !== "usageLimit"
+													? card.type === "restrictTimer" &&
+														Boolean(selectedBlockGroup?.restriction_type)
+														? true
+														: Boolean(selectedBlockGroup?.restriction_type) &&
+															selectedBlockGroup?.restriction_type !== card.type
+													: false
+											}
 											onClick={() => {
-												console.log(selectedBlockGroup, card.type);
-
-												ipcRendererSend("blockgroupconfig/get", {
-													id: selectedBlockGroup?.id,
-													config_type: card.type,
-												});
+												// console.log(selectedBlockGroup, card.type);
+												if (card.type === "randomText") {
+													const cj = JSON.parse(
+														`[${selectedBlockGroup?.configs_json}]`,
+													) as {
+														config_type: string;
+														config_data: string;
+													}[];
+													for (const c of cj) {
+														const cd = JSON.parse(c.config_data) as
+															| UsageLimitData_Config
+															| Password_Config
+															| RestrictTimer_Config
+															| RandomText_Config;
+														if (
+															cd.config_type === "randomText" &&
+															!Number.isNaN(Number(cd.randomTextCount))
+														) {
+															generateRandomChar(cd.randomTextCount);
+														}
+													}
+												}
 												setConfigType(card.type);
 											}}
 											sx={{
@@ -243,9 +406,21 @@ export default function ConfigModal(): React.JSX.Element {
 											}}
 										>
 											<CardContent sx={{ height: "100%" }}>
-												<Typography variant="h5" component="div">
+												<Typography variant="h6" component="div">
 													{card.title}
 												</Typography>
+												{/* {selectedBlockGroup?.restriction_type} */}
+												{(selectedBlockGroup?.restriction_type === card.type ||
+													(selectedBlockGroup?.usage_label &&
+														card.type === "usageLimit")) && (
+													<Typography
+														variant="subtitle2"
+														sx={{ color: blue[900], fontWeight: "600" }}
+													>
+														{"(Active)"}
+													</Typography>
+												)}
+
 												<Typography
 													variant="body2"
 													color="text.secondary"
@@ -268,14 +443,13 @@ export default function ConfigModal(): React.JSX.Element {
 							sx={{
 								width: "100%",
 								textAlign: "center",
-								// fontStyle: "italic",
 								justifyContent: "center",
 								display: "flex",
 								mt: 2,
 								fontWeight: "600",
 							}}
 						>
-							You can add restriction for this block group
+							{baseLabel()}
 						</Typography>
 					)}
 					{configType === "usageLimit" && (
@@ -318,12 +492,7 @@ export default function ConfigModal(): React.JSX.Element {
 											render={({ field }) => (
 												<Select {...field} size="small" fullWidth>
 													<MenuItem value={"minute"}>minute</MenuItem>
-													{!selectedBlockGroup?.restriction_type ? (
-														<MenuItem value={"hour"}>hour</MenuItem>
-													) : typeof usageTimeValueNumber === "undefined" ||
-													  usageTimeValueNumber?.mode === "hour" ? (
-														<MenuItem value={"hour"}>hour</MenuItem>
-													) : undefined}
+													{hourShower()}
 												</Select>
 											)}
 										/>
@@ -351,6 +520,7 @@ export default function ConfigModal(): React.JSX.Element {
 								>
 									Submit
 								</Button>
+								{/* reset or remove the usage limit */}
 								{resetButton()}
 							</Stack>
 						</form>
@@ -361,69 +531,36 @@ export default function ConfigModal(): React.JSX.Element {
 							style={{
 								display: "flex",
 								flexWrap: "wrap",
-								width: "fit-content",
+								width: "100%",
 							}}
-							onSubmit={handleSubmit(passwordSubmit)}
+							onSubmit={handleSubmit(
+								selectedBlockGroup?.restriction_type &&
+									selectedBlockGroup.restriction_type === "password"
+									? passwordUnlock
+									: passwordSubmit,
+							)}
 						>
-							<Stack gap={2} direction={"row"}>
-								<Box sx={{ ...modalTextFieldStyle }}>
+							<Stack gap={2} width={"100%"}>
+								<Box sx={{ ...modalTextFieldStyle, width: "100%" }}>
 									<input
+										style={{ width: "100%" }}
 										type="text"
 										id="password"
-										placeholder="Enter a password"
+										placeholder={
+											selectedBlockGroup?.restriction_type &&
+											selectedBlockGroup.restriction_type === "password"
+												? "Enter your password"
+												: "Enter a new password"
+										}
 										{...register("password")}
 									/>
+									<Typography variant="caption" color="initial">
+										{selectedBlockGroup?.restriction_type &&
+										selectedBlockGroup.restriction_type === "password"
+											? "Enter your password to remove restriction"
+											: "Enter a new password"}
+									</Typography>
 								</Box>
-							</Stack>
-						</form>
-					)}
-					{configType === "randomText" && (
-						<form
-							noValidate
-							style={{
-								display: "flex",
-								flexWrap: "wrap",
-								width: "fit-content",
-							}}
-							onSubmit={randomTextSubmit}
-						>
-							<Stack gap={2} direction={"row"}>
-								<Box sx={{ ...modalTextFieldStyle }}>
-									<input
-										type="number"
-										id="randomTextCount"
-										{...register("randomTextCount")}
-									/>
-								</Box>
-								<span>Input how many random characters would it generate</span>
-							</Stack>
-						</form>
-					)}
-					{configType === "restrictTimer" && (
-						<LocalizationProvider dateAdapter={AdapterDayjs}>
-							<form
-								noValidate
-								style={{
-									display: "flex",
-									flexWrap: "wrap",
-									width: "fit-content",
-								}}
-								onSubmit={handleSubmit(restrictTimerSubmit)}
-							>
-								<Stack gap={2} direction={"row"}>
-									<Controller
-										name="restrictTimer"
-										defaultValue={null}
-										control={control}
-										render={({ field }) => (
-											<DateTimePicker {...field} disablePast />
-										)}
-									/>
-
-									<span>
-										Input how many random characters would it generate
-									</span>
-								</Stack>
 								<Button
 									type="submit"
 									variant="contained"
@@ -431,6 +568,139 @@ export default function ConfigModal(): React.JSX.Element {
 								>
 									Submit
 								</Button>
+							</Stack>
+						</form>
+					)}
+					{configType === "randomText" &&
+						(selectedBlockGroup?.restriction_type &&
+						selectedBlockGroup.restriction_type === "randomText" ? (
+							<form
+								noValidate
+								style={{
+									display: "flex",
+									flexWrap: "wrap",
+									width: "fit-content",
+								}}
+								onSubmit={handleSubmit(randomTextUnlock)}
+							>
+								<Stack gap={2}>
+									<Typography
+										variant="body1"
+										color="initial"
+										sx={{
+											userSelect: "none",
+											pointerEvents: "none",
+											width: "100%",
+											whiteSpace: "normal",
+											wordBreak: "break-all",
+											letterSpacing: "1.3px",
+											fontWeight: "500",
+										}}
+									>
+										{randomTextContent}
+									</Typography>
+									<Typography variant="caption" color="initial" width={"100%"}>
+										Type the characters in the field below
+									</Typography>
+									<Box sx={{ ...modalTextFieldStyle }}>
+										<input
+											onPaste={(e) => {
+												e.preventDefault();
+											}}
+											type="text"
+											style={{ width: "100%", minHeight: "50px" }}
+											id="randomTextCount"
+											{...register("randomTextContent")}
+										/>
+									</Box>
+									<Button
+										type="submit"
+										variant="contained"
+										sx={{ fontWeight: "600" }}
+									>
+										Submit
+									</Button>
+								</Stack>
+							</form>
+						) : (
+							<form
+								noValidate
+								style={{
+									display: "flex",
+									flexWrap: "wrap",
+									width: "fit-content",
+								}}
+								onSubmit={handleSubmit(randomTextSubmit)}
+							>
+								<Stack gap={2}>
+									<Box sx={{ ...modalTextFieldStyle }}>
+										<input
+											maxLength={3}
+											style={{ width: "100%" }}
+											max={999}
+											type="number"
+											id="randomTextCount"
+											{...register("randomTextCount")}
+										/>
+									</Box>
+									<span>
+										Input how many random characters would it generate
+									</span>
+									<Button
+										type="submit"
+										variant="contained"
+										sx={{ fontWeight: "600" }}
+									>
+										Submit
+									</Button>
+								</Stack>
+							</form>
+						))}
+					{configType === "restrictTimer" && (
+						<LocalizationProvider dateAdapter={AdapterDayjs}>
+							<form
+								noValidate
+								onSubmit={handleSubmit(restrictTimerSubmit)}
+								style={{
+									display: "flex",
+									flexWrap: "wrap",
+								}}
+							>
+								<Stack gap={3}>
+									<Controller
+										name="restrictTimer"
+										defaultValue={null}
+										control={control}
+										render={({ field }) => (
+											<MobileDateTimePicker
+												{...field}
+												onChange={(nv) => field.onChange(nv)}
+												views={["year", "month", "day", "hours", "minutes"]}
+												minDateTime={dayjs()}
+												slotProps={{
+													textField: {
+														fullWidth: true,
+														variant: "filled",
+														size: "small",
+														helperText:
+															"Block group will be locked until this time",
+													},
+												}}
+											/>
+										)}
+									/>
+
+									<Typography variant="body1" color="initial">
+										Select the end period for the restriction
+									</Typography>
+									<Button
+										type="submit"
+										variant="contained"
+										sx={{ fontWeight: "600" }}
+									>
+										Submit
+									</Button>
+								</Stack>
 							</form>
 						</LocalizationProvider>
 					)}
