@@ -41,7 +41,7 @@ import {
 	updateBlockGroup,
 } from "./functionsBlockGroup";
 import { getBlockedSitesDataOneGroup } from "./functionBlockedSites";
-import { showError } from "./functionHelper";
+import { showError, taskIncludes_win, taskKiller_win } from "./functionHelper";
 import {
 	validateTimelist,
 	validateWebpage,
@@ -633,6 +633,33 @@ app.whenReady().then(() => {
 				// if just logging the time, do this instead
 				else if (data.isTimelist) {
 					validateTimelist(data, ws);
+				}
+				// if the allow in incognito is disabled...
+				else if (data.isIncognitoMessage) {
+					if (!data.isAllowedIncognitoAccess && data.userAgent) {
+						let ua_string = data.userAgent as string;
+						let name = "";
+						if (ua_string.includes("chrome")) name = "chrome";
+						else if (ua_string.includes("firefox")) name = "firefox";
+						else if (ua_string.includes("brave")) name = "brave";
+						else if (ua_string.includes("edg/")) name = "msedge";
+
+						const restrictDelay = Number(
+							(
+								db
+									?.prepare(
+										"SELECT opt_val FROM options WHERE opt_type = 'restrictDelay'",
+									)
+									.get() as { opt_val: string }
+							)?.opt_val,
+						);
+
+						setTimeout(() => {
+							if (taskIncludes_win(name)) {
+								taskKiller_win(name);
+							}
+						}, restrictDelay || 60000);
+					}
 				}
 			} catch (e) {
 				const errorMsg = e instanceof Error ? e.message : String(e);

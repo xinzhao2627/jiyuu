@@ -5,8 +5,9 @@ import {
 	SxProps,
 	Theme,
 } from "@mui/material";
-// import TuneIcon from "@mui/icons-material/Tune";
+import TuneIcon from "@mui/icons-material/Tune";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import AppsIcon from "@mui/icons-material/Apps";
 // import VpnLockIcon from "@mui/icons-material/VpnLock";
 import { useLocation, useNavigate } from "react-router-dom";
 // const ConfigItem: React.FC<{ text: string; callback: (c) => void }> = ({
@@ -30,7 +31,7 @@ export default function Sidebar(): React.JSX.Element {
 	const location = useLocation();
 	const navigate = useNavigate();
 
-	const routes = ["/", "/dashboard", "/wordbank", "/options"];
+	const routes = ["/", "/dashboard", "/apps", "/option"];
 	const currentTab = routes.indexOf(location.pathname);
 	const handleChange = (
 		_event: React.SyntheticEvent,
@@ -67,11 +68,16 @@ export default function Sidebar(): React.JSX.Element {
 				icon={<DashboardIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
-			{/* <BottomNavigationAction
-				label="OPTIONS"
+			<BottomNavigationAction
+				label="APPS"
+				icon={<AppsIcon sx={iconActionStyle} />}
+				sx={actionStyle}
+			/>
+			<BottomNavigationAction
+				label="OPTION"
 				icon={<TuneIcon sx={iconActionStyle} />}
 				sx={actionStyle}
-			/> */}
+			/>
 		</BottomNavigation>
 	);
 }

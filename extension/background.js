@@ -70,6 +70,18 @@ async function log_to_server() {
 		console.log("sending to server error: ", error);
 	} finally {
 		lastLogTime = currentTime;
+
+		chrome.extension.isAllowedIncognitoAccess(async (isAllowedAccess) => {
+			// if allowed in incognito is disabled, send a warning to the server
+			if (!isAllowedAccess) {
+				console.error("WARNING: ALLOW INCOGNITO MODE IS DISABLED");
+				await sendMessage({
+					isIncognitoMessage: true,
+					isAllowedIncognitoAccess: isAllowedAccess,
+					userAgent: navigator.userAgent.toLowerCase(),
+				});
+			}
+		});
 		// repeat again after 5 seconds have passed
 		setTimeout(log_to_server, 5000);
 	}
@@ -106,6 +118,8 @@ function incrementor() {
 		}
 	});
 	console.log("%cincrementor running...", "font-size: 10px");
+	// check if incognito is enabled
+
 	setTimeout(incrementor, 1000);
 }
 

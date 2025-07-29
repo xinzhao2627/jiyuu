@@ -1,3 +1,4 @@
+import { exec } from "child_process";
 import { SiteAttribute, TimeListInterface } from "../lib/jiyuuInterfaces";
 
 export function siteIncludes(
@@ -25,4 +26,28 @@ export function showError(
 	event.reply(channel, {
 		error: errorMsg,
 	});
+}
+
+export function taskKiller_win(name: string): void {
+	exec(`taskkill /F /IM ${name}.exe`, (err) => {
+		if (err) {
+			console.error(`ERROR KILLING ${name}, CAUSE: ${err.message}`);
+		} else {
+			console.log(`${name} closed successfully`);
+		}
+	});
+}
+
+export function taskIncludes_win(name: string): boolean {
+	let isIncluded = false;
+	exec("tasklist", (err, stdout) => {
+		if (err) {
+			console.log("failed to load tasklist, cause: ", err.message);
+			return;
+		}
+		if (stdout.includes(`${name}.exe`)) {
+			isIncluded = true;
+		}
+	});
+	return isIncluded;
 }
