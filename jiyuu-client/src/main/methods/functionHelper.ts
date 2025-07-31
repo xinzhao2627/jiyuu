@@ -1,4 +1,4 @@
-// import { exec } from "child_process";
+import { exec } from "child_process";
 import fkill from "fkill";
 import { SiteAttribute, TimeListInterface } from "../../lib/jiyuuInterfaces";
 
@@ -57,3 +57,34 @@ export function taskKiller_win(name: string): void {
 // 	});
 // 	return isIncluded;
 // }
+export function taskList_win(): string {
+	let res = "";
+	const psc = `
+		$registryPaths = @(
+			"HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*",
+			"HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*",
+			"HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*"
+		)
+
+		foreach ($path in $registryPaths) {
+			Get-ItemProperty $path |
+			Where-Object { $_.DisplayName -and $_.UninstallString } |
+			Select-Object @{Name="Name"; Expression={$_.DisplayName}}, @{Name="InstallPath"; Expression={$_.InstallLocation}}, @{Name="ExePath"; Expression={$_.DisplayIcon}}, @{Name="Uninstaller"; Expression={$_.UninstallString}}
+		}
+		$results | ConvertTo-Json -Depth 3  
+	`;
+	exec(`powershell -Command "${psc}"`, (err, stdout) => {
+		if (err) {
+			console.error("Error:", err);
+			return;
+		}
+		try {
+			const appList = JSON.parse(stdout);
+			console.log("Apps with icons:", appList);
+			res = JSON.stringify(appList);
+		} catch (parseError) {
+			console.error("Failed to parse PowerShell output:", parseError);
+		}
+	});
+	return res;
+}

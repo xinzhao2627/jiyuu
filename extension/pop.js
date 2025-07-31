@@ -1,5 +1,4 @@
 // document.addEventListener("DOMContentLoaded", () => {
-const h2Element = document.getElementById("hihi");
 
 // // Listen for messages from the background script
 // chrome.runtime.onMessage.addListener((message, sender) => {
@@ -19,5 +18,15 @@ const h2Element = document.getElementById("hihi");
 // document.getElementById("hihi").textContent = "yaaa";
 
 document.addEventListener("DOMContentLoaded", () => {
-	alert("hihi");
+	chrome.extension.isAllowedIncognitoAccess((isAllowedAccess) => {
+		const statusElement = document.getElementById("status-text");
+
+		if (isAllowedAccess) {
+			statusElement.textContent = "Enabled";
+			statusElement.className = "status-value enabled";
+		} else {
+			statusElement.textContent = "Disabled";
+			statusElement.className = "status-value disabled";
+		}
+	});
 });

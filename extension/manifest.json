@@ -5,8 +5,8 @@
 	"manifest_version": 3,
 	"permissions": ["tabs", "activeTab", "scripting", "webRequest"],
 	"action": {
-		"default_popup": "hello.html",
-		"default_icon": "hello_extensions.png.png"
+		"default_popup": "./resources/index.html",
+		"default_icon": "./resources/assets/JY.png"
 	},
 	"background": {
 		"service_worker": "background.js",
