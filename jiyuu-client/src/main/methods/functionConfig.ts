@@ -1,11 +1,11 @@
-import { db } from ".";
+import { db } from "..";
 import {
 	BlockGroup_Full,
 	Password_Config,
 	RandomText_Config,
 	RestrictTimer_Config,
 	UsageLimitData_Config,
-} from "../lib/jiyuuInterfaces";
+} from "../../lib/jiyuuInterfaces";
 
 export function getBlockGroup_with_config(): BlockGroup_Full[] | [] {
 	const q = `

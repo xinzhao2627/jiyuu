@@ -1,5 +1,5 @@
 import { Statement } from "better-sqlite3";
-import { db } from ".";
+import { db } from "..";
 
 export function getBlockedSitesDataOneGroup(
 	_data,

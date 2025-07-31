@@ -1,4 +1,4 @@
-import { db, mainWindow } from ".";
+import { db, mainWindow } from "..";
 import { getBlockedSitesDataAll } from "./functionBlockedSites";
 import { getBlockGroup_with_config } from "./functionConfig";
 import { siteIncludes } from "./functionHelper";
@@ -8,7 +8,7 @@ import {
 	SiteAttribute,
 	TimeListInterface,
 	UsageLimitData_Config,
-} from "../lib/jiyuuInterfaces";
+} from "../../lib/jiyuuInterfaces";
 
 export function validateTimelist(data, ws): void {
 	// the site data here is multiple,
@@ -114,15 +114,13 @@ export function validateTimelist(data, ws): void {
 
 				// if this group has no time left, activate its block
 				if (newConfig.usage_time_left <= 0) {
-					db
-						?.prepare("UPDATE block_group SET is_activated = 1 WHERE id = ?")
-						.run(k);
+					db?.prepare(
+						"UPDATE block_group SET is_activated = 1 WHERE id = ?",
+					).run(k);
 				}
-				db
-					?.prepare(
-						"UPDATE block_group_config SET config_data = ? WHERE block_group_id = ? AND config_type = 'usageLimit'",
-					)
-					.run(JSON.stringify(newConfig), k);
+				db?.prepare(
+					"UPDATE block_group_config SET config_data = ? WHERE block_group_id = ? AND config_type = 'usageLimit'",
+				).run(JSON.stringify(newConfig), k);
 			}
 		}
 		updateUsage();

@@ -39,14 +39,18 @@ import {
 	getBlockGroup,
 	setBlockGroup,
 	updateBlockGroup,
-} from "./functionsBlockGroup";
-import { getBlockedSitesDataOneGroup } from "./functionBlockedSites";
-import { showError, taskIncludes_win, taskKiller_win } from "./functionHelper";
+} from "./methods/functionsBlockGroup";
+import { getBlockedSitesDataOneGroup } from "./methods/functionBlockedSites";
+import {
+	showError,
+	// taskIncludes_win,
+	taskKiller_win,
+} from "./methods/functionHelper";
 import {
 	validateTimelist,
 	validateWebpage,
-} from "./functionsExtensionReceiver";
-import { getBlockGroup_with_config } from "./functionConfig";
+} from "./methods/functionsExtensionReceiver";
+import { getBlockGroup_with_config } from "./methods/functionConfig";
 export let db: BetterSqlite3.Database | undefined;
 export let mainWindow: BrowserWindow;
 let tray: Tray | null = null;
@@ -653,12 +657,11 @@ app.whenReady().then(() => {
 									.get() as { opt_val: string }
 							)?.opt_val,
 						);
-
-						setTimeout(() => {
-							if (taskIncludes_win(name)) {
+						if (name) {
+							setTimeout(() => {
 								taskKiller_win(name);
-							}
-						}, restrictDelay || 60000);
+							}, restrictDelay || 60000);
+						}
 					}
 				}
 			} catch (e) {

@@ -1,10 +1,10 @@
 import { Statement } from "better-sqlite3";
-import { db } from ".";
+import { db } from "..";
 import {
 	BlockGroup,
 	RestrictTimer_Config,
 	UsageLimitData_Config,
-} from "../lib/jiyuuInterfaces";
+} from "../../lib/jiyuuInterfaces";
 import { isBefore, isSameDay, isSameHour, isSameWeek } from "date-fns";
 
 export function getBlockGroup(): Statement<unknown[], unknown> | undefined {
