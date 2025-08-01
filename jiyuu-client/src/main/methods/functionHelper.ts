@@ -88,3 +88,25 @@ export function taskList_win(): string {
 	});
 	return res;
 }
+
+export function blockTaskManager_win(): void {
+	try {
+		fkill("Taskmgr", { force: true });
+	} catch (error) {
+		console.error(
+			"Failed to kill Task Manager:",
+			error instanceof Error ? error.message : error,
+		);
+	}
+}
+
+export function blockActivityMonitor_mac(): void {
+	try {
+		fkill("Activity Monitor", { force: true });
+	} catch (error) {
+		console.error(
+			"Failed to kill Task Manager:",
+			error instanceof Error ? error.message : error,
+		);
+	}
+}
