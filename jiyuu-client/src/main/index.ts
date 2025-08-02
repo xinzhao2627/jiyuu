@@ -667,7 +667,6 @@ app.whenReady().then(() => {
 			} catch (e) {
 				const errorMsg = e instanceof Error ? e.message : String(e);
 				console.error("WebSocket message parsing error: ", errorMsg);
-				console.log("Received non-JSON message:", message.toString());
 			}
 		});
 	});

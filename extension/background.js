@@ -1,7 +1,5 @@
 let _socket = null;
-chrome.runtime.onStartup.addListener(() => {
-	window_started = true;
-});
+
 // time list is a map <key_url, blocked_site>
 let timeList = new Map();
 
@@ -282,8 +280,4 @@ function keepAlive() {
 
 function getBaseUrl(tab) {
 	return tab.url.match(/^(?:https?:\/\/)?(?:www\.)?([^\/:?#]+)/)[1];
-}
-
-function startTimer(key) {
-	timeList.set(key, dayjsMin);
 }
