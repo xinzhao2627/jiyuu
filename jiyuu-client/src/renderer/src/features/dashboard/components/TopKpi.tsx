@@ -6,25 +6,23 @@ import { Stack } from "@mui/material";
 interface TopKpiProps {
 	title: string;
 	content: React.JSX.Element;
-	icon: React.JSX.Element;
 }
 
 export default function TopKpi({
 	title,
 	content,
-	icon,
 }: TopKpiProps): React.JSX.Element {
 	return (
 		<Card
 			sx={{
 				minWidth: 275,
+				minHeight: 100,
 				padding: 1,
 			}}
 		>
 			<CardContent>
-				<Stack direction={"row"} alignItems={"center"}>
-					<div style={{ height: "100%", marginBottom: "0.33em" }}>{icon}</div>
-					<Typography mb={1} mx={1} variant="h6" fontWeight={600}>
+				<Stack direction={"row"}>
+					<Typography mb={1} variant="body1" fontWeight={400}>
 						{title}
 					</Typography>
 				</Stack>

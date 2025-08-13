@@ -30,6 +30,7 @@ import {
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import {
+	ConfigType,
 	Password_Config,
 	RandomText_Config,
 	RestrictTimer_Config,
@@ -41,24 +42,21 @@ export default function ConfigModal(): React.JSX.Element {
 	const [randomTextContent, setRandomTextContent] = React.useState<string>("");
 	const { register, handleSubmit, control, reset } = useForm();
 	const {
-		isConfigModalOpen,
+		config,
+		blockGroup,
 		setIsConfigModalOpen,
 		setConfigType,
-		configType,
-		selectedBlockGroup,
 		setSelectedBlockGroup,
 		setUsageResetPeriod,
 		setUsageTimeValueNumber,
-		usageTimeValueNumber,
-		usageResetPeriod,
 	} = useStore();
 
 	const handleClose = (): void => {
 		setIsConfigModalOpen(false);
-		setConfigType("");
+		setConfigType(null);
 		setSelectedBlockGroup(null);
 		setUsageResetPeriod(null);
-		setUsageTimeValueNumber(undefined);
+		setUsageTimeValueNumber(null);
 		setRandomTextContent("");
 
 		reset();
@@ -94,7 +92,7 @@ export default function ConfigModal(): React.JSX.Element {
 			<Button
 				color="error"
 				variant="outlined"
-				disabled={Boolean(selectedBlockGroup?.restriction_type)}
+				disabled={Boolean(blockGroup.selectedBlockGroup?.restriction_type)}
 				onClick={() => {
 					quickUnlock({ config_type: "usageLimit" });
 				}}
@@ -105,13 +103,13 @@ export default function ConfigModal(): React.JSX.Element {
 	};
 	const quickSendForms = (data): void => {
 		ipcRendererSend("blockgroupconfig/set", {
-			id: selectedBlockGroup?.id,
+			id: blockGroup.selectedBlockGroup?.id,
 			config_data: data,
 		});
 	};
 	const quickUnlock = (data): void => {
 		ipcRendererSend("blockgroupconfig/delete", {
-			id: selectedBlockGroup?.id,
+			id: blockGroup.selectedBlockGroup?.id,
 			config_data: data,
 		});
 	};
@@ -146,7 +144,7 @@ export default function ConfigModal(): React.JSX.Element {
 				usage_reset_type: period,
 				usage_reset_value: val,
 				usage_reset_value_mode: mode,
-				config_type: configType,
+				config_type: config.type,
 			};
 			quickSendForms(data);
 		} catch (error) {
@@ -171,7 +169,9 @@ export default function ConfigModal(): React.JSX.Element {
 		try {
 			let isSuccess = false;
 			const password = fv.password;
-			const cj = JSON.parse(`[${selectedBlockGroup?.configs_json}]`) as {
+			const cj = JSON.parse(
+				`[${blockGroup.selectedBlockGroup?.configs_json}]`,
+			) as {
 				config_type: string;
 				config_data: string;
 			}[];
@@ -250,11 +250,15 @@ export default function ConfigModal(): React.JSX.Element {
 	const baseLabel = (): string => {
 		let res = "You can add restriction for this block group";
 
-		if (selectedBlockGroup?.restriction_type === "password") {
+		if (blockGroup.selectedBlockGroup?.restriction_type === "password") {
 			res = "This block group is locked through password";
-		} else if (selectedBlockGroup?.restriction_type === "restrictTimer") {
-			if (selectedBlockGroup.configs_json) {
-				const cj = JSON.parse(`[${selectedBlockGroup.configs_json}]`) as {
+		} else if (
+			blockGroup.selectedBlockGroup?.restriction_type === "restrictTimer"
+		) {
+			if (blockGroup.selectedBlockGroup.configs_json) {
+				const cj = JSON.parse(
+					`[${blockGroup.selectedBlockGroup.configs_json}]`,
+				) as {
 					config_type: string;
 					config_data: string;
 				}[];
@@ -279,7 +283,9 @@ export default function ConfigModal(): React.JSX.Element {
 					}
 				}
 			}
-		} else if (selectedBlockGroup?.restriction_type === "randomText") {
+		} else if (
+			blockGroup.selectedBlockGroup?.restriction_type === "randomText"
+		) {
 			res = "This block group is locked through random text";
 		}
 		return res;
@@ -298,8 +304,10 @@ export default function ConfigModal(): React.JSX.Element {
 		let component: React.JSX.Element | undefined = (
 			<MenuItem value={"hour"}>hour</MenuItem>
 		);
-		if (selectedBlockGroup?.configs_json) {
-			const cj = JSON.parse(`[${selectedBlockGroup?.configs_json}]`) as {
+		if (blockGroup.selectedBlockGroup?.configs_json) {
+			const cj = JSON.parse(
+				`[${blockGroup.selectedBlockGroup?.configs_json}]`,
+			) as {
 				config_type: string;
 				config_data: string;
 			}[];
@@ -310,7 +318,7 @@ export default function ConfigModal(): React.JSX.Element {
 					| RestrictTimer_Config
 					| RandomText_Config;
 				if (
-					Boolean(selectedBlockGroup?.restriction_type) &&
+					Boolean(blockGroup.selectedBlockGroup?.restriction_type) &&
 					cd.config_type === "usageLimit" &&
 					cd.usage_reset_value_mode === "minute"
 				) {
@@ -324,7 +332,7 @@ export default function ConfigModal(): React.JSX.Element {
 	return (
 		<>
 			<Dialog
-				open={isConfigModalOpen}
+				open={config.modal}
 				onClose={handleClose}
 				disableEscapeKeyDown
 				transitionDuration={0}
@@ -341,7 +349,7 @@ export default function ConfigModal(): React.JSX.Element {
 				</DialogTitle>
 
 				<DialogContent sx={{ overflowY: "auto", ...scrollbarStyle }}>
-					{configType === "" && (
+					{!config.type && (
 						<Box
 							sx={{
 								width: "100%",
@@ -351,6 +359,7 @@ export default function ConfigModal(): React.JSX.Element {
 							}}
 						>
 							{configTypeList.map((card, i): React.JSX.Element => {
+								const cardType = card.type as ConfigType;
 								return (
 									<Card
 										key={"config - " + i}
@@ -361,19 +370,24 @@ export default function ConfigModal(): React.JSX.Element {
 									>
 										<CardActionArea
 											disabled={
-												card.type !== "usageLimit"
-													? card.type === "restrictTimer" &&
-														Boolean(selectedBlockGroup?.restriction_type)
+												cardType !== "usageLimit"
+													? cardType === "restrictTimer" &&
+														Boolean(
+															blockGroup.selectedBlockGroup?.restriction_type,
+														)
 														? true
-														: Boolean(selectedBlockGroup?.restriction_type) &&
-															selectedBlockGroup?.restriction_type !== card.type
+														: Boolean(
+																blockGroup.selectedBlockGroup?.restriction_type,
+															) &&
+															blockGroup.selectedBlockGroup
+																?.restriction_type !== cardType
 													: false
 											}
 											onClick={() => {
 												// console.log(selectedBlockGroup, card.type);
-												if (card.type === "randomText") {
+												if (cardType === "randomText") {
 													const cj = JSON.parse(
-														`[${selectedBlockGroup?.configs_json}]`,
+														`[${blockGroup.selectedBlockGroup?.configs_json}]`,
 													) as {
 														config_type: string;
 														config_data: string;
@@ -392,7 +406,7 @@ export default function ConfigModal(): React.JSX.Element {
 														}
 													}
 												}
-												setConfigType(card.type);
+												setConfigType(cardType);
 											}}
 											sx={{
 												height: "100%",
@@ -410,8 +424,9 @@ export default function ConfigModal(): React.JSX.Element {
 													{card.title}
 												</Typography>
 												{/* {selectedBlockGroup?.restriction_type} */}
-												{(selectedBlockGroup?.restriction_type === card.type ||
-													(selectedBlockGroup?.usage_label &&
+												{(blockGroup.selectedBlockGroup?.restriction_type ===
+													card.type ||
+													(blockGroup.selectedBlockGroup?.usage_label &&
 														card.type === "usageLimit")) && (
 													<Typography
 														variant="subtitle2"
@@ -436,7 +451,7 @@ export default function ConfigModal(): React.JSX.Element {
 							})}
 						</Box>
 					)}
-					{configType === "" && (
+					{config.type === null && (
 						<Typography
 							variant="overline"
 							color="initial"
@@ -452,7 +467,7 @@ export default function ConfigModal(): React.JSX.Element {
 							{baseLabel()}
 						</Typography>
 					)}
-					{configType === "usageLimit" && (
+					{config.type === "usageLimit" && (
 						<form
 							noValidate
 							onSubmit={handleSubmit(usageSubmit)}
@@ -467,15 +482,15 @@ export default function ConfigModal(): React.JSX.Element {
 									<Box sx={{ ...modalTextFieldStyle }}>
 										<input
 											type="number"
-											{...(selectedBlockGroup?.restriction_type && {
-												max: usageTimeValueNumber?.val,
+											{...(blockGroup.selectedBlockGroup?.restriction_type && {
+												max: config.usage.timeValueNumber?.val,
 											})}
 											id="usageValue"
 											placeholder="Enter value"
 											{...register("usageValue")}
 											defaultValue={
-												usageTimeValueNumber
-													? usageTimeValueNumber.val
+												config.usage.timeValueNumber
+													? config.usage.timeValueNumber.val
 													: undefined
 											}
 										/>
@@ -485,8 +500,8 @@ export default function ConfigModal(): React.JSX.Element {
 											name="timeValueMode"
 											control={control}
 											defaultValue={
-												usageTimeValueNumber
-													? usageTimeValueNumber.mode
+												config.usage.timeValueNumber
+													? config.usage.timeValueNumber.mode
 													: "minute"
 											}
 											render={({ field }) => (
@@ -502,7 +517,7 @@ export default function ConfigModal(): React.JSX.Element {
 								<Box sx={{ ...modalTextFieldStyle }}>
 									<Controller
 										name="usageResetPeriod"
-										defaultValue={usageResetPeriod || "h"}
+										defaultValue={config.usage.resetPeriod || "h"}
 										control={control}
 										render={({ field }) => (
 											<Select {...field} fullWidth size="small">
@@ -525,7 +540,7 @@ export default function ConfigModal(): React.JSX.Element {
 							</Stack>
 						</form>
 					)}
-					{configType === "password" && (
+					{config.type === "password" && (
 						<form
 							noValidate
 							style={{
@@ -534,8 +549,8 @@ export default function ConfigModal(): React.JSX.Element {
 								width: "100%",
 							}}
 							onSubmit={handleSubmit(
-								selectedBlockGroup?.restriction_type &&
-									selectedBlockGroup.restriction_type === "password"
+								blockGroup.selectedBlockGroup?.restriction_type &&
+									blockGroup.selectedBlockGroup.restriction_type === "password"
 									? passwordUnlock
 									: passwordSubmit,
 							)}
@@ -547,16 +562,18 @@ export default function ConfigModal(): React.JSX.Element {
 										type="text"
 										id="password"
 										placeholder={
-											selectedBlockGroup?.restriction_type &&
-											selectedBlockGroup.restriction_type === "password"
+											blockGroup.selectedBlockGroup?.restriction_type &&
+											blockGroup.selectedBlockGroup.restriction_type ===
+												"password"
 												? "Enter your password"
 												: "Enter a new password"
 										}
 										{...register("password")}
 									/>
 									<Typography variant="caption" color="initial">
-										{selectedBlockGroup?.restriction_type &&
-										selectedBlockGroup.restriction_type === "password"
+										{blockGroup.selectedBlockGroup?.restriction_type &&
+										blockGroup.selectedBlockGroup.restriction_type ===
+											"password"
 											? "Enter your password to remove restriction"
 											: "Enter a new password"}
 									</Typography>
@@ -571,9 +588,9 @@ export default function ConfigModal(): React.JSX.Element {
 							</Stack>
 						</form>
 					)}
-					{configType === "randomText" &&
-						(selectedBlockGroup?.restriction_type &&
-						selectedBlockGroup.restriction_type === "randomText" ? (
+					{config.type === "randomText" &&
+						(blockGroup.selectedBlockGroup?.restriction_type &&
+						blockGroup.selectedBlockGroup.restriction_type === "randomText" ? (
 							<form
 								noValidate
 								style={{
@@ -656,7 +673,7 @@ export default function ConfigModal(): React.JSX.Element {
 								</Stack>
 							</form>
 						))}
-					{configType === "restrictTimer" && (
+					{config.type === "restrictTimer" && (
 						<LocalizationProvider dateAdapter={AdapterDayjs}>
 							<form
 								noValidate
@@ -706,10 +723,10 @@ export default function ConfigModal(): React.JSX.Element {
 					)}
 				</DialogContent>
 				<DialogActions sx={{ mt: 2 }}>
-					{configType !== "" && (
+					{config.type && (
 						<Button
 							onClick={() => {
-								setConfigType("");
+								setConfigType(null);
 								reset();
 							}}
 						>

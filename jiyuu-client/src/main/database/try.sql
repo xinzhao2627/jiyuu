@@ -94,15 +94,18 @@ CREATE TABLE block_group_config (
 select * from block_group_config
 select * from usage_log
 select * from block_group
+SELECT * from blocked_content
 
+delete from block_group_config where id = 3
 
 
 DROP TABLE IF EXISTS block_group;
-DROP TABLE IF EXISTS blocked_sites;
+DROP TABLE IF EXISTS blocked_content;
 DROP TABLE IF EXISTS usage_log;
 DROP TABLE IF EXISTS block_group_config;
 DROP TABLE IF EXISTS date_today;
-
+DROP TABLE if EXISTS migration;
+DROP TABLE block_sites;
 
 CREATE TABLE IF NOT EXISTS block_group(
                 id INTEGER PRIMARY KEY,

@@ -29,7 +29,7 @@ export function showError(
 	});
 }
 
-export function taskKiller_win(name: string): void {
+export async function taskKiller_win(name: string): Promise<void> {
 	// exec(`taskkill /F /IM ${name}.exe`, (err) => {
 	// 	if (err) {
 	// 		console.error(`ERROR KILLING ${name}, CAUSE: ${err.message}`);
@@ -38,7 +38,7 @@ export function taskKiller_win(name: string): void {
 	// 	}
 	// });
 	try {
-		fkill(name);
+		await fkill(name);
 	} catch (error) {
 		console.log(error instanceof Error ? error.message : error);
 	}
@@ -89,9 +89,9 @@ export function taskList_win(): string {
 	return res;
 }
 
-export function blockTaskManager_win(): void {
+export async function blockTaskManager_win(): Promise<void> {
 	try {
-		fkill("Taskmgr", { force: true });
+		await fkill("Taskmgr", { force: true });
 	} catch (error) {
 		console.error(
 			"Failed to kill Task Manager:",
@@ -100,9 +100,9 @@ export function blockTaskManager_win(): void {
 	}
 }
 
-export function blockActivityMonitor_mac(): void {
+export async function blockActivityMonitor_mac(): Promise<void> {
 	try {
-		fkill("Activity Monitor", { force: true });
+		await fkill("Activity Monitor", { force: true });
 	} catch (error) {
 		console.error(
 			"Failed to kill Task Manager:",

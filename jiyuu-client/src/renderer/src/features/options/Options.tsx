@@ -11,7 +11,7 @@ export default function Options(): React.JSX.Element {
 	const { handleSubmit, register, reset } = useForm();
 	const [hasRestriction, setHasRestriction] = useState<boolean>(false);
 	const isDisabled = (is_on: boolean): boolean => hasRestriction && is_on;
-	const { blockGroupData, setBlockGroupData } = useStore();
+	const { blockGroup, setBlockGroupData } = useStore();
 	const listeners = [
 		{
 			// RECEIVE BLOCK GROUP RESPONSE
@@ -33,7 +33,7 @@ export default function Options(): React.JSX.Element {
 			ipcRendererSend("blockgroup/get", { init: true });
 			res(true);
 		}).then(() => {
-			for (const bgd of blockGroupData) {
+			for (const bgd of blockGroup.data) {
 				if (bgd.restriction_type) {
 					setHasRestriction(true);
 				}

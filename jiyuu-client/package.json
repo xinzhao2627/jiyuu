@@ -37,6 +37,7 @@
 		"electron-router-dom": "^2.1.0",
 		"electron-updater": "^6.3.9",
 		"fkill": "^9.0.0",
+		"kysely": "^0.28.4",
 		"prettier": "^3.5.3",
 		"react-datepicker": "^8.4.0",
 		"react-hook-form": "^7.60.0",

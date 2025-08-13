@@ -3,6 +3,8 @@ import * as React from "react";
 import {
 	Box,
 	Grid,
+	IconButton,
+	Stack,
 	SxProps,
 	Theme,
 	ToggleButton,
@@ -10,11 +12,9 @@ import {
 	Typography,
 } from "@mui/material";
 import TopKpi from "./components/TopKpi";
-import BlockIcon from "@mui/icons-material/Block";
-import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import InterestsIcon from "@mui/icons-material/Interests";
+
 import { useStore } from "../blockings/blockingsStore";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 function miniCardTime(count: number): React.JSX.Element {
 	return (
@@ -31,11 +31,25 @@ function miniCardTime(count: number): React.JSX.Element {
 }
 
 export default function Dashboard(): React.JSX.Element {
+	const [, set] = React.useState<Array<{}>>();
+	React.useEffect(() => {
+		const listeners = [
+			{
+				channel: "usagelog/get/response",
+				handler: (_, data) => {
+					if (data.error) {
+						console.error("Error getting dashboard data: ", data.error);
+					}
+				},
+			},
+		];
+	}, []);
 	const t1 = miniCardTime(30);
 	const { selectedPeriod, setSelectedPeriod } = useStore();
 	const tButtonStyle: SxProps<Theme> = {
 		backgroundColor: "white",
-		p: 1,
+		p: 0.7,
+		px: 1.3,
 		textTransform: "none",
 		"&.Mui-selected": {
 			backgroundColor: "#1976d2",
@@ -44,6 +58,8 @@ export default function Dashboard(): React.JSX.Element {
 				backgroundColor: "#1565c0",
 			},
 		},
+		fontWeight: 400,
+		letterSpacing: "initial",
 	};
 	return (
 		<div
@@ -53,7 +69,7 @@ export default function Dashboard(): React.JSX.Element {
 				display: "inline-block",
 			}}
 		>
-			<Box sx={{ width: "100%", textAlign: "center" }}>
+			<Stack direction={"row"} gap={2} alignContent={"end"} textAlign={"end"}>
 				<ToggleButtonGroup
 					value={selectedPeriod}
 					exclusive
@@ -76,7 +92,7 @@ export default function Dashboard(): React.JSX.Element {
 						disableRipple
 						sx={tButtonStyle}
 					>
-						1 day
+						d
 					</ToggleButton>
 					<ToggleButton
 						value="1w"
@@ -84,7 +100,7 @@ export default function Dashboard(): React.JSX.Element {
 						disableRipple
 						sx={tButtonStyle}
 					>
-						1 week
+						w
 					</ToggleButton>
 					<ToggleButton
 						value="1m"
@@ -92,43 +108,27 @@ export default function Dashboard(): React.JSX.Element {
 						disableRipple
 						sx={tButtonStyle}
 					>
-						1 month
+						m
 					</ToggleButton>
 				</ToggleButtonGroup>
-			</Box>
-			<Grid container spacing={1} padding={1}>
+				<IconButton>
+					<MoreHorizIcon />
+				</IconButton>
+			</Stack>
+			<Grid container borderRadius={0} spacing={0.8} padding={1}>
 				{/* site visits today */}
-				<Grid size={4}>
-					<TopKpi
-						title="Total site visits"
-						content={t1}
-						icon={<RemoveRedEyeIcon />}
-					/>
-				</Grid>
-
-				{/* block count */}
-				<Grid size={4}>
-					<TopKpi title="Total block count" content={t1} icon={<BlockIcon />} />
+				<Grid size={6}>
+					<TopKpi title="Total site visits" content={t1} />
 				</Grid>
 
 				{/* time usage today */}
-				<Grid size={4}>
-					<TopKpi
-						title="Total time usage"
-						content={t1}
-						icon={
-							<AccessTimeIcon sx={{ alignContent: "center", height: "100%" }} />
-						}
-					/>
+				<Grid size={6}>
+					<TopKpi title="Total time usage" content={t1} />
 				</Grid>
 
 				{/* Total block groups active/inactive */}
 				<Grid size={12}>
-					<TopKpi
-						title="Total block groups"
-						content={t1}
-						icon={<InterestsIcon />}
-					/>
+					<TopKpi title={"Total block groups"} content={t1} />
 				</Grid>
 			</Grid>
 		</div>

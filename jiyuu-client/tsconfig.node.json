@@ -5,7 +5,8 @@
 		"src/main/**/*",
 		"src/preload/**/*",
 		"src/lib/electron-router-dom.ts",
-		"src/lib/jiyuuInterfaces.ts"
+		"src/lib/jiyuuInterfaces.ts",
+		"src/main/database/initializations.ts"
 	],
 	"compilerOptions": {
 		"composite": true,

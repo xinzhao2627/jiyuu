@@ -17,41 +17,30 @@ import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import icon from "../../resources/JY.png?asset";
 import { WebSocketServer } from "ws";
 // import sqlite3 from "sqlite3";
-import Database from "better-sqlite3";
-import BetterSqlite3 from "better-sqlite3";
+
+import { showError, taskKiller_win } from "./methods/functionHelper";
 import {
-	BlockedSites,
-	BlockGroup,
+	validateTimelist,
+	validateWebpage,
+} from "./methods/functionsExtensionReceiver";
+import { db, initDb, startAppDb } from "./database/initializations";
+import {
+	blockGroupDelete,
+	setBlockGroup,
+	updateBlockGroup,
+} from "./methods/functionsBlockGroup";
+import { block_group, blocked_content } from "./database/tableInterfaces";
+import { getBlockedContentDataOneGroup } from "./methods/functionBlockedSites";
+import { getBlockGroup_with_config } from "./methods/functionConfig";
+import {
+	BlockGroup_Full,
+	ConfigType,
 	Password_Config,
 	RandomText_Config,
 	RestrictTimer_Config,
 	UsageLimitData_Config,
 } from "../lib/jiyuuInterfaces";
-import {
-	initBlockedSitesData,
-	initBlockGroup,
-	initBlockGroupConfig,
-	initToday,
-	initUsageLog,
-} from "./initializations";
-import {
-	blockGroupDelete,
-	getBlockGroup,
-	setBlockGroup,
-	updateBlockGroup,
-} from "./methods/functionsBlockGroup";
-import { getBlockedSitesDataOneGroup } from "./methods/functionBlockedSites";
-import {
-	showError,
-	// taskIncludes_win,
-	taskKiller_win,
-} from "./methods/functionHelper";
-import {
-	validateTimelist,
-	validateWebpage,
-} from "./methods/functionsExtensionReceiver";
-import { getBlockGroup_with_config } from "./methods/functionConfig";
-export let db: BetterSqlite3.Database | undefined;
+
 export let mainWindow: BrowserWindow;
 let tray: Tray | null = null;
 let isQuitting: boolean = false;
@@ -183,7 +172,7 @@ function createTray(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
 	// Set app user model id for windows
 	createTray();
 	electronApp.setAppUserModelId("com.jiyuu");
@@ -196,35 +185,44 @@ app.whenReady().then(() => {
 	});
 
 	// initialize sqlite
-	const dbPath = app.isPackaged
-		? join(app.getPath("userData"), "jiyuuData.db")
-		: join(__dirname, "../../src/main/jiyuuData.db");
-	db = new Database(dbPath);
 
 	// triggers when opening the app
 	try {
-		initToday();
-		initBlockGroup();
-		initBlockGroupConfig();
-		initBlockedSitesData();
-		initUsageLog();
+		initDb();
+		await startAppDb();
 		console.log("initialization done");
 
 		let lt = new Date();
+
+		// use this to prevent race condition or database lock
+		let isRunning = false;
+
 		// refreshes the group every 1 second
-		function recursiveGroupChecker(): void {
+		async function recursiveGroupChecker(): Promise<void> {
+			if (isRunning) {
+				setTimeout(recursiveGroupChecker, 100);
+				return;
+			}
+
 			const ct = new Date();
 			if (ct.getTime() - lt.getTime() < 1000) {
 				setTimeout(recursiveGroupChecker, 100);
 				return;
 			}
+			isRunning = true;
 			lt = ct;
-			updateBlockGroup();
-			const r = getBlockGroup_with_config();
-			mainWindow.webContents.send("blockgroup/get/response", {
-				data: r,
-			});
-			setTimeout(recursiveGroupChecker, 1000);
+			try {
+				await updateBlockGroup();
+				const r = await getBlockGroup_with_config();
+				mainWindow.webContents.send("blockgroup/get/response", {
+					data: r,
+				});
+			} catch (error) {
+				console.error("Error in recursiveGroupChecker:", error);
+			} finally {
+				isRunning = false;
+				setTimeout(recursiveGroupChecker, 1000);
+			}
 		}
 		recursiveGroupChecker();
 	} catch (e) {
@@ -232,61 +230,37 @@ app.whenReady().then(() => {
 	}
 
 	// retrieves all blocked sites of a specific group
-	ipcMain.on("blockedsites/get", (event: Electron.IpcMainEvent, _data) => {
-		try {
-			// get the blocked sites of a specific group
-			const rows =
-				(getBlockedSitesDataOneGroup(_data)?.all() as Array<BlockedSites>) ||
-				[];
+	ipcMain.on(
+		"blockedcontent/get",
+		async (
+			event: Electron.IpcMainEvent,
+			_data: { id: number; group_name: string } | undefined,
+		) => {
+			try {
+				// get the blocked sites of a specific group
+				console.log(_data);
 
-			// Also get block group settings if specific group is requested
-			let blockGroupSettings: unknown = null;
-			if (_data.id) {
-				blockGroupSettings =
-					db
-						?.prepare(
-							"SELECT id, is_grayscaled, is_covered, is_muted, is_blurred FROM block_group WHERE id = ?",
-						)
-						.get(_data.id) || null;
+				const rows = (await getBlockedContentDataOneGroup(_data)) || [];
+				console.log(rows);
+
+				event.reply("blockedcontent/get/response", {
+					data: rows,
+				});
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error getting block sites: ",
+					"blockedcontent/get/response",
+				);
 			}
-
-			event.reply("blockedsites/get/response", {
-				data: rows,
-				blockGroupSettings: blockGroupSettings,
-			});
-		} catch (err) {
-			showError(
-				err,
-				event,
-				"Error getting block sites: ",
-				"blockedsites/get/response",
-			);
-		}
-	});
-
-	// insert one blocksite/keywrod into a specific blockgroup, not yet used as of 6/29/25
-	ipcMain.on("blockedsites/put", (event: Electron.IpcMainEvent, data) => {
-		try {
-			console.log("put block sites", { a: data.target_text, b: data.group_id });
-
-			db?.prepare(
-				"INSERT INTO blocked_sites(target_text, block_group_id) VALUES(?, ?)",
-			).run(data.target_text, data.group_id);
-			event.reply("blockedsites/put/response", { error: "" });
-		} catch (err) {
-			showError(
-				err,
-				event,
-				"Error inserting in block_site: ",
-				"blockedsites/put/response",
-			);
-		}
-	});
+		},
+	);
 
 	// retrieve all the blockgroup
-	ipcMain.on("blockgroup/get", (event: Electron.IpcMainEvent) => {
+	ipcMain.on("blockgroup/get", async (event: Electron.IpcMainEvent) => {
 		try {
-			const r = getBlockGroup_with_config();
+			const r = await getBlockGroup_with_config();
 			event.reply("blockgroup/get/response", { data: r });
 		} catch (err) {
 			showError(
@@ -299,40 +273,68 @@ app.whenReady().then(() => {
 	});
 
 	// retrieve a blockgroup with corresponding id
-	ipcMain.on("blockgroup/get/id", (event: Electron.IpcMainEvent, _data) => {
-		try {
-			const { id } = _data;
-			if (!id) throw new Error("ID is required");
-			const row = db
-				?.prepare("SELECT * FROM block_group WHERE id = ?")
-				.get(id) as BlockGroup;
-			if (!row) throw new Error(`Block group with ID ${id} not found`);
-			event.reply("blockgroup/get/id/response", { data: row });
-		} catch (err) {
-			showError(
-				err,
-				event,
-				"Error getting block group by ID: ",
-				"blockgroup/get/id/response",
-			);
-		}
-	});
+	ipcMain.on(
+		"blockgroup/get/id",
+		async (event: Electron.IpcMainEvent, _data) => {
+			try {
+				const { id } = _data;
+				if (!id) throw new Error("ID is required");
+				// const row = db
+				//     ?.prepare("SELECT * FROM block_group WHERE id = ?")
+				//     .get(id) as BlockGroup;
+				const row = (
+					await db
+						?.selectFrom("block_group")
+						.selectAll()
+						.where("id", "=", id)
+						.execute()
+				)?.[0];
+				if (!row) throw new Error(`Block group with ID ${id} not found`);
+				event.reply("blockgroup/get/id/response", { data: row });
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error getting block group by ID: ",
+					"blockgroup/get/id/response",
+				);
+			}
+		},
+	);
 
 	// put/create a new blockgroup
-	ipcMain.on("blockgroup/put", (event: Electron.IpcMainEvent, _data) => {
+	ipcMain.on("blockgroup/put", async (event: Electron.IpcMainEvent, _data) => {
 		try {
 			if (!_data.group_name) throw "No group name input";
 
-			const rows = (getBlockGroup()?.all() as Array<BlockGroup>) || [];
+			// const rows = (getBlockGroup()?.all() as Array<BlockGroup>) || [];
+			const rows =
+				(await db?.selectFrom("block_group").selectAll().execute()) || [];
 
 			for (let r of rows) {
 				if (_data.group_name === r.group_name)
 					throw `Group name already exist (${_data.group_name}, ${r.group_name})`;
 			}
 
-			db?.prepare("INSERT INTO block_group(group_name) VALUES(?)").run(
-				_data.group_name,
-			);
+			// db?.prepare("INSERT INTO block_group(group_name) VALUES(?)").run(
+			//     _data.group_name,
+			// );
+			await db
+				?.insertInto("block_group")
+				.values({
+					group_name: _data.group_name,
+					is_activated: 0,
+					is_blurred: 0,
+					is_covered: 0,
+					is_grayscaled: 0,
+					is_muted: 0,
+					auto_deactivate: 0,
+					restriction_type: null,
+				})
+				.returning(["id", "group_name as name"])
+				.executeTakeFirstOrThrow();
+			// console.log("group: ", res);
+
 			event.reply("blockgroup/put/response", {
 				info: `Group ${_data.group_name} added.`,
 			});
@@ -345,7 +347,9 @@ app.whenReady().then(() => {
 			);
 		} finally {
 			// resend the updated block
-			const r = getBlockGroup_with_config();
+			const r = await getBlockGroup_with_config();
+			// console.log("blockgorup: ", r);
+
 			mainWindow.webContents.send("blockgroup/get/response", {
 				data: r,
 			});
@@ -353,14 +357,14 @@ app.whenReady().then(() => {
 	});
 
 	// sets a block group
-	ipcMain.on("blockgroup/set", (event: Electron.IpcMainEvent, data) => {
+	ipcMain.on("blockgroup/set", async (event: Electron.IpcMainEvent, data) => {
 		try {
 			const { group, new_group_name } = data as {
-				group: BlockGroup;
+				group: block_group;
 				new_group_name: string;
 			};
 
-			setBlockGroup(group, new_group_name);
+			await setBlockGroup(group, new_group_name);
 
 			event.reply("blockgroup/set/response", { info: "Successful" });
 		} catch (err) {
@@ -372,7 +376,7 @@ app.whenReady().then(() => {
 			);
 		} finally {
 			// resend the updated block
-			const r = getBlockGroup_with_config();
+			const r = await getBlockGroup_with_config();
 			mainWindow.webContents.send("blockgroup/get/response", {
 				data: r,
 			});
@@ -380,66 +384,86 @@ app.whenReady().then(() => {
 	});
 
 	// delete a block group and corresponding blocked sites of that group
-	ipcMain.on("blockgroup/delete", (event: Electron.IpcMainEvent, data) => {
-		try {
-			const { id } = data as { id: number };
-			if (!id)
-				throw "Invalid data provided for deleting block group and blocked sites data";
-			console.log(id);
+	ipcMain.on(
+		"blockgroup/delete",
+		async (event: Electron.IpcMainEvent, data) => {
+			try {
+				const { id } = data as { id: number };
+				console.log(id);
 
-			blockGroupDelete(id);
-			event.reply("blockgroup/delete/response", {
-				info: "Deleted successfully",
-			});
-		} catch (err) {
-			showError(
-				err,
-				event,
-				"There was an error deleting block group including blocked sites data: ",
-				"blockgroup/delete/response",
-			);
-		} finally {
-			// resend the updated block
-			const r = getBlockGroup_with_config();
-			mainWindow.webContents.send("blockgroup/get/response", {
-				data: r,
-			});
-		}
-	});
+				if (!id)
+					throw "Invalid data provided for deleting block group and blocked sites data";
+				console.log(id);
+
+				await blockGroupDelete(id);
+				event.reply("blockgroup/delete/response", {
+					info: "Deleted successfully",
+				});
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"There was an error deleting block group including blocked sites data: ",
+					"blockgroup/delete/response",
+				);
+			} finally {
+				// resend the updated block
+				const r = await getBlockGroup_with_config();
+				mainWindow.webContents.send("blockgroup/get/response", {
+					data: r,
+				});
+			}
+		},
+	);
 
 	// on a particular block group, set all the blocked sites on any changes made by the user
 	ipcMain.on(
-		"blockgroup_blockedsites/set",
-		(event: Electron.IpcMainEvent, data) => {
+		"blockgroup_blockedcontent/set",
+		async (event: Electron.IpcMainEvent, data) => {
 			try {
-				const { group, blocked_sites_data } = data as {
-					group: BlockGroup;
-					blocked_sites_data: Array<BlockedSites>;
+				const { group, blocked_content_data } = data as {
+					group: BlockGroup_Full;
+					blocked_content_data: blocked_content[];
 				};
-				console.log(data);
+				// console.log("blockgroup_blockedcontent/set", data);
 
 				// for block group
 				setBlockGroup(group);
 
 				// delete blocked sites of that group first to start fresh
-				db?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?").run(
-					group.id,
-				);
+				// db?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?").run(
+				//     group.id,
+				// );
+				await db
+					?.deleteFrom("blocked_content")
+					.where("block_group_id", "=", group.id)
+					.execute();
 
 				// then insert the latest collections
-				const inserter = db?.prepare(
-					"INSERT OR IGNORE INTO blocked_sites(target_text, block_group_id) VALUES(@target_text, @block_group_id)",
-				);
-				const insertMany = db?.transaction((blocked_sites: BlockedSites[]) => {
-					for (let s of blocked_sites) {
-						inserter?.run(s);
-					}
-				});
-				if (insertMany) {
-					insertMany(blocked_sites_data);
-				} else throw "Error, the database is not initialized properly";
+				// const inserter = db?.prepare(
+				//     "INSERT OR IGNORE INTO blocked_sites(target_text, block_group_id) VALUES(@target_text, @block_group_id)",
+				// );
+				// const insertMany = db?.transaction((blocked_sites: BlockedSites[]) => {
+				//     for (let s of blocked_sites) {
+				//         inserter?.run(s);
+				//     }
+				// });
+				// if (insertMany) {
+				//     insertMany(blocked_sites_data);
+				// } else throw "Error, the database is not initialized properly";
+				for (let s of blocked_content_data) {
+					await db
+						?.insertInto("blocked_content")
+						.values({
+							target_text: s.target_text,
+							block_group_id: s.block_group_id,
+							is_absolute: s.is_absolute,
+							is_whitelist: s.is_whitelist,
+						})
+						.execute();
+				}
 
-				event.reply("blockgroup_blockedsites/set/response", {
+				event.reply("blockgroup_blockedcontent/set/response", {
 					info: "MODIFYING THE ENTIRE GROUP SUCCESS",
 				});
 			} catch (err) {
@@ -447,118 +471,149 @@ app.whenReady().then(() => {
 					err,
 					event,
 					"Error setting both the block group and blocked sites data: ",
-					"blockgroup_blockedsites/set/response",
+					"blockgroup_blockedcontent/set/response",
 				);
 			} finally {
 				// resend the updated block
-				const r = getBlockGroup_with_config();
+				const r = await getBlockGroup_with_config();
 				mainWindow.webContents.send("blockgroup/get/response", {
 					data: r,
 				});
 			}
 		},
 	);
-	ipcMain.on("blockgroupconfig/get", (event: Electron.IpcMainEvent, data) => {
-		try {
-			const { id, config_type } = data as {
-				id: number;
-				config_type: string;
-			};
-			// console.log("data: ", data);
-			if (!(id && config_type)) throw "invalid post input...";
+	ipcMain.on(
+		"blockgroupconfig/get",
+		async (event: Electron.IpcMainEvent, data) => {
+			try {
+				const { id, config_type } = data as {
+					id: number;
+					config_type: ConfigType;
+				};
+				// console.log("data: ", data);
+				if (!(id && config_type)) throw "invalid post input...";
 
-			const row = db
-				?.prepare(
-					`
-						SELECT * FROM block_group_config 
-						WHERE 
-							block_group_id = ? AND 
-							config_type = ? 
-						`,
-				)
-				.get(id, config_type);
-			// console.log("row: ", row);
+				const row = await db
+					?.selectFrom("block_group_config")
+					.where("block_group_id", "=", id)
+					.where("config_type", "=", config_type)
+					.selectAll()
+					.execute();
+				// ?.prepare(
+				// 	`
+				// 		SELECT * FROM block_group_config
+				// 		WHERE
+				// 			block_group_id = ? AND
+				// 			config_type = ?
+				// 		`,
+				// )
+				// .get(id, config_type);
+				// console.log("row: ", row);
 
-			event.reply("blockgroupconfig/get/response", {
-				data: row ? row : {},
-			});
-		} catch (err) {
-			showError(
-				err,
-				event,
-				"Error setting up group config",
-				"blockgroupconfig/get/response",
-			);
-		}
-	});
-	ipcMain.on("blockgroupconfig/set", (event: Electron.IpcMainEvent, data) => {
-		try {
-			let json_object = "";
-			let { id, config_data } = data as {
-				// group id and config data
-				id: number;
-				config_data:
-					| UsageLimitData_Config
-					| RestrictTimer_Config
-					| Password_Config
-					| RandomText_Config;
-			};
-			if (!(id && config_data)) throw "invalid post input...";
-			if (config_data.config_type === "usageLimit") {
-				const timeLeft =
-					config_data.usage_reset_value_mode === "minute"
-						? config_data.usage_reset_value * 60
-						: config_data.usage_reset_value_mode === "hour"
-							? config_data.usage_reset_value * 120
-							: config_data.usage_reset_value;
-				// update the config table with the followin data
-				json_object = JSON.stringify({
-					...config_data,
-					usage_time_left: timeLeft,
-					last_updated_date: new Date().toISOString(),
+				event.reply("blockgroupconfig/get/response", {
+					data: row ? row[0] : null,
 				});
-			} else if (config_data.config_type === "password") {
-				json_object = JSON.stringify(config_data);
-			} else if (config_data.config_type === "restrictTimer") {
-				const start_date = new Date();
-				if (start_date > config_data.end_date) throw "Invalid date";
-				json_object = JSON.stringify(config_data);
-			} else if (config_data.config_type === "randomText") {
-				json_object = JSON.stringify(config_data);
-			} else throw "the config type is invalid: " + config_data;
-			db?.prepare(
-				`
-				INSERT OR REPLACE INTO block_group_config(block_group_id, config_type, config_data)
-				VALUES(?, ?, ?)
-			`,
-			).run(id, config_data.config_type, json_object);
-			if (config_data.config_type !== "usageLimit") {
-				db?.prepare(
-					"UPDATE block_group SET restriction_type = ? WHERE id = ?",
-				).run(config_data.config_type, id);
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error setting up group config",
+					"blockgroupconfig/get/response",
+				);
 			}
+		},
+	);
+	ipcMain.on(
+		"blockgroupconfig/set",
+		async (event: Electron.IpcMainEvent, data) => {
+			try {
+				let json_object = "";
+				let { id, config_data } = data as {
+					// group id and config data
+					id: number;
+					config_data:
+						| UsageLimitData_Config
+						| RestrictTimer_Config
+						| Password_Config
+						| RandomText_Config;
+				};
+				if (!(id && config_data)) throw "invalid post input...";
+				if (config_data.config_type === "usageLimit") {
+					const timeLeft =
+						config_data.usage_reset_value_mode === "minute"
+							? config_data.usage_reset_value * 60
+							: config_data.usage_reset_value_mode === "hour"
+								? config_data.usage_reset_value * 3600
+								: config_data.usage_reset_value;
+					// update the config table with the followin data
+					json_object = JSON.stringify({
+						...config_data,
+						usage_time_left: timeLeft,
+						last_updated_date: new Date().toISOString(),
+					});
+				} else if (config_data.config_type === "password") {
+					json_object = JSON.stringify(config_data);
+				} else if (config_data.config_type === "restrictTimer") {
+					const start_date = new Date();
+					if (start_date > config_data.end_date) throw "Invalid date";
+					json_object = JSON.stringify(config_data);
+				} else if (config_data.config_type === "randomText") {
+					json_object = JSON.stringify(config_data);
+				} else throw "the config type is invalid: " + config_data;
+				console.log("the json object => ", json_object);
 
-			event.reply("blockgroupconfig/set/response", {
-				info: "operation success",
-			});
-		} catch (err) {
-			showError(
-				err,
-				event,
-				"Error setting up group config",
-				"blockgroupconfig/set/response",
-			);
-		} finally {
-			// resend the updated block
-			const r = getBlockGroup_with_config();
-			mainWindow.webContents.send("blockgroup/get/response", {
-				data: r,
-			});
-		}
-	});
+				await db
+					?.insertInto("block_group_config")
+					.values({
+						block_group_id: id,
+						config_type: config_data.config_type,
+						config_data: json_object,
+					})
+					.onConflict((oc) => {
+						return oc.columns(["block_group_id", "config_type"]).doUpdateSet({
+							config_data: json_object,
+						});
+					})
+					.execute();
+				// 	db?.prepare(
+				// 		`
+				// 	INSERT OR REPLACE INTO block_group_config(block_group_id, config_type, config_data)
+				// 	VALUES(?, ?, ?)
+				// `,
+				// 	).run(id, config_data.config_type, json_object);
+				if (config_data.config_type !== "usageLimit") {
+					// db?.prepare(
+					// 	"UPDATE block_group SET restriction_type = ? WHERE id = ?",
+					// ).run(config_data.config_type, id);
+					await db
+						?.updateTable("block_group")
+						.set({ restriction_type: config_data.config_type })
+						.where("id", "=", id)
+						.executeTakeFirst();
+				}
+
+				event.reply("blockgroupconfig/set/response", {
+					info: "operation success",
+				});
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error setting up group config",
+					"blockgroupconfig/set/response",
+				);
+			} finally {
+				// resend the updated block
+				const r = await getBlockGroup_with_config();
+				mainWindow.webContents.send("blockgroup/get/response", {
+					data: r,
+				});
+			}
+		},
+	);
 	ipcMain.on(
 		"blockgroupconfig/delete",
-		(event: Electron.IpcMainEvent, data) => {
+		async (event: Electron.IpcMainEvent, data) => {
 			try {
 				const { id, config_data } = data as {
 					id: number;
@@ -569,17 +624,27 @@ app.whenReady().then(() => {
 						| RandomText_Config;
 				};
 				if (!(id && config_data)) throw "invalid post input...";
-				db?.prepare(
-					`
-						DELETE FROM block_group_config 
-						WHERE 
-							block_group_id = ? AND 
-							config_type = ? 
-						`,
-				).run(id, config_data.config_type);
-				db?.prepare(
-					"UPDATE block_group SET restriction_type = null WHERE id = ?",
-				).run(id);
+				await db
+					?.deleteFrom("block_group_config")
+					.where("block_group_id", "=", id)
+					.where("config_type", "=", config_data.config_type)
+					.executeTakeFirst();
+				await db
+					?.updateTable("block_group")
+					.set({ restriction_type: null })
+					.where("id", "=", id)
+					.executeTakeFirst();
+				// db?.prepare(
+				// 	`
+				// 		DELETE FROM block_group_config
+				// 		WHERE
+				// 			block_group_id = ? AND
+				// 			config_type = ?
+				// 		`,
+				// ).run(id, config_data.config_type);
+				// db?.prepare(
+				// 	"UPDATE block_group SET restriction_type = null WHERE id = ?",
+				// ).run(id);
 				event.reply("blockgroupconfig/delete/response", {
 					info: "operation success",
 				});
@@ -592,7 +657,7 @@ app.whenReady().then(() => {
 				);
 			} finally {
 				// resend the updated block
-				const r = getBlockGroup_with_config();
+				const r = await getBlockGroup_with_config();
 				mainWindow.webContents.send("blockgroup/get/response", {
 					data: r,
 				});
@@ -627,16 +692,20 @@ app.whenReady().then(() => {
 	wss.on("connection", (ws, req) => {
 		console.log("connection from:", req.socket.remoteAddress);
 
-		ws.on("message", (message) => {
+		ws.on("message", async (message) => {
 			try {
 				const data = JSON.parse(message.toString());
 				// check if the data passed is a webpage, the app is supposed to monitor and validate a tab/webpage
 				if (data.isWebpage) {
-					validateWebpage(data, ws);
+					console.log("data iswbpage: ", data);
+
+					await validateWebpage(data, ws);
 				}
 				// if just logging the time, do this instead
 				else if (data.isTimelist) {
-					validateTimelist(data, ws);
+					console.log("data istimelist: ", data);
+
+					await validateTimelist(data, ws);
 				}
 				// if the allow in incognito is disabled...
 				else if (data.isIncognitoMessage) {
@@ -647,20 +716,23 @@ app.whenReady().then(() => {
 						else if (ua_string.includes("firefox")) name = "firefox";
 						else if (ua_string.includes("brave")) name = "brave";
 						else if (ua_string.includes("edg/")) name = "msedge";
-
-						const restrictDelay = Number(
-							(
-								db
-									?.prepare(
-										"SELECT opt_val FROM options WHERE opt_type = 'restrictDelay'",
-									)
-									.get() as { opt_val: string }
-							)?.opt_val,
-						);
+						const restrictDelay = await db
+							?.selectFrom("user_options")
+							.select("secondsUntilClosed")
+							.executeTakeFirst();
+						// const restrictDelay = Number(
+						// 	(
+						// 		db
+						// 			?.prepare(
+						// 				"SELECT opt_val FROM options WHERE opt_type = 'restrictDelay'",
+						// 			)
+						// 			.get() as { opt_val: string }
+						// 	)?.opt_val,
+						// );
 						if (name) {
-							setTimeout(() => {
-								taskKiller_win(name);
-							}, restrictDelay || 60000);
+							setTimeout(async () => {
+								await taskKiller_win(name);
+							}, restrictDelay?.secondsUntilClosed || 60000);
 						}
 					}
 				}
@@ -675,10 +747,10 @@ app.whenReady().then(() => {
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
-app.on("window-all-closed", () => {
+app.on("window-all-closed", async () => {
 	if (process.platform !== "darwin") {
 		if (isQuitting) {
-			db?.close();
+			await db?.destroy();
 			app.quit();
 		}
 	}

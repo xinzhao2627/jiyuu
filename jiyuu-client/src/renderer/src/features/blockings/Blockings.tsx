@@ -35,21 +35,19 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import AddIcon from "@mui/icons-material/Add";
 import { ipcRendererOn, ipcRendererSend } from "./blockingAPI";
 import BlockingModal from "./components/blockingModal";
-import NewBlockGroupModal from "./components/newBlockGroupModal";
-import DeleteBlockGroupModal from "./components/deleteBlockGroupModal";
-import RenameBlockGroupModal from "./components/renameBlockGroupModal";
+
+import MainBlockGroupModal from "./components/MainBlockGroupModal";
+
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import {
-	BlockGroup,
+	block_group,
+	block_group_config,
+	blocked_content,
 	BlockGroup_Full,
-	ConfigType,
-	Password_Config,
-	RandomText_Config,
-	RestrictTimer_Config,
-	UsageLimitData_Config,
+	Error_Info,
 } from "../../jiyuuInterfaces";
 import ConfigModal from "./components/configModal";
 import { scrollbarStyle } from "@renderer/assets/shared/modalStyle";
@@ -90,34 +88,28 @@ function customChip(
 export default function Blockings(): React.JSX.Element {
 	const [menuAnchor, setmenuAnchor] = React.useState<null | {
 		el: HTMLElement;
-		v: BlockGroup;
+		v: BlockGroup_Full;
 	}>(null);
 	const {
-		blockGroupData,
+		setBlockGroupModal,
 		setBlockGroupData,
-		setBlockedSitesData,
 		setSelectedBlockGroup,
-		setIsCoveredState,
-		setIsBlurredState,
-		setIsGrayscaledState,
-		setIsMutedState,
-		setIsNewGroupModalOpen,
-		setIsBlockingModalOpen,
-		setIsDeleteGroupModalOpen,
-		setIsRenameGroupModalOpen,
 		setIsConfigModalOpen,
 		setUsageResetPeriod,
 		setUsageTimeValueNumber,
+		setBlockedContentData,
+		blockGroup,
+		setBlockedContentState,
 		// selectedBlockGroup,
 	} = useStore();
 
-	const openModal = (v: BlockGroup): void => {
+	const openModal = (v: block_group): void => {
 		// GET BLOCK SITE OF SPECIFIC BLOCK GROUP
-		ipcRendererSend("blockedsites/get", {
+		ipcRendererSend("blockedcontent/get", {
 			id: v.id,
 			group_name: v.group_name,
 		});
-		setIsBlockingModalOpen(true);
+		setBlockGroupModal("blockingModal", true);
 	};
 	const modifyActivateButton = (v: BlockGroup_Full): void => {
 		ipcRendererSend("blockgroup/set", {
@@ -138,8 +130,8 @@ export default function Blockings(): React.JSX.Element {
 	useEffect(() => {
 		const listeners = [
 			{
-				channel: "blockedsites/put/response",
-				handler: (_, data) => {
+				channel: "blockedcontent/put/response",
+				handler: (_, data: Error_Info) => {
 					if (data.error)
 						console.error("putting target text response: ", data.error);
 					else console.info("inserting data success");
@@ -158,14 +150,14 @@ export default function Blockings(): React.JSX.Element {
 			{
 				// RECEIVE BLOCK GROUP (ONE ONLY) RESPONSE
 				channel: "blockgroup/get/id/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error)
 						console.error("Error blockgroup/get/id/response: ", data.error);
 				},
 			},
 			{
 				channel: "blockgroup/set/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error) {
 						console.error("Error blockgroup/set/response: ", data.error);
 						toast.error(data.error);
@@ -175,7 +167,7 @@ export default function Blockings(): React.JSX.Element {
 			{
 				// RECEIVE BLOCK GROUP CREATE/PUT RESPONSE (when you create a block  group)
 				channel: "blockgroup/put/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error) {
 						console.error("Error blockgroup/get/response: ", data.error);
 						toast.error(data.error);
@@ -184,17 +176,20 @@ export default function Blockings(): React.JSX.Element {
 			},
 			{
 				// RECEIVE BLOCK SITE RESPONSE
-				channel: "blockedsites/get/response",
-				handler: (_, data) => {
+				channel: "blockedcontent/get/response",
+				handler: (
+					_,
+					data: { error: string | undefined; data: blocked_content[] },
+				) => {
 					if (data.error)
 						console.error("Error fetching group block: ", data.error);
-					else setBlockedSitesData(data.data);
+					else setBlockedContentData(data.data);
 				},
 			},
 			{
 				// SETTING ALL BLOCK GROUP DATA AND BLOCKED SITES DATA response
-				channel: "blockgroup_blockedsites/set/response",
-				handler: (_, data) => {
+				channel: "blockgroup_blockedcontent/set/response",
+				handler: (_, data: Error_Info) => {
 					if (data.error)
 						console.error("ERROR MODIFYING THE ENTIRE GORUP: ", data.error);
 					else if (data.info) toast.success(data.info);
@@ -203,7 +198,7 @@ export default function Blockings(): React.JSX.Element {
 			{
 				// gets a reply when deleting a block group
 				channel: "blockgroup/delete/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error) {
 						console.error("Error deleting a block group: ", data.error);
 						toast.error(data.error);
@@ -212,7 +207,7 @@ export default function Blockings(): React.JSX.Element {
 			},
 			{
 				channel: "blockgroupconfig/set/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error) {
 						console.error("Error setting a block group config: ", data.error);
 						toast.error(data.error);
@@ -221,26 +216,21 @@ export default function Blockings(): React.JSX.Element {
 			},
 			{
 				channel: "blockgroupconfig/get/response",
-				handler: (_, data) => {
+				handler: (
+					_,
+					data: { error: string | undefined; data: block_group_config },
+				) => {
 					if (data.error) {
 						console.error("Error getting a block group config: ", data.error);
 						toast.error(data.error);
 					} else if (data.data) {
-						const d = data.data as {
-							block_group_id: number;
-							config_type: ConfigType;
-							config_data: string;
-						};
+						const d = data.data;
 						console.log("d isL: ", d);
 
 						if (d && d.config_data) {
 							console.log(d);
 
-							const cd = JSON.parse(d.config_data) as
-								| UsageLimitData_Config
-								| Password_Config
-								| RandomText_Config
-								| RestrictTimer_Config;
+							const cd = d.config_data;
 
 							if (cd && cd.config_type === "usageLimit") {
 								setUsageTimeValueNumber({
@@ -255,7 +245,7 @@ export default function Blockings(): React.JSX.Element {
 			},
 			{
 				channel: "blockgroupconfig/delete/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error) {
 						toast.error(data.error);
 					} else if (data.info) {
@@ -292,8 +282,8 @@ export default function Blockings(): React.JSX.Element {
 						...scrollbarStyle,
 					}}
 				>
-					{blockGroupData &&
-						blockGroupData.map((v, i) => {
+					{blockGroup.data &&
+						blockGroup.data.map((v, i) => {
 							// console.log(v);
 
 							return (
@@ -423,21 +413,21 @@ export default function Blockings(): React.JSX.Element {
 												component={"div"}
 												onClick={() => {
 													setSelectedBlockGroup(v);
-													setIsCoveredState({
-														val: v.is_covered,
-														init_val: v.is_covered,
+													setBlockedContentState("covered", {
+														val: Boolean(v.is_covered),
+														init_val: Boolean(v.is_covered),
 													});
-													setIsGrayscaledState({
-														val: v.is_grayscaled,
-														init_val: v.is_grayscaled,
+													setBlockedContentState("grayscaled", {
+														val: Boolean(v.is_grayscaled),
+														init_val: Boolean(v.is_grayscaled),
 													});
-													setIsMutedState({
-														val: v.is_muted,
-														init_val: v.is_muted,
+													setBlockedContentState("muted", {
+														val: Boolean(v.is_muted),
+														init_val: Boolean(v.is_muted),
 													});
-													setIsBlurredState({
-														val: v.is_blurred,
-														init_val: v.is_blurred,
+													setBlockedContentState("blurred", {
+														val: Boolean(v.is_blurred),
+														init_val: Boolean(v.is_blurred),
 													});
 													openModal(v);
 												}}
@@ -489,7 +479,7 @@ export default function Blockings(): React.JSX.Element {
 					variant="extended"
 					disableRipple
 					onClick={() => {
-						setIsNewGroupModalOpen(true);
+						setBlockGroupModal("add", true);
 					}}
 					sx={{
 						position: "fixed",
@@ -504,9 +494,7 @@ export default function Blockings(): React.JSX.Element {
 				</Fab>
 			</Stack>
 			<BlockingModal />
-			<NewBlockGroupModal />
-			<DeleteBlockGroupModal />
-			<RenameBlockGroupModal />
+			<MainBlockGroupModal />
 			<ConfigModal />
 			<Menu
 				anchorEl={menuAnchor?.el}
@@ -519,8 +507,10 @@ export default function Blockings(): React.JSX.Element {
 					disabled={Boolean(menuAnchor?.v.restriction_type)}
 					onClick={(e) => {
 						e.stopPropagation();
-						setSelectedBlockGroup(menuAnchor?.v);
-						setIsDeleteGroupModalOpen(true);
+						if (menuAnchor && menuAnchor.v) {
+							setSelectedBlockGroup(menuAnchor.v);
+							setBlockGroupModal("delete", true);
+						}
 						setmenuAnchor(null);
 					}}
 				>
@@ -532,8 +522,11 @@ export default function Blockings(): React.JSX.Element {
 				<MenuItem
 					onClick={(e) => {
 						e.stopPropagation();
-						setSelectedBlockGroup(menuAnchor?.v);
-						setIsRenameGroupModalOpen(true);
+						if (menuAnchor && menuAnchor.v) {
+							setSelectedBlockGroup(menuAnchor?.v);
+							setBlockGroupModal("rename", true);
+						}
+
 						setmenuAnchor(null);
 					}}
 				>
@@ -545,8 +538,10 @@ export default function Blockings(): React.JSX.Element {
 				<MenuItem
 					onClick={(e) => {
 						e.stopPropagation();
-						setSelectedBlockGroup(menuAnchor?.v);
-						setIsConfigModalOpen(true);
+						if (menuAnchor && menuAnchor.v) {
+							setSelectedBlockGroup(menuAnchor.v);
+							setIsConfigModalOpen(true);
+						}
 						setmenuAnchor(null);
 					}}
 				>
