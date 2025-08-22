@@ -95,9 +95,9 @@ select * from block_group_config
 select * from usage_log
 select * from block_group
 SELECT * from blocked_content
-
+SELECT * from click_count
 delete from block_group_config where id = 3
-
+SELECT * from user_options
 
 DROP TABLE IF EXISTS block_group;
 DROP TABLE IF EXISTS blocked_content;
@@ -106,6 +106,7 @@ DROP TABLE IF EXISTS block_group_config;
 DROP TABLE IF EXISTS date_today;
 DROP TABLE if EXISTS migration;
 DROP TABLE block_sites;
+DROP TABLE 
 
 CREATE TABLE IF NOT EXISTS block_group(
                 id INTEGER PRIMARY KEY,

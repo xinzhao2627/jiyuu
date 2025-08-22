@@ -35,6 +35,7 @@ export interface user_optionsTable {
 	blockUnsupportedBrowser: 0 | 1;
 	blockTaskManager: 0 | 1;
 	blockCalendar: 0 | 1;
+	dashboardDateMode: "m" | "w" | "d";
 }
 
 export interface usage_logTable {
@@ -44,6 +45,14 @@ export interface usage_logTable {
 	date_object: string;
 	seconds_elapsed: number;
 }
+export type usage_log = Selectable<usage_logTable>;
+
+export interface click_countTable {
+	id: Generated<number>;
+	base_url: string;
+	date_object: string;
+}
+export type click_count = Selectable<click_countTable>;
 
 export interface migrationTable {
 	id: string;
@@ -56,6 +65,7 @@ export interface DB {
 	usage_log: usage_logTable;
 	user_options: user_optionsTable;
 	migration: migrationTable;
+	click_count: click_countTable;
 }
 
 export interface block_group_WITH_blocked_content

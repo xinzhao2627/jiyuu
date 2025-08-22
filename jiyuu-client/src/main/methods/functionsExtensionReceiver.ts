@@ -9,15 +9,16 @@ import {
 } from "../../lib/jiyuuInterfaces";
 import { db } from "../database/initializations";
 
-export async function validateTimelist(data, ws): Promise<void> {
+export async function validateTimelist(
+	data: { [k: string]: TimeListInterface },
+	ws,
+): Promise<void> {
 	// the site data here is multiple,
 	// meaning there could be more than 1 tabs that are sent
 
 	try {
 		// console.log(data);
-		const siteData = new Map<string, TimeListInterface>(
-			Object.entries(data.data),
-		);
+		const siteData = new Map<string, TimeListInterface>(Object.entries(data));
 		// remove tabs with 0 secons consumption
 		function removeNoConsumptions(): void {
 			const keylist = siteData.keys();
@@ -172,9 +173,12 @@ export async function validateTimelist(data, ws): Promise<void> {
 }
 
 // validates 1 site/webpage
-export async function validateWebpage(data, ws): Promise<void> {
+export async function validateWebpage(
+	data: { data: TimeListInterface | SiteAttribute; tabId: number },
+	ws,
+): Promise<void> {
 	try {
-		const siteData: SiteAttribute | TimeListInterface = data.data;
+		const siteData = data.data;
 		const tabId: number = data.tabId;
 
 		// get all blocked sites and their corresponding effects (grayscale, cover, mute)
@@ -214,6 +218,8 @@ export async function validateWebpage(data, ws): Promise<void> {
 		// 	},
 		// });
 		// console.log("now sending msg to react...");
+
+		// update the ui
 		const blockgroup_rows = await getBlockGroup_with_config();
 		mainWindow.webContents.send("blockgroup/get/response", {
 			data: blockgroup_rows,
@@ -238,4 +244,18 @@ export async function validateWebpage(data, ws): Promise<void> {
 		const errorMsg = err instanceof Error ? err.message : String(err);
 		console.error("Unable to block sites, cause: ", errorMsg);
 	}
+}
+
+export async function updateClickCount(data: SiteAttribute): Promise<void> {
+	const match = data.url.match(/^(?:https?:\/\/)?(?:www\.)?([^/:?#]+)/);
+	const base = match ? match[1] : "";
+	if (!base) return;
+
+	await db
+		?.insertInto("click_count")
+		.values({
+			base_url: base,
+			date_object: new Date().toISOString(),
+		})
+		.executeTakeFirst();
 }

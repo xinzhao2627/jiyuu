@@ -75,7 +75,7 @@ export default defineBackground(() => {
 			// finally send it to server and empty the timelist records (do this if its already connected to the database)
 
 			await sendMessageWs({
-				isTimelist: true,
+				sendType: "isTimelist",
 				data: Object.fromEntries(timeList),
 			});
 			timeList = new Map<string, TimeListData>();
@@ -89,14 +89,15 @@ export default defineBackground(() => {
 				.then(async (isAllowedAccess) => {
 					// if allowed in incognito is disabled, send a warning to the server
 					if (!isAllowedAccess) {
-						console.error(
-							"WARNING: ALLOW INCOGNITO MODE IS DISABLED"
-						);
-						await sendMessageWs({
-							isIncognitoMessage: true,
-							isAllowedIncognitoAccess: isAllowedAccess,
-							userAgent: navigator.userAgent.toLowerCase(),
-						});
+						// console.error(
+						// 	"WARNING: ALLOW INCOGNITO MODE IS DISABLED"
+						// );
+						// await sendMessageWs({
+						// 	sendType: "isIncognito",
+						// 	isIncognitoMessage: true,
+						// 	isAllowedIncognitoAccess: isAllowedAccess,
+						// 	userAgent: navigator.userAgent.toLowerCase(),
+						// });
 					}
 				});
 			// repeat again after 5 seconds have passed
@@ -149,26 +150,38 @@ export default defineBackground(() => {
 		setTimeout(incrementor, 1000);
 	}
 	browser.tabs.onActivated.addListener(async (activeInfo) => {
-		console.log("hii activate async");
 		try {
-			const feedback = (await reqManipulate(activeInfo)) as Feedback;
-			if (!feedback) {
-				console.info(
-					"reqManipulate from the onActivatedListener not sent to the server"
-				);
-				return;
-			}
-			// sends the web content in the electron backend server
-			sendMessageWs({
-				isWebpage: true,
-				data: feedback.data,
-				tabId: activeInfo.tabId,
-			});
+			await tabsListener(activeInfo);
 		} catch (error) {
 			console.error("Error in Activated listener: ", error);
 		}
 	});
-
+	browser.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+		try {
+			if (changeInfo.status === "complete") {
+				await tabsListener({ tabId: tabId });
+			}
+		} catch (error) {
+			console.error("Error in Activated listener: ", error);
+		}
+	});
+	async function tabsListener(
+		activeInfo: globalThis.Browser.tabs.OnActivatedInfo | { tabId: number }
+	) {
+		const feedback = (await reqManipulate(activeInfo)) as Feedback;
+		if (!feedback) {
+			console.info(
+				"reqManipulate from the onActivatedListener not sent to the server"
+			);
+			return;
+		}
+		// sends the web content in the electron backend server
+		sendMessageWs({
+			sendType: "isWebpage",
+			data: feedback.data,
+			tabId: activeInfo.tabId,
+		});
+	}
 	async function reqManipulate(
 		activeInfo: Browser.tabs.OnActivatedInfo | { tabId: number }
 	) {
@@ -222,12 +235,13 @@ export default defineBackground(() => {
 	async function sendMessageWs(
 		data:
 			| {
-					isWebpage: boolean;
+					sendType: "isWebpage";
 					data: Feedback_data | null;
 					tabId: number;
 			  }
-			| { isTimelist: boolean; data: { [k: string]: TimeListData } }
+			| { sendType: "isTimelist"; data: { [k: string]: TimeListData } }
 			| {
+					sendType: "isIncognito";
 					isIncognitoMessage: boolean;
 					isAllowedIncognitoAccess: boolean;
 					userAgent: string;
@@ -255,8 +269,8 @@ export default defineBackground(() => {
 
 	async function connectWebSocket() {
 		try {
-			// connect to websocket on port 8080
-			_socket = new WebSocket("ws://localhost:8080");
+			// connect to websocket on port 7071
+			_socket = new WebSocket("ws://localhost:7071");
 			await new Promise((resolve, reject) => {
 				if (_socket === null) {
 					reject(new Error("websocket it empty"));
@@ -279,10 +293,6 @@ export default defineBackground(() => {
 				const d = JSON.parse(event.data) as SentData;
 				// electron will reply if we should block the tab or not
 				if (d.isBlocked && d.tabId) {
-					// const feedback = await browser.tabs.sendMessage(d.tabId, {
-					// 	toBlockData: true, // meaning this sendMessage will attempt to block the data
-					// 	data: d.blockParam,
-					// });
 					const feedback = await sendMessage(
 						"toBlockData",
 						d.blockParam,

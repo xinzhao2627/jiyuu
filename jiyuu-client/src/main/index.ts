@@ -20,6 +20,7 @@ import { WebSocketServer } from "ws";
 
 import { showError, taskKiller_win } from "./methods/functionHelper";
 import {
+	updateClickCount,
 	validateTimelist,
 	validateWebpage,
 } from "./methods/functionsExtensionReceiver";
@@ -40,6 +41,8 @@ import {
 	RestrictTimer_Config,
 	UsageLimitData_Config,
 } from "../lib/jiyuuInterfaces";
+import { isIncognito, isTimelist, isWebpage } from "./webSocketInterface";
+import getDashboardSummarized from "./methods/functionUsageLog";
 
 export let mainWindow: BrowserWindow;
 let tray: Tray | null = null;
@@ -213,10 +216,17 @@ app.whenReady().then(async () => {
 			lt = ct;
 			try {
 				await updateBlockGroup();
-				const r = await getBlockGroup_with_config();
-				mainWindow.webContents.send("blockgroup/get/response", {
-					data: r,
-				});
+				// // if you are in block page do this
+				// const r = await getBlockGroup_with_config();
+				// mainWindow.webContents.send("blockgroup/get/response", {
+				// 	data: r,
+				// });
+
+				// // // if in dashboard just send the whole usage
+				// // const dashboardRes = await getDashboardSummarized();
+				// // mainWindow.webContents.send("dashboard/get/response", {
+				// // 	data: dashboardRes,
+				// // });
 			} catch (error) {
 				console.error("Error in recursiveGroupChecker:", error);
 			} finally {
@@ -664,6 +674,67 @@ app.whenReady().then(async () => {
 			}
 		},
 	);
+	ipcMain.on("dashboard/get", async (event: Electron.IpcMainEvent) => {
+		try {
+			const d = await getDashboardSummarized();
+			event.reply("dashboard/get/response", {
+				data: {
+					clicksSummarized: d.clicksSummarized,
+					usageLogSummarized: d.usageLogSummarized,
+				},
+			});
+		} catch (err) {
+			showError(
+				err,
+				event,
+				"Error getting dashboard",
+				"dashboard/get/response",
+			);
+		}
+	});
+	ipcMain.on("useroptions/get", async (event: Electron.IpcMainEvent) => {
+		try {
+			const d = await db
+				?.selectFrom("user_options")
+				.select("dashboardDateMode")
+				.executeTakeFirst();
+
+			event.reply("useroptions/get/response", {
+				data: {
+					dashboardDateMode: d?.dashboardDateMode || null,
+				},
+			});
+		} catch (err) {
+			showError(
+				err,
+				event,
+				"Error getting dashboard",
+				"useroptions/get/response",
+			);
+		}
+	});
+	ipcMain.on("useroptions/set", async (event: Electron.IpcMainEvent, data) => {
+		try {
+			const { dashboardDateMode } = data as {
+				dashboardDateMode: "d" | "w" | "m";
+			};
+			if (!dashboardDateMode) throw "The dashboard datemode input is empty";
+			console.log("the dashbaorddatemode: ", dashboardDateMode);
+
+			await db
+				?.updateTable("user_options")
+				.set({ dashboardDateMode: dashboardDateMode })
+				.executeTakeFirst();
+			event.reply("useroptions/set/response", {});
+		} catch (err) {
+			showError(
+				err,
+				event,
+				"Error getting dashboard",
+				"useroptions/set/response",
+			);
+		}
+	});
 	createWindow();
 
 	app.on("activate", function () {
@@ -687,28 +758,43 @@ app.whenReady().then(async () => {
 		}
 	});
 
-	const wss = new WebSocketServer({ port: 8080 });
+	const wss = new WebSocketServer({ port: 7071 });
 
 	wss.on("connection", (ws, req) => {
 		console.log("connection from:", req.socket.remoteAddress);
 
 		ws.on("message", async (message) => {
 			try {
-				const data = JSON.parse(message.toString());
+				const data = JSON.parse(message.toString()) as
+					| isIncognito
+					| isTimelist
+					| isWebpage;
 				// check if the data passed is a webpage, the app is supposed to monitor and validate a tab/webpage
-				if (data.isWebpage) {
-					console.log("data iswbpage: ", data);
+				if (data.sendType === "isWebpage") {
+					if (data.data) {
+						const d = data.data;
+						await validateWebpage({ tabId: data.tabId, data: d }, ws);
 
-					await validateWebpage(data, ws);
+						// then update the clickcount
+						await updateClickCount(data.data);
+
+						// then get the summary dashboard
+						const dashboardRes = await getDashboardSummarized();
+
+						// send it to react ui, do this every time a user access a new website
+						mainWindow.webContents.send("dashboard/get/response", {
+							data: dashboardRes,
+						});
+					}
 				}
+
 				// if just logging the time, do this instead
-				else if (data.isTimelist) {
-					console.log("data istimelist: ", data);
-
-					await validateTimelist(data, ws);
+				else if (data.sendType === "isTimelist") {
+					await validateTimelist(data.data, ws);
 				}
+
 				// if the allow in incognito is disabled...
-				else if (data.isIncognitoMessage) {
+				else if (data.sendType === "isIncognito") {
 					if (!data.isAllowedIncognitoAccess && data.userAgent) {
 						let ua_string = data.userAgent as string;
 						let name = "";
@@ -720,15 +806,6 @@ app.whenReady().then(async () => {
 							?.selectFrom("user_options")
 							.select("secondsUntilClosed")
 							.executeTakeFirst();
-						// const restrictDelay = Number(
-						// 	(
-						// 		db
-						// 			?.prepare(
-						// 				"SELECT opt_val FROM options WHERE opt_type = 'restrictDelay'",
-						// 			)
-						// 			.get() as { opt_val: string }
-						// 	)?.opt_val,
-						// );
 						if (name) {
 							setTimeout(async () => {
 								await taskKiller_win(name);

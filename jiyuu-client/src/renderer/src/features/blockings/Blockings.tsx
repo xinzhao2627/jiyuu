@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "./blockingsStore";
 import toast from "react-hot-toast";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -127,7 +127,16 @@ export default function Blockings(): React.JSX.Element {
 			},
 		});
 	};
+	const [isBlockGroupRetrieveReady, setIsBlockGroupRetrieveReady] =
+		useState<boolean>(true);
+	const getBlockGroup = (): void => {
+		if (isBlockGroupRetrieveReady) {
+			setIsBlockGroupRetrieveReady(false);
+			ipcRendererSend("blockgroup/get", { init: true });
+		}
+	};
 	useEffect(() => {
+		const isUnmounted = false;
 		const listeners = [
 			{
 				channel: "blockedcontent/put/response",
@@ -145,6 +154,10 @@ export default function Blockings(): React.JSX.Element {
 						console.error("Error blockgroup/get/response: ", data.error);
 
 					setBlockGroupData(data.data);
+					setIsBlockGroupRetrieveReady(true);
+					if (!isUnmounted) {
+						setTimeout(() => getBlockGroup(), 1000);
+					}
 				},
 			},
 			{
@@ -258,7 +271,7 @@ export default function Blockings(): React.JSX.Element {
 			ipcRendererOn(v.channel, v.handler);
 		});
 		// GET ALL BLOCK GROUP (INITIALIZATION)
-		ipcRendererSend("blockgroup/get", { init: true });
+		getBlockGroup();
 
 		return () => {
 			listeners.forEach((v) => {

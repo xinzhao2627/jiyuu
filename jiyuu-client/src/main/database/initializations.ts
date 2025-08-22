@@ -119,8 +119,38 @@ const migrations: Array<{ id: string; up: () => Promise<void> }> = [
 				.addColumn("blockCalendar", "integer", (col) =>
 					col.notNull().defaultTo(0),
 				)
+				.addColumn("dashboardDateMode", "text", (col) =>
+					col.notNull().defaultTo("d"),
+				)
 				.execute();
 			console.log("init-user_options");
+		},
+	},
+	{
+		id: "init-click_count",
+		up: async () => {
+			await db?.schema
+				.createTable("click_count")
+				.ifNotExists()
+				.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
+				.addColumn("base_url", "text", (col) => col.notNull())
+				.addColumn("date_object", "text", (col) => col.notNull())
+				.execute();
+		},
+	},
+	{
+		id: "insert-user_options",
+		up: async () => {
+			await db
+				?.insertInto("user_options")
+				.values({
+					secondsUntilClosed: 60,
+					blockUnsupportedBrowser: 0,
+					blockTaskManager: 0,
+					blockCalendar: 0,
+					dashboardDateMode: "d",
+				})
+				.executeTakeFirst();
 		},
 	},
 ];

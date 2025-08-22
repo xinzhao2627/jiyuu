@@ -6,8 +6,8 @@ export interface SiteAttribute {
 	keywords: string;
 	url: string;
 	title: string;
-	descDoc: string;
-	keywordsDoc: string;
+	// descDoc: string;
+	// keywordsDoc: string;
 }
 export interface TimeListInterface extends SiteAttribute {
 	secondsElapsed: number;
