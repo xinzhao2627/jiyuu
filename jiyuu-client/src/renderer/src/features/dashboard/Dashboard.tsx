@@ -4,22 +4,17 @@ import * as React from "react";
 import {
 	Box,
 	Card,
-	CardActions,
 	CardContent,
-	CircularProgress,
 	Grid,
 	IconButton,
-	List,
-	ListItem,
-	ListItemText,
 	Stack,
 	SxProps,
 	Theme,
 	ToggleButton,
 	ToggleButtonGroup,
 	Typography,
+	LinearProgress,
 } from "@mui/material";
-import TopKpi from "./components/TopKpi";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { ipcRendererOn, ipcRendererSend } from "../blockings/blockingAPI";
 import { blue } from "@mui/material/colors";
@@ -45,13 +40,16 @@ export default function Dashboard(): React.JSX.Element {
 	const [clicksSummarized, setClicksSummarized] = React.useState<
 		Map<string, number>
 	>(new Map<string, number>());
+	const [groupTimeSummarized, setGroupTimeSummarized] = React.useState<
+		Map<number, { name: string; secondsElapsed: number }>
+	>(new Map<number, { name: string; secondsElapsed: number }>());
 	const [selectedPeriod, setSelectedPeriod] = React.useState<"m" | "w" | "d">(
 		"d",
 	);
 	// const [isKpiLoading, setIsKpiLoading] = React.useState<boolean>(false);
 	const [dashboardRetrieveReady, setDashboardRetrieveReady] =
 		React.useState<boolean>(true);
-	function dashboardGet(initiateLoading: boolean = false): void {
+	function dashboardGet(): void {
 		// setIsKpiLoading(initiateLoading);
 		if (dashboardRetrieveReady) {
 			setDashboardRetrieveReady(false);
@@ -68,11 +66,24 @@ export default function Dashboard(): React.JSX.Element {
 						console.error("Error getting dashboard data: ", data.error);
 					} else {
 						const d = data.data as {
-							usageLogSummarized: Map<string, number>;
-							clicksSummarized: Map<string, number>;
+							usageLogSummarized: Map<string, number> | null;
+							clicksSummarized: Map<string, number> | null;
+							groupTimeSummarized: Map<
+								number,
+								{ name: string; secondsElapsed: number }
+							> | null;
 						};
-						setUsageLogSummarized(d.usageLogSummarized);
-						setClicksSummarized(d.clicksSummarized);
+						setUsageLogSummarized(
+							d.usageLogSummarized || new Map<string, number>(),
+						);
+						setClicksSummarized(
+							d.clicksSummarized || new Map<string, number>(),
+						);
+
+						setGroupTimeSummarized(
+							d.groupTimeSummarized ||
+								new Map<number, { name: string; secondsElapsed: number }>(),
+						);
 						// console.log("the d: ", d);
 					}
 
@@ -180,26 +191,78 @@ export default function Dashboard(): React.JSX.Element {
 			const res = arr[0] || null;
 			if (res) {
 				const sum = res[1];
-				const mode = (sum * 1.0) / 60 > 60 ? "hours" : "minutes";
+				const mode = (sum * 1.0) / 60 > 60 ? "h" : "min";
 				const displaySum =
 					(sum * 1.0) / 60 > 60 ? (sum * 1.0) / 3600 : (sum * 1.0) / 60;
 
 				return (
-					<Stack direction={"row"} gap={1}>
-						<Typography variant="body1" color="initial">
+					<Stack direction={"row"} gap={1} alignContent={"center"} mt={2}>
+						<Typography
+							variant="h5"
+							alignContent={"center"}
+							sx={{ color: blue[700] }}
+						>
 							{res[0]}
 						</Typography>
-						<Typography variant="body1" color="initial">
+						<Typography variant="h6" sx={{ color: blue[700] }}>
 							{displaySum.toFixed(1)} {mode}
 						</Typography>
 					</Stack>
 				);
 			}
 
-			return <>Nothing to show!</>;
+			return (
+				<Typography sx={{ color: blue[700] }}>Nothing to show!</Typography>
+			);
 		}
 
 		return <>{generateListItem()}</>;
+	};
+	const blockGroupsTimeDisplay = (): React.JSX.Element => {
+		const groupsListArr: Array<{ name: string; secondsElapsed: number }> = [];
+		let totalsec = 0;
+		for (const v of groupTimeSummarized.entries()) {
+			const id = v[0];
+			const group_name = v[1].name;
+			const secondsElapsed = v[1].secondsElapsed;
+
+			if (id && secondsElapsed && group_name) {
+				groupsListArr.push({
+					name: group_name,
+					secondsElapsed: secondsElapsed,
+				});
+				totalsec += secondsElapsed;
+			}
+		}
+		if (groupsListArr.length === 0)
+			return (
+				<Typography variant="body1" color="initial">
+					Nothing to show in this group
+				</Typography>
+			);
+		// TODO hgow??
+
+		return (
+			<>
+				{groupsListArr.map((v, i) => {
+					return (
+						<Box key={`group-${v.name}-${i}`} sx={{ mb: 2 }}>
+							<Typography variant="h6" sx={{ mb: 0.5 }}>
+								{v.name} -{" "}
+								{v.secondsElapsed > 3600
+									? `${(v.secondsElapsed / 3600.0).toFixed(1)} hours`
+									: `${(v.secondsElapsed / 60.0).toFixed(1)} minutes`}
+							</Typography>
+							<LinearProgress
+								variant="determinate"
+								value={totalsec > 0 ? (v.secondsElapsed / totalsec) * 100 : 0}
+								sx={{ height: 8, borderRadius: 1 }}
+							/>
+						</Box>
+					);
+				})}
+			</>
+		);
 	};
 	return (
 		<div
@@ -223,7 +286,7 @@ export default function Dashboard(): React.JSX.Element {
 							ipcRendererSend("useroptions/set", {
 								dashboardDateMode: newPeriod,
 							});
-							dashboardGet(true);
+							dashboardGet();
 						}
 					}}
 					sx={{
@@ -317,21 +380,32 @@ export default function Dashboard(): React.JSX.Element {
 					>
 						<CardContent>
 							<Typography mb={1} variant="body1" fontWeight={400}>
-								Most used websites{" "}
+								Most used website{" "}
 								{selectedPeriod === "d"
 									? "today"
 									: selectedPeriod === "m"
 										? "this month"
 										: "this week"}
 							</Typography>
-							<Stack>{mostUsedDisplay()}</Stack>
+							{mostUsedDisplay()}
 						</CardContent>
 					</Card>{" "}
 				</Grid>
 
 				{/* Total block groups active/inactive */}
 				<Grid size={12}>
-					<TopKpi title={"Total block groups"} content={t1} />
+					<Card
+						sx={{
+							padding: 0,
+						}}
+					>
+						<CardContent>
+							<Typography mb={1} variant="body1" fontWeight={400}>
+								Block group time usage{" "}
+							</Typography>
+							<Box padding={1}>{blockGroupsTimeDisplay()}</Box>
+						</CardContent>
+					</Card>{" "}
 				</Grid>
 			</Grid>
 		</div>

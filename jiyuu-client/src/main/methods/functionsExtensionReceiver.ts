@@ -9,72 +9,15 @@ import {
 } from "../../lib/jiyuuInterfaces";
 import { db } from "../database/initializations";
 
+// timelist interface also includes keywords, desc, headers, etc.
 export async function validateTimelist(
-	data: { [k: string]: TimeListInterface },
-	ws,
+	siteData: Map<string, TimeListInterface>,
 ): Promise<void> {
 	// the site data here is multiple,
 	// meaning there could be more than 1 tabs that are sent
-
 	try {
-		// console.log(data);
-		const siteData = new Map<string, TimeListInterface>(Object.entries(data));
-		// remove tabs with 0 secons consumption
-		function removeNoConsumptions(): void {
-			const keylist = siteData.keys();
-			for (const sd of keylist) {
-				if (!siteData.get(sd)?.secondsElapsed) {
-					siteData.delete(sd);
-				}
-			}
-		}
-		removeNoConsumptions();
-
-		// TODO: then log the sites in siteData to the usage table (done)
-		async function logToUsageLog(): Promise<void> {
-			const toInsert: {
-				base_url: string;
-				full_url: string;
-				date_object: string;
-				seconds_elapsed: number;
-			}[] = [];
-			for (const sd of siteData.values()) {
-				toInsert.push({
-					base_url: sd.baseUrl,
-					full_url: sd.fullUrl,
-					date_object: sd.dateObject,
-					seconds_elapsed: sd.secondsElapsed,
-				});
-			}
-
-			if (toInsert.length > 0) {
-				await db?.insertInto("usage_log").values(toInsert).execute();
-			}
-			// const insert = db?.prepare(`
-			// 	INSERT INTO usage_log(base_url, full_url, date_object, seconds_elapsed)
-			// 	VALUES (@base_url, @full_url, @date_object, @seconds_elapsed)
-			// `);
-			// // sitesdatas
-			// const insertMany = db?.transaction((sds: Array<TimeListInterface>) => {
-			// 	for (const sd of sds) {
-			// 		if (sd.baseUrl && sd.fullUrl) {
-			// 			// console.log("sdd: ", sd);
-
-			// 			const res = {
-			// 				base_url: sd.baseUrl,
-			// 				full_url: sd.fullUrl,
-			// 				date_object: sd.dateObject,
-			// 				seconds_elapsed: sd.secondsElapsed,
-			// 			};
-			// 			insert?.run(res);
-			// 		}
-			// 	}
-			// });
-			// if (insertMany) {
-			// 	insertMany([...siteData.values()]);
-			// }
-		}
-		await logToUsageLog();
+		// then log the sites in siteData to the usage table
+		await logToUsageLog(siteData);
 
 		// then get all listed sites/keyword in jiyuu
 		const rows = (await getBlockedContentDataAll()) || [];
@@ -99,73 +42,36 @@ export async function validateTimelist(
 				}
 			}
 		}
-		// console.log("available block lists... ", blockGroupsList);
 
-		// TODO:  with the collected blockgroups list, update the time usage in config table
-		async function updateUsage(): Promise<void> {
-			// console.log("updating...");
-			for (const [k, v] of blockGroupsList) {
-				const configRow = await db
-					?.selectFrom("block_group_config")
-					.select(["config_type", "config_data", "block_group_id"])
-					.where("block_group_id", "=", k)
-					.where("config_type", "=", "usageLimit")
-					.executeTakeFirst();
-
-				// const configRow = db
-				// 	?.prepare(
-				// 		"SELECT config_type, config_data, block_group_id FROM block_group_config WHERE block_group_id = ? AND config_type = 'usageLimit'",
-				// 	)
-				// 	.get(k) as {
-				// 	config_type: ConfigType;
-				// 	config_data: string;
-				// 	block_group_id: number;
-				// };
-				// if (!configRow) {
-				// 	continue;
-				// }
-				// const usageLimitData = JSON.parse(
-				// 	configRow.config_data,
-				// ) as UsageLimitData_Config;
-				if (!configRow) continue;
-
-				const usageLimitData = JSON.parse(
-					configRow.config_data,
-				) as UsageLimitData_Config;
-				// here just edit the timeleft, leave the other config data as it is
-				const timeLeft = usageLimitData.usage_time_left - v;
-				const newConfig: UsageLimitData_Config = {
-					...usageLimitData,
-					usage_time_left: timeLeft < 0 ? 0 : timeLeft,
-				};
-
-				// if this group has no time left, activate its block
-				if (newConfig.usage_time_left <= 0) {
-					await db
-						?.updateTable("block_group")
-						.set({ is_activated: 1 })
-						.where("id", "=", k)
-						.executeTakeFirst();
-					// db?.prepare(
-					// 	"UPDATE block_group SET is_activated = 1 WHERE id = ?",
-					// ).run(k);
-				}
-				await db
-					?.updateTable("block_group_config")
-					.set({ config_data: JSON.stringify(newConfig) })
-					.where("block_group_id", "=", k)
-					.where("config_type", "=", "usageLimit")
-					.executeTakeFirst();
-				// db?.prepare(
-				// 	"UPDATE block_group_config SET config_data = ? WHERE block_group_id = ? AND config_type = 'usageLimit'",
-				// ).run(JSON.stringify(newConfig), k);
+		// here you must log the consumed time of the block group that is detected
+		const bgul: {
+			block_group_id: number;
+			date_object: string;
+			seconds_elapsed: number;
+		}[] = [];
+		for (const [k, v] of blockGroupsList) {
+			const n = await db
+				?.selectFrom("block_group")
+				.select("group_name")
+				.where("id", "=", k)
+				.executeTakeFirst();
+			if (n && n.group_name) {
+				bgul.push({
+					block_group_id: k,
+					seconds_elapsed: v,
+					date_object: new Date().toISOString(),
+				});
 			}
 		}
-		await updateUsage();
-		// then validate if its blocked or not
-		for (const v of siteData.values()) {
-			await validateWebpage({ data: v, tabId: v.tabId }, ws);
+		if (bgul.length > 0) {
+			await db?.insertInto("block_group_usage_log").values(bgul).execute();
 		}
+
+		// with the collected blockgroups list, update the time usage in config table
+		// it would only update groups that has imposed usage limit
+		await updateUsage(blockGroupsList);
+
+		return;
 	} catch (error) {
 		const errorMsg = error instanceof Error ? error : String(error);
 		console.error("Validate timelist error: ", errorMsg);
@@ -173,10 +79,10 @@ export async function validateTimelist(
 }
 
 // validates 1 site/webpage
-export async function validateWebpage(
-	data: { data: TimeListInterface | SiteAttribute; tabId: number },
-	ws,
-): Promise<void> {
+export async function validateWebpage(data: {
+	data: TimeListInterface | SiteAttribute;
+	tabId: number;
+}): Promise<string> {
 	try {
 		const siteData = data.data;
 		const tabId: number = data.tabId;
@@ -204,46 +110,31 @@ export async function validateWebpage(
 			}
 		}
 		const is_blocked = covered_count + muted_count + grayscale_count > 0;
-		// console.log({
-		// 	tabId: tabId,
-		// 	isBlocked: is_blocked,
-		// 	message: is_blocked
-		// 		? "Blocking will proceed..."
-		// 		: "Not blocking this webpage",
-		// 	following_detected_texts: following_detected_texts,
-		// 	blockParam: {
-		// 		is_covered: covered_count > 0 ? 1 : 0,
-		// 		is_muted: muted_count > 0 ? 1 : 0,
-		// 		is_grayscaled: grayscale_count > 0 ? 1 : 0,
-		// 	},
-		// });
-		// console.log("now sending msg to react...");
 
 		// update the ui
 		const blockgroup_rows = await getBlockGroup_with_config();
 		mainWindow.webContents.send("blockgroup/get/response", {
 			data: blockgroup_rows,
 		});
-		ws.send(
-			JSON.stringify({
-				tabId: tabId,
-				isBlocked: is_blocked,
-				message: is_blocked
-					? "Blocking will proceed..."
-					: "Not blocking this webpage",
-				following_detected_texts: following_detected_texts,
-				blockParam: {
-					is_covered: covered_count > 0 ? 1 : 0,
-					is_muted: muted_count > 0 ? 1 : 0,
-					is_grayscaled: grayscale_count > 0 ? 1 : 0,
-					is_blurred: blurred_count > 0 ? 1 : 0,
-				},
-			}),
-		);
+		return JSON.stringify({
+			tabId: tabId,
+			isBlocked: is_blocked,
+			message: is_blocked
+				? "Blocking will proceed..."
+				: "Not blocking this webpage",
+			following_detected_texts: following_detected_texts,
+			blockParam: {
+				is_covered: covered_count > 0 ? 1 : 0,
+				is_muted: muted_count > 0 ? 1 : 0,
+				is_grayscaled: grayscale_count > 0 ? 1 : 0,
+				is_blurred: blurred_count > 0 ? 1 : 0,
+			},
+		});
 	} catch (err) {
 		const errorMsg = err instanceof Error ? err.message : String(err);
 		console.error("Unable to block sites, cause: ", errorMsg);
 	}
+	return "";
 }
 
 export async function updateClickCount(data: SiteAttribute): Promise<void> {
@@ -258,4 +149,74 @@ export async function updateClickCount(data: SiteAttribute): Promise<void> {
 			date_object: new Date().toISOString(),
 		})
 		.executeTakeFirst();
+}
+
+async function logToUsageLog(
+	siteData: Map<string, TimeListInterface>,
+): Promise<void> {
+	const toInsert: {
+		base_url: string;
+		full_url: string;
+		date_object: string;
+		seconds_elapsed: number;
+	}[] = [];
+
+	// EXPERIMENTAL
+	for (const sd of siteData.values()) {
+		console.log(sd);
+
+		toInsert.push({
+			base_url: sd.baseUrl,
+			full_url: sd.fullUrl,
+			date_object: sd.dateObject,
+			seconds_elapsed: sd.secondsElapsed,
+		});
+	}
+	// console.log("to insert: ", toInsert);
+
+	if (toInsert.length > 0) {
+		await db?.insertInto("usage_log").values(toInsert).execute();
+	}
+}
+
+async function updateUsage(
+	blockGroupsList: Map<number, number>,
+): Promise<void> {
+	// console.log("updating...");
+	for (const [k, v] of blockGroupsList) {
+		const configRow = await db
+			?.selectFrom("block_group_config")
+			.select(["config_type", "config_data", "block_group_id"])
+			.where("block_group_id", "=", k)
+			.where("config_type", "=", "usageLimit")
+			.executeTakeFirst();
+
+		if (!configRow) continue;
+
+		const usageLimitData = JSON.parse(
+			configRow.config_data,
+		) as UsageLimitData_Config;
+
+		// here just edit the timeleft, leave the other config data as it is
+		const timeLeft = usageLimitData.usage_time_left - v;
+		const newConfig: UsageLimitData_Config = {
+			...usageLimitData,
+			usage_time_left: timeLeft < 0 ? 0 : timeLeft,
+		};
+
+		// if this group has no time left, activate its block
+		if (newConfig.usage_time_left <= 0) {
+			await db
+				?.updateTable("block_group")
+				.set({ is_activated: 1 })
+				.where("id", "=", k)
+				.executeTakeFirst();
+		}
+		await db
+			?.updateTable("block_group_config")
+			.set({ config_data: JSON.stringify(newConfig) })
+			.where("block_group_id", "=", k)
+			.where("config_type", "=", "usageLimit")
+			.executeTakeFirst();
+	}
 }

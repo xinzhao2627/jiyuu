@@ -57,15 +57,17 @@ function manipulate(
 		console.log("the script is running!!");
 
 		const data = message.data;
-		let descDoc = document.querySelector("meta[name='description']");
-		let keywordsDoc = document.querySelector("meta[name='keywords']");
+		let descDoc = document.querySelector("meta[name='description']") || "";
+		let keywordsDoc = document.querySelector("meta[name='keywords']") || "";
 
-		const desc = descDoc
-			? descDoc.getAttribute("content")?.toLowerCase()
-			: "";
-		const keywords = keywordsDoc
-			? keywordsDoc.getAttribute("content")?.toLowerCase()
-			: "";
+		const desc =
+			typeof descDoc !== "string"
+				? descDoc.getAttribute("content")?.toLowerCase() || ""
+				: "";
+		const keywords =
+			typeof keywordsDoc !== "string"
+				? keywordsDoc.getAttribute("content")?.toLowerCase() || ""
+				: "";
 
 		let title = document.title?.toLowerCase() || "";
 		let siteContent = {
@@ -73,8 +75,8 @@ function manipulate(
 			keywords: keywords,
 			url: data.tabUrl,
 			title: title,
-			descDoc: descDoc,
-			keywordsDoc: keywordsDoc,
+			// descDoc: descDoc,
+			// keywordsDoc: keywordsDoc,
 		};
 		console.log("sending messgae!: ", siteContent);
 

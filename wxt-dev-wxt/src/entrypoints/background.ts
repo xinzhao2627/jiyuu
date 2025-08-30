@@ -74,6 +74,9 @@ export default defineBackground(() => {
 			});
 			// finally send it to server and empty the timelist records (do this if its already connected to the database)
 
+			// console.log("is is: ", s);
+			// console.log("timelist is: ", timeList);
+
 			await sendMessageWs({
 				sendType: "isTimelist",
 				data: Object.fromEntries(timeList),
@@ -256,6 +259,11 @@ export default defineBackground(() => {
 			}
 			// if websocket is running, send the parameter to
 			if (_socket && _socket.readyState === WebSocket.OPEN) {
+				console.log(
+					"sending: ... data: ",
+					data.sendType === "isTimelist" ? data.data : null
+				);
+
 				_socket.send(JSON.stringify(data));
 			} else {
 				console.warn(_socket?.readyState);

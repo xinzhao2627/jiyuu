@@ -6,8 +6,6 @@ export interface SiteAttribute {
 	keywords: string;
 	url: string;
 	title: string;
-	// descDoc: string;
-	// keywordsDoc: string;
 }
 export interface TimeListInterface extends SiteAttribute {
 	secondsElapsed: number;
@@ -17,33 +15,6 @@ export interface TimeListInterface extends SiteAttribute {
 	baseUrl: string;
 	fullUrl: string;
 }
-
-////
-// export interface BlockedSites {
-// 	target_text: string;
-// 	block_group_id: number;
-// }
-
-// export interface BlockedSites_with_configs extends BlockedSites {
-// 	is_grayscaled: 0 | 1;
-// 	is_blurred: 0 | 1;
-// 	is_covered: 0 | 1;
-// 	is_muted: 0 | 1;
-// 	group_name: string;
-// 	is_activated: 0 | 1;
-// }
-
-// export interface BlockGroup {
-// 	id: number;
-// 	group_name: string;
-// 	is_grayscaled: 0 | 1;
-// 	is_blurred: 0 | 1;
-// 	is_covered: 0 | 1;
-// 	is_muted: 0 | 1;
-// 	is_activated: 0 | 1;
-// 	restriction_type: string | null;
-// 	auto_deactivate: 0 | 1;
-// }
 
 export type ConfigType =
 	| "usageLimit"
@@ -84,9 +55,7 @@ export interface BlockGroupConfig {
 		| RandomText_Config;
 	config_type: ConfigType;
 }
-// export interface BlockGroupConfig {
 
-// }
 // for full block groups with ui indications
 export interface BlockGroup_Full extends block_group {
 	configs_json: string;

@@ -1,8 +1,8 @@
 export interface Feedback_data {
-	desc: string | undefined;
-	keywords: string | undefined;
-	url: string | undefined;
-	title: string | undefined;
+	desc: string;
+	keywords: string;
+	url: string;
+	title: string;
 }
 export interface Feedback {
 	status: number;

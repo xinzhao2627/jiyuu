@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { Kysely, SqliteDialect } from "kysely";
+import { Kysely, sql, SqliteDialect } from "kysely";
 import { DB } from "./tableInterfaces";
 import { app } from "electron";
 import { join } from "path";
@@ -19,141 +19,182 @@ export function initDb(): Kysely<DB> {
 	return db;
 }
 
-const migrations: Array<{ id: string; up: () => Promise<void> }> = [
-	{
-		id: "test",
-		up: async () => {
-			console.log("hi");
+const migrations: Array<{ id: string; up: () => Promise<void>; desc: string }> =
+	[
+		{
+			id: "test",
+			up: async () => {
+				console.log("hi");
+			},
+			desc: "",
 		},
-	},
-	{
-		id: "init-block_group",
-		up: async () => {
-			await db?.schema
-				.createTable("block_group")
-				.ifNotExists()
-				.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
-				.addColumn("group_name", "text", (col) => col.notNull())
-				.addColumn("is_grayscaled", "integer", (col) =>
-					col.notNull().defaultTo(0),
-				)
-				.addColumn("is_covered", "integer", (col) => col.notNull().defaultTo(0))
-				.addColumn("is_muted", "integer", (col) => col.notNull().defaultTo(0))
-				.addColumn("is_blurred", "integer", (col) => col.notNull().defaultTo(0))
-				.addColumn("is_activated", "integer", (col) =>
-					col.notNull().defaultTo(0),
-				)
-				.addColumn("auto_deactivate", "integer", (col) =>
-					col.notNull().defaultTo(0),
-				)
-				.addColumn("restriction_type", "text", (col) => col.defaultTo(null))
-				.execute();
-			console.log("init-block_group");
+		{
+			id: "init-block_group",
+			up: async () => {
+				await db?.schema
+					.createTable("block_group")
+					.ifNotExists()
+					.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
+					.addColumn("group_name", "text", (col) => col.notNull())
+					.addColumn("is_grayscaled", "integer", (col) =>
+						col.notNull().defaultTo(0),
+					)
+					.addColumn("is_covered", "integer", (col) =>
+						col.notNull().defaultTo(0),
+					)
+					.addColumn("is_muted", "integer", (col) => col.notNull().defaultTo(0))
+					.addColumn("is_blurred", "integer", (col) =>
+						col.notNull().defaultTo(0),
+					)
+					.addColumn("is_activated", "integer", (col) =>
+						col.notNull().defaultTo(0),
+					)
+					.addColumn("auto_deactivate", "integer", (col) =>
+						col.notNull().defaultTo(0),
+					)
+					.addColumn("restriction_type", "text", (col) => col.defaultTo(null))
+					.execute();
+				console.log("init-block_group");
+			},
+			desc: "",
 		},
-	},
-	{
-		id: "init-blocked_content",
-		up: async () => {
-			await db?.schema
-				.createTable("blocked_content")
-				.ifNotExists()
-				.addColumn("target_text", "text", (col) => col.notNull())
-				.addColumn("block_group_id", "integer", (col) =>
-					col.notNull().references("block_group.id"),
-				)
-				.addColumn("is_absolute", "integer", (col) => col.notNull())
-				.addColumn("is_whitelist", "integer", (col) => col.notNull())
-				.execute();
-			console.log("init-blocked_content");
+		{
+			id: "init-blocked_content",
+			up: async () => {
+				await db?.schema
+					.createTable("blocked_content")
+					.ifNotExists()
+					.addColumn("target_text", "text", (col) => col.notNull())
+					.addColumn("block_group_id", "integer", (col) =>
+						col.notNull().references("block_group.id"),
+					)
+					.addColumn("is_absolute", "integer", (col) => col.notNull())
+					.addColumn("is_whitelist", "integer", (col) => col.notNull())
+					.execute();
+				console.log("init-blocked_content");
+			},
+			desc: "",
 		},
-	},
-	{
-		id: "init-block_group_config",
-		up: async () => {
-			await db?.schema
-				.createTable("block_group_config")
-				.ifNotExists()
-				.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
-				.addColumn("block_group_id", "integer", (col) =>
-					col.notNull().references("block_group.id"),
-				)
-				.addColumn("config_type", "text")
-				.addColumn("config_data", "text")
-				.addUniqueConstraint("block_group_config_unique", [
-					"block_group_id",
-					"config_type",
-				])
-				.execute();
-			console.log("init-block_group_config");
+		{
+			id: "init-block_group_config",
+			up: async () => {
+				await db?.schema
+					.createTable("block_group_config")
+					.ifNotExists()
+					.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
+					.addColumn("block_group_id", "integer", (col) =>
+						col.notNull().references("block_group.id"),
+					)
+					.addColumn("config_type", "text")
+					.addColumn("config_data", "text")
+					.addUniqueConstraint("block_group_config_unique", [
+						"block_group_id",
+						"config_type",
+					])
+					.execute();
+				console.log("init-block_group_config");
+			},
+			desc: "",
 		},
-	},
-	{
-		id: "init-usage_log",
-		up: async () => {
-			await db?.schema
-				.createTable("usage_log")
-				.ifNotExists()
-				.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
-				.addColumn("base_url", "text", (col) => col.notNull())
-				.addColumn("full_url", "text", (col) => col.notNull())
-				.addColumn("date_object", "text", (col) => col.notNull())
-				.addColumn("seconds_elapsed", "integer")
-				.execute();
-			console.log("init-usage_log");
+		{
+			id: "init-usage_log",
+			up: async () => {
+				await db?.schema
+					.createTable("usage_log")
+					.ifNotExists()
+					.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
+					.addColumn("base_url", "text", (col) => col.notNull())
+					.addColumn("full_url", "text", (col) => col.notNull())
+					.addColumn("date_object", "text", (col) => col.notNull())
+					.addColumn("seconds_elapsed", "integer")
+					.execute();
+				console.log("init-usage_log");
+			},
+			desc: "",
 		},
-	},
-	{
-		id: "init-user_options",
-		up: async () => {
-			await db?.schema
-				.createTable("user_options")
-				.ifNotExists()
-				.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
-				.addColumn("secondsUntilClosed", "integer")
-				.addColumn("blockUnsupportedBrowser", "integer", (col) =>
-					col.notNull().defaultTo(0),
-				)
-				.addColumn("blockTaskManager", "integer", (col) =>
-					col.notNull().defaultTo(0),
-				)
-				.addColumn("blockCalendar", "integer", (col) =>
-					col.notNull().defaultTo(0),
-				)
-				.addColumn("dashboardDateMode", "text", (col) =>
-					col.notNull().defaultTo("d"),
-				)
-				.execute();
-			console.log("init-user_options");
+		{
+			id: "init-user_options",
+			up: async () => {
+				await db?.schema
+					.createTable("user_options")
+					.ifNotExists()
+					.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
+					.addColumn("secondsUntilClosed", "integer")
+					.addColumn("blockUnsupportedBrowser", "integer", (col) =>
+						col.notNull().defaultTo(0),
+					)
+					.addColumn("blockTaskManager", "integer", (col) =>
+						col.notNull().defaultTo(0),
+					)
+					.addColumn("blockCalendar", "integer", (col) =>
+						col.notNull().defaultTo(0),
+					)
+					.addColumn("dashboardDateMode", "text", (col) =>
+						col.notNull().defaultTo("d"),
+					)
+					.execute();
+				console.log("init-user_options");
+			},
+			desc: "",
 		},
-	},
-	{
-		id: "init-click_count",
-		up: async () => {
-			await db?.schema
-				.createTable("click_count")
-				.ifNotExists()
-				.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
-				.addColumn("base_url", "text", (col) => col.notNull())
-				.addColumn("date_object", "text", (col) => col.notNull())
-				.execute();
+		{
+			id: "init-click_count",
+			up: async () => {
+				await db?.schema
+					.createTable("click_count")
+					.ifNotExists()
+					.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
+					.addColumn("base_url", "text", (col) => col.notNull())
+					.addColumn("date_object", "text", (col) => col.notNull())
+					.execute();
+			},
+			desc: "",
 		},
-	},
-	{
-		id: "insert-user_options",
-		up: async () => {
-			await db
-				?.insertInto("user_options")
-				.values({
-					secondsUntilClosed: 60,
-					blockUnsupportedBrowser: 0,
-					blockTaskManager: 0,
-					blockCalendar: 0,
-					dashboardDateMode: "d",
-				})
-				.executeTakeFirst();
+		{
+			id: "insert-user_options",
+			up: async () => {
+				await db
+					?.insertInto("user_options")
+					.values({
+						secondsUntilClosed: 60,
+						blockUnsupportedBrowser: 0,
+						blockTaskManager: 0,
+						blockCalendar: 0,
+						dashboardDateMode: "d",
+					})
+					.executeTakeFirst();
+			},
+			desc: "",
 		},
-	},
-];
+		{
+			id: "alter-addColumn-block_group-date_created",
+			up: async () => {
+				await db?.schema
+					.alterTable("block_group")
+					.addColumn("date_created", "text", (col) =>
+						col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+					)
+					.execute();
+			},
+			desc: "",
+		},
+		{
+			id: "init-block_group_usage_log",
+			up: async () => {
+				await db?.schema
+					.createTable("block_group_usage_log")
+					.ifNotExists()
+					.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
+					.addColumn("block_group_id", "integer", (col) =>
+						col.notNull().references("block_group.id"),
+					)
+					.addColumn("date_object", "text", (col) => col.notNull())
+					.addColumn("seconds_elapsed", "integer", (col) => col.notNull())
+					.execute();
+			},
+			desc: "",
+		},
+	];
 export const testLog = (): void => console.log(migrations);
 
 export async function migrate(): Promise<void> {
@@ -169,8 +210,17 @@ export async function migrate(): Promise<void> {
 	// run a pending migration and embed the id to the database
 	for (const m of migrations) {
 		if (!applied.has(m.id)) {
+			console.log("new migration: ", m.id);
+
 			await m.up();
-			await db?.insertInto("migration").values({ id: m.id }).execute();
+			await db
+				?.insertInto("migration")
+				.values({
+					id: m.id,
+					db_update_desc: m.desc,
+					date: new Date().toISOString(),
+				})
+				.execute();
 		}
 	}
 }
@@ -180,6 +230,10 @@ export async function startAppDb(): Promise<void> {
 		.createTable("migration")
 		.ifNotExists()
 		.addColumn("id", "text", (col) => col.notNull())
+		.addColumn("db_update_desc", "text")
+		.addColumn("date", "text", (col) =>
+			col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+		)
 		.execute();
 	await migrate();
 

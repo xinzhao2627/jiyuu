@@ -38,6 +38,7 @@ export async function getBlockGroup_with_config(): Promise<
 				"bg.is_grayscaled",
 				"bg.is_muted",
 				"bg.restriction_type",
+				"bg.date_created",
 				sql<string>`
 					GROUP_CONCAT(
 					CASE 
@@ -92,6 +93,7 @@ export async function getBlockGroup_with_config(): Promise<
 			...r,
 			usage_label: usage_label,
 			restriction_label: restriction_label,
+			date_created: r.date_created,
 		});
 	}
 	return res_rows;

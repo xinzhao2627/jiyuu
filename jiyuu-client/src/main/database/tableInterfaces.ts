@@ -11,6 +11,7 @@ export interface block_groupTable {
 	is_blurred: 0 | 1;
 	auto_deactivate: 0 | 1;
 	restriction_type: ConfigType | null;
+	date_created: string;
 }
 export type block_group = Selectable<block_groupTable>;
 export interface block_group_configTable {
@@ -47,6 +48,14 @@ export interface usage_logTable {
 }
 export type usage_log = Selectable<usage_logTable>;
 
+export interface block_group_usage_logTable {
+	id: Generated<number>;
+	block_group_id: number;
+	date_object: string;
+	seconds_elapsed: number;
+}
+export type block_group_usage_log = Selectable<block_group_usage_logTable>;
+
 export interface click_countTable {
 	id: Generated<number>;
 	base_url: string;
@@ -56,12 +65,15 @@ export type click_count = Selectable<click_countTable>;
 
 export interface migrationTable {
 	id: string;
+	db_update_desc: string;
+	date: string;
 }
 
 export interface DB {
 	block_group: block_groupTable;
 	blocked_content: blocked_contentTable;
 	block_group_config: block_group_configTable;
+	block_group_usage_log: block_group_usage_logTable;
 	usage_log: usage_logTable;
 	user_options: user_optionsTable;
 	migration: migrationTable;

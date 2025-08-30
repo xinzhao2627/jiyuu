@@ -29,6 +29,7 @@
 		"@fontsource/inter": "^5.2.5",
 		"@fontsource/roboto": "^5.2.6",
 		"@mui/icons-material": "^7.1.0",
+		"@mui/joy": "^5.0.0-beta.52",
 		"@mui/material": "^7.1.0",
 		"@mui/x-date-pickers": "^8.9.0",
 		"better-sqlite3": "^11.10.0",

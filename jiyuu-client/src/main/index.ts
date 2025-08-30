@@ -1,6 +1,5 @@
 /* eslint-disable prefer-const */
 /* eslint-disable prettier/prettier */
-
 import {
 	app,
 	shell,
@@ -39,10 +38,16 @@ import {
 	Password_Config,
 	RandomText_Config,
 	RestrictTimer_Config,
+	TimeListInterface,
 	UsageLimitData_Config,
 } from "../lib/jiyuuInterfaces";
 import { isIncognito, isTimelist, isWebpage } from "./webSocketInterface";
-import getDashboardSummarized from "./methods/functionUsageLog";
+import {
+	getBlockGroupTimeUsage,
+	getClicksSummarized,
+	getDashboardSummarized,
+} from "./methods/functionUsageLog";
+import { getDashboardDateMode } from "./methods/functionUserOptions";
 
 export let mainWindow: BrowserWindow;
 let tray: Tray | null = null;
@@ -315,15 +320,17 @@ app.whenReady().then(async () => {
 	// put/create a new blockgroup
 	ipcMain.on("blockgroup/put", async (event: Electron.IpcMainEvent, _data) => {
 		try {
-			if (!_data.group_name) throw "No group name input";
+			const { group_name } = _data as { group_name: string };
+			if (!(_data && group_name && group_name.length > 0))
+				throw "No group name input";
 
 			// const rows = (getBlockGroup()?.all() as Array<BlockGroup>) || [];
 			const rows =
 				(await db?.selectFrom("block_group").selectAll().execute()) || [];
 
 			for (let r of rows) {
-				if (_data.group_name === r.group_name)
-					throw `Group name already exist (${_data.group_name}, ${r.group_name})`;
+				if (group_name === r.group_name)
+					throw `Group name already exist (${group_name}, ${r.group_name})`;
 			}
 
 			// db?.prepare("INSERT INTO block_group(group_name) VALUES(?)").run(
@@ -332,7 +339,7 @@ app.whenReady().then(async () => {
 			await db
 				?.insertInto("block_group")
 				.values({
-					group_name: _data.group_name,
+					group_name: group_name,
 					is_activated: 0,
 					is_blurred: 0,
 					is_covered: 0,
@@ -340,13 +347,14 @@ app.whenReady().then(async () => {
 					is_muted: 0,
 					auto_deactivate: 0,
 					restriction_type: null,
+					date_created: new Date().toISOString(),
 				})
 				.returning(["id", "group_name as name"])
 				.executeTakeFirstOrThrow();
 			// console.log("group: ", res);
 
 			event.reply("blockgroup/put/response", {
-				info: `Group ${_data.group_name} added.`,
+				info: `Group ${group_name} added.`,
 			});
 		} catch (err) {
 			showError(
@@ -676,11 +684,15 @@ app.whenReady().then(async () => {
 	);
 	ipcMain.on("dashboard/get", async (event: Electron.IpcMainEvent) => {
 		try {
-			const d = await getDashboardSummarized();
+			const mode = await getDashboardDateMode();
+			const d = await getDashboardSummarized(mode);
+			const c = await getClicksSummarized(mode);
+			const g = await getBlockGroupTimeUsage();
 			event.reply("dashboard/get/response", {
 				data: {
-					clicksSummarized: d.clicksSummarized,
-					usageLogSummarized: d.usageLogSummarized,
+					clicksSummarized: c,
+					usageLogSummarized: d,
+					groupTimeSummarized: g,
 				},
 			});
 		} catch (err) {
@@ -759,7 +771,6 @@ app.whenReady().then(async () => {
 	});
 
 	const wss = new WebSocketServer({ port: 7071 });
-
 	wss.on("connection", (ws, req) => {
 		console.log("connection from:", req.socket.remoteAddress);
 
@@ -773,24 +784,52 @@ app.whenReady().then(async () => {
 				if (data.sendType === "isWebpage") {
 					if (data.data) {
 						const d = data.data;
-						await validateWebpage({ tabId: data.tabId, data: d }, ws);
+						const validateResult = await validateWebpage({
+							tabId: data.tabId,
+							data: d,
+						});
+						ws.send(validateResult);
 
 						// then update the clickcount
 						await updateClickCount(data.data);
 
 						// then get the summary dashboard
-						const dashboardRes = await getDashboardSummarized();
-
+						const mode = await getDashboardDateMode();
+						const dashboardRes = await getDashboardSummarized(mode);
+						const clicksRes = await getClicksSummarized(mode);
+						const groupTimeRes = await getBlockGroupTimeUsage();
 						// send it to react ui, do this every time a user access a new website
 						mainWindow.webContents.send("dashboard/get/response", {
-							data: dashboardRes,
+							data: {
+								usageLogSummarized: dashboardRes,
+								clicksSummarized: clicksRes,
+								groupTimeSummarized: groupTimeRes,
+							},
 						});
 					}
 				}
 
-				// if just logging the time, do this instead
+				// if just logging the time, add it first to the global queue (edit 8/27/25,
+				// global queue doesnt work in electron, it causes heap overload.. the only way to just stick
+				// with accepting websocket msg from multiple source
+
+				// the time logged may cause duplication if using multiple different browsers at the samew time
 				else if (data.sendType === "isTimelist") {
-					await validateTimelist(data.data, ws);
+					// update the time
+					const map = new Map<string, TimeListInterface>(
+						Object.entries(data.data),
+					);
+					if (map.size > 0) {
+						console.log("map: ", map);
+
+						await validateTimelist(map);
+
+						// once the log is fresh, check if blockable
+						for (const v of map.values()) {
+							const r = await validateWebpage({ data: v, tabId: v.tabId });
+							ws.send(r);
+						}
+					}
 				}
 
 				// if the allow in incognito is disabled...

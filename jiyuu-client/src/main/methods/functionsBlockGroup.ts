@@ -76,6 +76,11 @@ export async function blockGroupDelete(id: number): Promise<void> {
 		.where("block_group_id", "=", id)
 		.executeTakeFirst();
 
+	await db
+		?.deleteFrom("block_group_usage_log")
+		.where("block_group_id", "=", id)
+		.executeTakeFirst();
+
 	await db?.deleteFrom("block_group").where("id", "=", id).executeTakeFirst();
 
 	// db?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?").run(id);

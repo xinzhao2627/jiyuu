@@ -94,6 +94,7 @@ CREATE TABLE block_group_config (
 select * from block_group_config
 select * from usage_log
 select * from block_group
+select * from block_group_usage_log
 SELECT * from blocked_content
 SELECT * from click_count
 delete from block_group_config where id = 3

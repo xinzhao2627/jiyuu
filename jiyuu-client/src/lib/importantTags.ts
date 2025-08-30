@@ -1,0 +1,1 @@
+export const VALIDATE_TIME_LIST_INTERVAL = 5000;
