@@ -12,8 +12,8 @@ import {
 	DialogContent,
 } from "@mui/material";
 import * as React from "react";
-import { menuButtonStyle, useStore } from "../blockingsStore";
-import { ipcRendererSend } from "../blockingAPI";
+import { menuButtonStyle, useStore } from "../../blockingsStore";
+import { ipcRendererSend } from "../../blockingAPI";
 import { modalStyle } from "@renderer/assets/shared/modalStyle";
 import { FieldValues, useForm } from "react-hook-form";
 import toast from "react-hot-toast";

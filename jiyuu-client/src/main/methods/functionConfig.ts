@@ -12,19 +12,7 @@ export async function getBlockGroup_with_config(): Promise<
 	BlockGroup_Full[] | []
 > {
 	const res_rows: BlockGroup_Full[] = [];
-	// const q = `
-	//     SELECT bg.*, GROUP_CONCAT(
-	//         CASE WHEN bgc.id IS NOT NULL
-	//         THEN json_object(
-	//                 'id', bgc.id,
-	//                 'config_type', bgc.config_type,
-	//                 'config_data', bgc.config_data
-	//         ) END
-	//     ) AS configs_json
-	//     FROM block_group bg
-	//     LEFT JOIN block_group_config bgc
-	//     ON bg.id = bgc.block_group_id
-	//     GROUP BY  bg.id`;
+
 	const rows =
 		(await db
 			?.selectFrom("block_group as bg")
@@ -76,12 +64,19 @@ export async function getBlockGroup_with_config(): Promise<
 
 				if (ct === "usageLimit") {
 					const utl = cd.usage_time_left;
-					const label =
-						utl <= 0
-							? "No time left, wait for reset"
-							: utl > 60
-								? `${(utl / 60).toFixed(1)} min left`
-								: `${utl} sec left`;
+					let label = "";
+					const is_paused = Boolean(Math.max(cd.pause_until || 0, 0));
+					if (is_paused) {
+						label = "paused";
+					} else {
+						label =
+							utl <= 0
+								? "No time left, wait for reset"
+								: utl > 60
+									? `${(utl / 60).toFixed(1)} min left`
+									: `${utl} sec left`;
+					}
+
 					usage_label = label;
 				} else if (ct === "restrictTimer") {
 					const rtl = `Locked until ${cd.end_date.toLocaleString()}`;

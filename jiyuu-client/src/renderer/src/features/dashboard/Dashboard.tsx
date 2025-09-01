@@ -247,12 +247,19 @@ export default function Dashboard(): React.JSX.Element {
 				{groupsListArr.map((v, i) => {
 					return (
 						<Box key={`group-${v.name}-${i}`} sx={{ mb: 2 }}>
-							<Typography variant="h6" sx={{ mb: 0.5 }}>
-								{v.name} -{" "}
-								{v.secondsElapsed > 3600
-									? `${(v.secondsElapsed / 3600.0).toFixed(1)} hours`
-									: `${(v.secondsElapsed / 60.0).toFixed(1)} minutes`}
-							</Typography>
+							<Stack
+								direction={"row"}
+								justifyContent={"space-between"}
+								mb={0.1}
+							>
+								<Typography variant="subtitle1">{v.name}</Typography>
+								<Typography variant="subtitle2" color="initial">
+									{v.secondsElapsed > 3600
+										? `${(v.secondsElapsed / 3600.0).toFixed(1)} hours`
+										: `${(v.secondsElapsed / 60.0).toFixed(1)} minutes`}
+								</Typography>
+							</Stack>
+
 							<LinearProgress
 								variant="determinate"
 								value={totalsec > 0 ? (v.secondsElapsed / totalsec) * 100 : 0}

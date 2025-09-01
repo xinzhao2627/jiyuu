@@ -34,9 +34,9 @@ import {
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import AddIcon from "@mui/icons-material/Add";
 import { ipcRendererOn, ipcRendererSend } from "./blockingAPI";
-import BlockingModal from "./components/blockingModal";
+import BlockingModal from "./components/modals/blockingModal";
 
-import MainBlockGroupModal from "./components/MainBlockGroupModal";
+import MainBlockGroupModal from "./components/modals/MainBlockGroupModal";
 
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
@@ -49,9 +49,11 @@ import {
 	BlockGroup_Full,
 	Error_Info,
 } from "../../jiyuuInterfaces";
-import ConfigModal from "./components/configModal";
+import ConfigModal from "./components/modals/configModal";
 import { scrollbarStyle } from "@renderer/assets/shared/modalStyle";
 import { Theme } from "@emotion/react";
+import { GroupDeactivateDialogue } from "./components/modals/deactivateDialogue";
+import UsageAndPauseMenu from "./components/usageLabel";
 
 function customChip(
 	optionalIcon: React.JSX.Element | undefined = undefined,
@@ -112,12 +114,17 @@ export default function Blockings(): React.JSX.Element {
 		setBlockGroupModal("blockingModal", true);
 	};
 	const modifyActivateButton = (v: BlockGroup_Full): void => {
-		ipcRendererSend("blockgroup/set", {
-			group: {
-				...v,
-				is_activated: v.is_activated ? 0 : 1,
-			},
-		});
+		if (!v.usage_label || v.usage_label.includes("pause")) {
+			ipcRendererSend("blockgroup/set", {
+				group: {
+					...v,
+					is_activated: v.is_activated ? 0 : 1,
+				},
+			});
+		} else {
+			setSelectedBlockGroup(v);
+			setBlockGroupModal("deactivateGroupModal", true);
+		}
 	};
 	const modifyAutoDeactivateButton = (v: BlockGroup_Full): void => {
 		ipcRendererSend("blockgroup/set", {
@@ -263,6 +270,14 @@ export default function Blockings(): React.JSX.Element {
 						toast.error(data.error);
 					} else if (data.info) {
 						toast.success("Restriction successfully removed");
+					}
+				},
+			},
+			{
+				channel: "blockgroupconfig/usageLimit/pause/set/response",
+				handler: (_, data: Error_Info) => {
+					if (data.error) {
+						toast.error(data.error);
 					}
 				},
 			},
@@ -424,6 +439,7 @@ export default function Blockings(): React.JSX.Element {
 												variant="h5"
 												letterSpacing={1}
 												component={"div"}
+												minWidth={"33%"}
 												onClick={() => {
 													setSelectedBlockGroup(v);
 													setBlockedContentState("covered", {
@@ -456,13 +472,8 @@ export default function Blockings(): React.JSX.Element {
 											>
 												{v.group_name}
 											</Typography>
-											<Typography
-												color="initial"
-												variant={"subtitle2"}
-												alignContent={"center"}
-											>
-												{v.usage_label}
-											</Typography>
+											{v.usage_label && <UsageAndPauseMenu blockGroup={v} />}
+
 											<Button
 												disableRipple
 												size="small"
@@ -566,6 +577,7 @@ export default function Blockings(): React.JSX.Element {
 					</ListItemText>
 				</MenuItem>
 			</Menu>
+			<GroupDeactivateDialogue />
 		</>
 	);
 }

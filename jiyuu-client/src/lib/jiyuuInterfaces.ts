@@ -31,6 +31,9 @@ export interface UsageLimitData_Config {
 	usage_reset_value_mode: "minute" | "hour";
 	config_type: "usageLimit";
 	last_updated_date: string;
+
+	// this num indicates the date.getTime() or the pause deadline
+	pause_until: number;
 }
 export interface Password_Config {
 	password: string;

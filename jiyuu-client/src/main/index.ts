@@ -213,25 +213,16 @@ app.whenReady().then(async () => {
 			}
 
 			const ct = new Date();
-			if (ct.getTime() - lt.getTime() < 1000) {
+			const timeElapsed = ct.getTime() - lt.getTime();
+			if (timeElapsed < 1000) {
 				setTimeout(recursiveGroupChecker, 100);
 				return;
 			}
+
 			isRunning = true;
 			lt = ct;
 			try {
 				await updateBlockGroup();
-				// // if you are in block page do this
-				// const r = await getBlockGroup_with_config();
-				// mainWindow.webContents.send("blockgroup/get/response", {
-				// 	data: r,
-				// });
-
-				// // // if in dashboard just send the whole usage
-				// // const dashboardRes = await getDashboardSummarized();
-				// // mainWindow.webContents.send("dashboard/get/response", {
-				// // 	data: dashboardRes,
-				// // });
 			} catch (error) {
 				console.error("Error in recursiveGroupChecker:", error);
 			} finally {
@@ -517,16 +508,6 @@ app.whenReady().then(async () => {
 					.where("config_type", "=", config_type)
 					.selectAll()
 					.execute();
-				// ?.prepare(
-				// 	`
-				// 		SELECT * FROM block_group_config
-				// 		WHERE
-				// 			block_group_id = ? AND
-				// 			config_type = ?
-				// 		`,
-				// )
-				// .get(id, config_type);
-				// console.log("row: ", row);
 
 				event.reply("blockgroupconfig/get/response", {
 					data: row ? row[0] : null,
@@ -538,6 +519,63 @@ app.whenReady().then(async () => {
 					"Error setting up group config",
 					"blockgroupconfig/get/response",
 				);
+			}
+		},
+	);
+	ipcMain.on(
+		"blockgroupconfig/usageLimit/pause/set",
+		async (event: Electron.IpcMainEvent, data) => {
+			try {
+				let { id, pauseLength } = data as {
+					// group id and pause_number
+					id: number;
+					pauseLength: number;
+				};
+				if (!(id && pauseLength)) throw "invalid pause input... (1)";
+				if (pauseLength <= 0) throw "invalid pause input... (2)";
+
+				const r = await db
+					?.selectFrom("block_group_config")
+					.selectAll()
+					.where("block_group_id", "=", id)
+					.where("config_type", "=", "usageLimit")
+					.executeTakeFirst();
+				if (!r) throw "theres no usage limit for this group";
+
+				const config_data = JSON.parse(r.config_data) as
+					| UsageLimitData_Config
+					| Password_Config
+					| RestrictTimer_Config
+					| RandomText_Config;
+
+				if (config_data.config_type !== "usageLimit")
+					throw "not a usage limit (3)";
+
+				config_data.pause_until = new Date().getTime() + pauseLength;
+
+				await db
+					?.updateTable("block_group_config")
+					.set({ config_data: JSON.stringify(config_data) })
+					.where("block_group_id", "=", id)
+					.where("config_type", "=", "usageLimit")
+					.executeTakeFirst();
+
+				event.reply("blockgroupconfig/usageLimit/pause/set/response", {
+					info: "operation success",
+				});
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error setting up group config",
+					"blockgroupconfig/usageLimit/pause/set/response",
+				);
+			} finally {
+				// resend the updated block
+				const r = await getBlockGroup_with_config();
+				mainWindow.webContents.send("blockgroup/get/response", {
+					data: r,
+				});
 			}
 		},
 	);
@@ -557,6 +595,20 @@ app.whenReady().then(async () => {
 				};
 				if (!(id && config_data)) throw "invalid post input...";
 				if (config_data.config_type === "usageLimit") {
+					const r = await db
+						?.selectFrom("block_group_config")
+						.select("config_data")
+						.where("block_group_id", "=", id)
+						.where("config_type", "=", "usageLimit")
+						.executeTakeFirst();
+					let pause_until = 0;
+
+					// if theres an existing pause, keep it
+					if (r && r.config_data) {
+						const old_cd = JSON.parse(r.config_data) as UsageLimitData_Config;
+						pause_until = Math.max(old_cd.pause_until || 0, pause_until);
+					}
+
 					const timeLeft =
 						config_data.usage_reset_value_mode === "minute"
 							? config_data.usage_reset_value * 60
@@ -568,6 +620,7 @@ app.whenReady().then(async () => {
 						...config_data,
 						usage_time_left: timeLeft,
 						last_updated_date: new Date().toISOString(),
+						pause_until: pause_until,
 					});
 				} else if (config_data.config_type === "password") {
 					json_object = JSON.stringify(config_data);
@@ -687,7 +740,7 @@ app.whenReady().then(async () => {
 			const mode = await getDashboardDateMode();
 			const d = await getDashboardSummarized(mode);
 			const c = await getClicksSummarized(mode);
-			const g = await getBlockGroupTimeUsage();
+			const g = await getBlockGroupTimeUsage(mode);
 			event.reply("dashboard/get/response", {
 				data: {
 					clicksSummarized: c,
@@ -797,7 +850,7 @@ app.whenReady().then(async () => {
 						const mode = await getDashboardDateMode();
 						const dashboardRes = await getDashboardSummarized(mode);
 						const clicksRes = await getClicksSummarized(mode);
-						const groupTimeRes = await getBlockGroupTimeUsage();
+						const groupTimeRes = await getBlockGroupTimeUsage(mode);
 						// send it to react ui, do this every time a user access a new website
 						mainWindow.webContents.send("dashboard/get/response", {
 							data: {

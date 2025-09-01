@@ -1,6 +1,5 @@
 import { isSameDay, isSameMonth, isSameWeek } from "date-fns";
 import { db } from "../database/initializations";
-import { getDashboardDateMode } from "./functionUserOptions";
 
 export async function getDashboardSummarized(
 	mode: "m" | "w" | "d",
@@ -58,10 +57,9 @@ export async function getClicksSummarized(
 	}
 	return clicksSummarized;
 }
-export async function getBlockGroupTimeUsage(): Promise<Map<
-	number,
-	{ name: string; secondsElapsed: number }
-> | null> {
+export async function getBlockGroupTimeUsage(
+	mode: "m" | "w" | "d",
+): Promise<Map<number, { name: string; secondsElapsed: number }> | null> {
 	const blockGroups = await db
 		?.selectFrom("block_group")
 		.select(["id", "group_name", "date_created"])
@@ -81,7 +79,6 @@ export async function getBlockGroupTimeUsage(): Promise<Map<
 
 	if (!rows) return null;
 
-	const mode = await getDashboardDateMode();
 	const isSame =
 		mode === "d" ? isSameDay : mode === "m" ? isSameMonth : isSameWeek;
 	const newDate = new Date();

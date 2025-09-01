@@ -1,4 +1,4 @@
-import ShieldIcon from "@mui/icons-material/Shield";
+// import ShieldIcon from "@mui/icons-material/Shield";
 import {
 	BottomNavigation,
 	BottomNavigationAction,
@@ -6,25 +6,11 @@ import {
 	Theme,
 } from "@mui/material";
 import TuneIcon from "@mui/icons-material/Tune";
-import DashboardIcon from "@mui/icons-material/Dashboard";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import AppsIcon from "@mui/icons-material/Apps";
 // import VpnLockIcon from "@mui/icons-material/VpnLock";
 import { useLocation, useNavigate } from "react-router-dom";
-// const ConfigItem: React.FC<{ text: string; callback: (c) => void }> = ({
-// 	text,
-// 	callback,
-// }) => {
-// 	return (
-// 		<ListItem sx={{ padding: "4px", margin: 0 }}>
-// 			<ListItemButton>
-// 				<ListItemIcon sx={{ minWidth: "30px" }}>
-// 					<AddLocationIcon />
-// 				</ListItemIcon>
-// 				<ListItemText primary={text} />
-// 			</ListItemButton>
-// 		</ListItem>
-// 	);
-// };
+import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 const actionStyle: SxProps<Theme> = { fontWeight: 500, letterSpacing: 1 };
 const iconActionStyle: SxProps<Theme> = { mb: "2px" };
 export default function Sidebar(): React.JSX.Element {
@@ -59,13 +45,13 @@ export default function Sidebar(): React.JSX.Element {
 		>
 			<BottomNavigationAction
 				label="BLOCKINGS"
-				icon={<ShieldIcon sx={iconActionStyle} />}
+				icon={<ShieldOutlinedIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
 
 			<BottomNavigationAction
 				label="DASHBOARD"
-				icon={<DashboardIcon sx={iconActionStyle} />}
+				icon={<DashboardOutlinedIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
 			<BottomNavigationAction

@@ -82,12 +82,6 @@ export async function blockGroupDelete(id: number): Promise<void> {
 		.executeTakeFirst();
 
 	await db?.deleteFrom("block_group").where("id", "=", id).executeTakeFirst();
-
-	// db?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?").run(id);
-	// db?.prepare("DELETE FROM block_group_config WHERE block_group_id = ?").run(
-	// 	id,
-	// );
-	// db?.prepare("DELETE FROM block_group WHERE id = ?").run(id);
 }
 
 // this function is being called every second by the interval in index.ts
@@ -114,11 +108,11 @@ export async function updateBlockGroup(): Promise<void> {
 	// 	block_group_id: number;
 	// 	config_data: string;
 	// }>;
-	async function groupAutoDeact(id: number): Promise<void> {
-		// db?.prepare(
-		// 	"UPDATE block_group SET is_activated = 0 WHERE id = ? AND auto_deactivate = 1",
-		// ).run(id);
-
+	async function groupAutoDeact(
+		id: number,
+		pause_until: number,
+	): Promise<void> {
+		if (pause_until > 0) return;
 		await db
 			?.updateTable("block_group")
 			.set({ is_activated: 0 })
@@ -137,6 +131,13 @@ export async function updateBlockGroup(): Promise<void> {
 			| RandomText_Config;
 		if (cd.config_type === "usageLimit") {
 			const candiDate = new Date(cd.last_updated_date);
+
+			// if there is a pause and that pause's time is up, set it to 0
+			// 0 means theres no current pause
+			const x =
+				currentDate.getTime() - (cd.pause_until || currentDate.getTime()); // do this so theres no negative
+			const new_pause_until = Math.max(x, 0);
+
 			switch (cd.usage_reset_type) {
 				// if there is a block that has a day reset,
 				// check if the day is new then if it is, reset the timeleft.. do also for hour and week
@@ -145,7 +146,7 @@ export async function updateBlockGroup(): Promise<void> {
 					if (!isSameDay(candiDate, currentDate)) {
 						cd.last_updated_date = currentDate.toISOString();
 						cd.usage_time_left = cd.usage_reset_value;
-						await groupAutoDeact(r.block_group_id);
+						await groupAutoDeact(r.block_group_id, new_pause_until);
 					}
 					break;
 				}
@@ -155,7 +156,7 @@ export async function updateBlockGroup(): Promise<void> {
 						cd.usage_time_left =
 							cd.usage_reset_value *
 							(cd.usage_reset_value_mode === "minute" ? 60 : 60 * 60);
-						await groupAutoDeact(r.block_group_id);
+						await groupAutoDeact(r.block_group_id, new_pause_until);
 					}
 					break;
 				}
@@ -163,7 +164,7 @@ export async function updateBlockGroup(): Promise<void> {
 					if (!isSameWeek(candiDate, currentDate)) {
 						cd.last_updated_date = currentDate.toISOString();
 						cd.usage_time_left = cd.usage_reset_value;
-						await groupAutoDeact(r.block_group_id);
+						await groupAutoDeact(r.block_group_id, new_pause_until);
 					}
 					break;
 				}
@@ -171,6 +172,9 @@ export async function updateBlockGroup(): Promise<void> {
 					console.log("error updating the reset value");
 					break;
 				}
+			}
+			if (new_pause_until > 0) {
+				cd.pause_until = new_pause_until;
 			}
 		}
 		// else if ... do also for restricted timer
@@ -189,12 +193,6 @@ export async function updateBlockGroup(): Promise<void> {
 					.set({ restriction_type: null })
 					.where("id", "=", r.block_group_id)
 					.executeTakeFirst();
-				// db?.prepare(
-				// 	"DELETE FROM block_group_config WHERE config_type = ? AND block_group_id = ?",
-				// ).run(cd.config_type, r.block_group_id);
-				// db?.prepare(
-				// 	"UPDATE block_group SET restriction_type = null WHERE id = ?",
-				// ).run(r.block_group_id);
 			}
 		}
 		r.config_data = JSON.stringify(cd);
@@ -224,24 +222,4 @@ export async function updateBlockGroup(): Promise<void> {
 			.where("config_type", "=", r.config_type)
 			.executeTakeFirst();
 	}
-
-	// const updater = db?.prepare(
-	// 	"UPDATE block_group_config SET config_data = ? WHERE block_group_id = ? AND config_type = ? ",
-	// );
-	// const updateMany = db?.transaction(
-	// 	(
-	// 		values: {
-	// 			config_type: "usageLimit" | "restrictTimer";
-	// 			block_group_id: number;
-	// 			config_data: string;
-	// 		}[],
-	// 	) => {
-	// 		for (const v of values) {
-	// 			updater?.run(v.config_data, v.block_group_id, v.config_type);
-	// 		}
-	// 	},
-	// );
-
-	// if (updateMany) updateMany(cr);
-	// else throw "Error, the database is not initialized properly";
 }

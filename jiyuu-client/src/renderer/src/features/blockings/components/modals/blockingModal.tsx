@@ -12,8 +12,8 @@ import {
 	Tooltip,
 	Typography,
 } from "@mui/material";
-import { menuButtonStyle, useStore } from "../blockingsStore";
-import { ipcRendererSend } from "../blockingAPI";
+import { menuButtonStyle, useStore } from "../../blockingsStore";
+import { ipcRendererSend } from "../../blockingAPI";
 import ClearIcon from "@mui/icons-material/Clear";
 import toast from "react-hot-toast";
 import { Theme } from "@emotion/react";

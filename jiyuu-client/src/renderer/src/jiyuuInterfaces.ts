@@ -60,6 +60,7 @@ export interface UsageLimitData_Config {
 	usage_reset_value_mode: "minute" | "hour";
 	config_type: "usageLimit";
 	last_updated_date: string;
+	pause_until: number;
 }
 export interface Password_Config {
 	password: string;
@@ -165,3 +166,12 @@ export interface Error_Info {
 	error: string | undefined;
 	info: string | undefined;
 }
+
+export const ONE_SECOND = 1000;
+export const ONE_MINUTE = ONE_SECOND * 60;
+export const FIVE_MINUTES = ONE_MINUTE * 5;
+export const TEN_MINUTES = FIVE_MINUTES * 2;
+export const THIRTY_MINUTES = TEN_MINUTES * 3;
+export const ONE_HOUR = THIRTY_MINUTES * 2;
+export const SIX_HOURS = ONE_HOUR * 6;
+export const ONE_DAY = SIX_HOURS * 4;
