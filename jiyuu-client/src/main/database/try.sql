@@ -132,3 +132,5 @@ SELECT bg.*, GROUP_CONCAT(
         LEFT JOIN block_group_config bgc 
         ON bg.id = bgc.block_group_id
         GROUP BY  bg.id
+
+PRAGMA table_info(block_group);

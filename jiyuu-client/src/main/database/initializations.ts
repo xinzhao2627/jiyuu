@@ -3,8 +3,15 @@ import { Kysely, sql, SqliteDialect } from "kysely";
 import { DB } from "./tableInterfaces";
 import { app } from "electron";
 import { join } from "path";
-export let db: Kysely<DB> | undefined;
+import * as fs from "fs";
 
+export let db: Kysely<DB> | undefined;
+function logDbError(error: unknown, context: string): void {
+	const logPath = join(app.getPath("userData"), "db_errors.log");
+	const msg = `[${new Date().toISOString()}] [${context}] ${String(error)}`;
+
+	fs.appendFileSync(logPath, msg, { encoding: "utf-8" });
+}
 export function initDb(): Kysely<DB> {
 	const dbPath = app.isPackaged
 		? join(app.getPath("userData"), "jiyuuData.db")
@@ -169,12 +176,16 @@ const migrations: Array<{ id: string; up: () => Promise<void>; desc: string }> =
 		{
 			id: "alter-addColumn-block_group-date_created",
 			up: async () => {
-				await db?.schema
-					.alterTable("block_group")
-					.addColumn("date_created", "text", (col) =>
-						col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
-					)
-					.execute();
+				try {
+					await db?.schema
+						.alterTable("block_group")
+						.addColumn("date_created", "text", (col) =>
+							col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+						)
+						.execute();
+				} catch (error) {
+					logDbError(error, "alter-addColumn-block_group-date_created");
+				}
 			},
 			desc: "",
 		},

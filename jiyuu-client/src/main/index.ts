@@ -821,6 +821,11 @@ app.whenReady().then(async () => {
 		if (tray) {
 			tray.destroy();
 		}
+		if (wss) {
+			wss.close(() => {
+				console.log("websocket server closed");
+			});
+		}
 	});
 
 	const wss = new WebSocketServer({ port: 7071 });

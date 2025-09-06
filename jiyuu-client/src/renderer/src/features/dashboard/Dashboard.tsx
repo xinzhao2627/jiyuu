@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as React from "react";
 
 import {
@@ -18,20 +17,6 @@ import {
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { ipcRendererOn, ipcRendererSend } from "../blockings/blockingAPI";
 import { blue } from "@mui/material/colors";
-
-function miniCardTime(count: number): React.JSX.Element {
-	return (
-		<Box
-			sx={{
-				display: "flex",
-			}}
-		>
-			<Typography variant="h3" color="initial">
-				{count}
-			</Typography>
-		</Box>
-	);
-}
 
 export default function Dashboard(): React.JSX.Element {
 	const [usageLogSummarized, setUsageLogSummarized] = React.useState<
@@ -132,7 +117,6 @@ export default function Dashboard(): React.JSX.Element {
 			});
 		};
 	}, []);
-	const t1 = miniCardTime(30);
 	const tButtonStyle: SxProps<Theme> = {
 		backgroundColor: "white",
 		p: 0.7,
@@ -151,7 +135,7 @@ export default function Dashboard(): React.JSX.Element {
 	const clicksDisplay = (): React.JSX.Element => {
 		let sum = 0;
 		if (clicksSummarized) {
-			for (const [_k, v] of clicksSummarized.entries()) {
+			for (const v of clicksSummarized.values()) {
 				sum += v;
 			}
 		}
@@ -166,7 +150,7 @@ export default function Dashboard(): React.JSX.Element {
 	const usageLogDisplay = (): React.JSX.Element => {
 		let sum = 0;
 		if (usageLogSummarized) {
-			for (const [_k, v] of usageLogSummarized.entries()) {
+			for (const v of usageLogSummarized.values()) {
 				sum += v;
 			}
 		}

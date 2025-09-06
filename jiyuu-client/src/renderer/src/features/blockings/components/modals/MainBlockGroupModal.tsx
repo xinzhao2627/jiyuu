@@ -1,7 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-	Box,
-	Modal,
 	Typography,
 	Button,
 	Stack,
@@ -14,7 +11,6 @@ import {
 import * as React from "react";
 import { menuButtonStyle, useStore } from "../../blockingsStore";
 import { ipcRendererSend } from "../../blockingAPI";
-import { modalStyle } from "@renderer/assets/shared/modalStyle";
 import { FieldValues, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 const formContainerStyle: React.CSSProperties = {
