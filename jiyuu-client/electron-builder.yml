@@ -14,6 +14,7 @@ asarUnpack:
 win:
   executableName: jiyuu-client
 nsis:
+  include: build/installer.nsh
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
@@ -27,6 +28,9 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+extraResources:
+  - from: build/scripts
+    to: scripts
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:

@@ -48,7 +48,7 @@ import {
 	getDashboardSummarized,
 } from "./methods/functionUsageLog";
 import { getDashboardDateMode } from "./methods/functionUserOptions";
-
+const isAutoStart = process.argv.includes("--auto-start");
 export let mainWindow: BrowserWindow;
 let tray: Tray | null = null;
 let isQuitting: boolean = false;
@@ -800,7 +800,9 @@ app.whenReady().then(async () => {
 			);
 		}
 	});
-	createWindow();
+	if (!isAutoStart) {
+		createWindow();
+	}
 
 	app.on("activate", function () {
 		// On macOS it's common to re-create a window in the app when the
