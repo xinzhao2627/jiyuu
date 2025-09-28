@@ -29,6 +29,8 @@ interface BlockGroupStores {
 			"add" | "delete" | "rename" | "blockingModal" | "deactivateGroupModal",
 			boolean
 		>;
+		blockGroupMenuAnchor: null | { el: HTMLElement; v: BlockGroup_Full };
+		fabGroupMenuAnchor: HTMLElement | null;
 	};
 	setBlockGroupModal: (
 		modalType: keyof BlockGroupStores["blockGroup"]["modal"],
@@ -36,6 +38,10 @@ interface BlockGroupStores {
 	) => void;
 	setBlockGroupData: (d: BlockGroup_Full[]) => void;
 	setSelectedBlockGroup: (d: BlockGroup_Full | null) => void;
+	setBlockGroupMenuAnchor: (
+		d: null | { el: HTMLElement; v: BlockGroup_Full },
+	) => void;
+	setFabGroupMenuAnchor: (d: HTMLElement | null) => void;
 }
 
 interface ConfigStores {
@@ -58,7 +64,6 @@ interface ConfigStores {
 }
 export interface BCInput {
 	text: string;
-	is_whitelist: boolean;
 	is_absolute: boolean;
 }
 interface BlockedContentStores {
@@ -91,8 +96,25 @@ export const useStore = create<FinalStore>((set) => ({
 			blockingModal: false,
 			deactivateGroupModal: false,
 		},
+		blockGroupMenuAnchor: null,
+		fabGroupMenuAnchor: null,
 	},
-
+	setBlockGroupMenuAnchor: (d) => {
+		set((state) => ({
+			blockGroup: {
+				...state.blockGroup,
+				blockGroupMenuAnchor: d,
+			},
+		}));
+	},
+	setFabGroupMenuAnchor: (d) => {
+		set((state) => ({
+			blockGroup: {
+				...state.blockGroup,
+				fabGroupMenuAnchor: d,
+			},
+		}));
+	},
 	setBlockGroupData: (d) =>
 		set((state) => ({
 			blockGroup: {
@@ -174,7 +196,6 @@ export const useStore = create<FinalStore>((set) => ({
 		input: {
 			text: "",
 			is_absolute: false,
-			is_whitelist: false,
 		},
 	},
 

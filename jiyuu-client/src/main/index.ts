@@ -262,6 +262,33 @@ app.whenReady().then(async () => {
 			}
 		},
 	);
+	ipcMain.on(
+		"blockedcontent/download",
+		async (
+			event: Electron.IpcMainEvent,
+			_data: { id: number; group_name: string } | undefined,
+		) => {
+			try {
+				// get the blocked sites of a specific group
+				console.log(_data);
+
+				const rows = (await getBlockedContentDataOneGroup(_data)) || [];
+				console.log(rows);
+
+				event.reply("blockedcontent/download/response", {
+					data: rows,
+					group_name: _data?.group_name,
+				});
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error exporting block sites: ",
+					"blockedcontent/download/response",
+				);
+			}
+		},
+	);
 
 	// retrieve all the blockgroup
 	ipcMain.on("blockgroup/get", async (event: Electron.IpcMainEvent) => {
@@ -467,7 +494,6 @@ app.whenReady().then(async () => {
 							target_text: s.target_text,
 							block_group_id: s.block_group_id,
 							is_absolute: s.is_absolute,
-							is_whitelist: s.is_whitelist,
 						})
 						.execute();
 				}
@@ -833,7 +859,6 @@ app.whenReady().then(async () => {
 	const wss = new WebSocketServer({ port: 7071 });
 	wss.on("connection", (ws, req) => {
 		console.log("connection from:", req.socket.remoteAddress);
-
 		ws.on("message", async (message) => {
 			try {
 				const data = JSON.parse(message.toString()) as

@@ -17,6 +17,8 @@ import { ipcRendererSend } from "../../blockingAPI";
 import ClearIcon from "@mui/icons-material/Clear";
 import toast from "react-hot-toast";
 import { Theme } from "@emotion/react";
+import { useRef } from "react";
+import { blocked_content } from "@renderer/jiyuuInterfaces";
 
 const modalStyle = {
 	position: "absolute",
@@ -81,6 +83,7 @@ export default function BlockingModal(): React.JSX.Element {
 		setBlockedContentState,
 		setBlockGroupModal,
 	} = useStore();
+	const inputFile = useRef<HTMLInputElement>(null);
 	const targetTextPut = (): void => {
 		// when putting a new keyword in blockedcontent list, check if it already exist
 		if (
@@ -105,7 +108,6 @@ export default function BlockingModal(): React.JSX.Element {
 					target_text: blockedContent.input.text,
 					// TODO
 					is_absolute: blockedContent.input.is_absolute ? 1 : 0,
-					is_whitelist: blockedContent.input.is_whitelist ? 1 : 0,
 				},
 			]);
 		}
@@ -119,7 +121,6 @@ export default function BlockingModal(): React.JSX.Element {
 		setBlockedContentState("covered", null);
 		setBlockedContentInput({
 			text: "",
-			is_whitelist: false,
 			is_absolute: false,
 		});
 		setBlockedContentData([]);
@@ -136,6 +137,7 @@ export default function BlockingModal(): React.JSX.Element {
 			blocked_content_data: blockedContent.data,
 		});
 	};
+
 	return (
 		<Modal
 			open={
@@ -226,7 +228,6 @@ export default function BlockingModal(): React.JSX.Element {
 									setBlockedContentInput({
 										text: event.target.value,
 										is_absolute: blockedContent.input.is_absolute,
-										is_whitelist: blockedContent.input.is_whitelist,
 									});
 								}}
 								label="Keyword"
@@ -238,54 +239,128 @@ export default function BlockingModal(): React.JSX.Element {
 									}
 								}}
 							/>
-							<ToggleButtonGroup
-								value={[
-									blockedContent.input.is_absolute ? "absolute" : null,
-									blockedContent.input.is_whitelist ? "whitelist" : null,
-								].filter(Boolean)}
-								onChange={(_, values: string[]) => {
-									setBlockedContentInput({
-										text: blockedContent.input.text,
-										is_absolute: values.includes("absolute"),
-										is_whitelist: values.includes("whitelist"),
-									});
-								}}
-								aria-label="keyword flags"
-								style={{
-									alignItems: "center",
-									alignContent: "center",
-									height: "100%",
-								}}
-							>
-								<Tooltip title="Absolute (exact match – doesn't use partial contains)">
-									<ToggleButton
-										value="absolute"
-										sx={keywordFlagButtonSx}
-										size="small"
-									>
-										Absolute
-									</ToggleButton>
-								</Tooltip>
-								<Tooltip title="Whitelist (always allow – overrides blocking)">
-									<ToggleButton
-										value="whitelist"
-										sx={keywordFlagButtonSx}
-										size="small"
-									>
-										Whitelist
-									</ToggleButton>
-								</Tooltip>
-							</ToggleButtonGroup>
-						</Stack>
-						<Stack direction="row" gap={1} mt={1} flexWrap="wrap">
-							<Typography variant="caption" color="text.secondary">
-								Absolute = exact match only.
-							</Typography>
-							<Typography variant="caption" color="text.secondary">
-								Whitelist = allow even if other rules match.
-							</Typography>
-						</Stack>
+							<Stack>
+								<input
+									type="file"
+									accept=".txt"
+									ref={inputFile}
+									style={{ display: "none" }}
+									onChange={(e) => {
+										const { files } = e.target;
+										if (files && files.length) {
+											const file = files[0];
+											const filename = files[0].name;
+											const p = filename.split(".");
+											const fileType = p[p.length - 1];
 
+											if (fileType === "txt") {
+												console.log("file is txt");
+
+												const reader = new FileReader();
+
+												reader.onload = (event) => {
+													const c = event.target?.result as string;
+													// console.log("c", c);
+
+													if (!blockGroup.selectedBlockGroup) {
+														toast.error(
+															"There was a problem adding a content for this group",
+														);
+														console.error(blockGroup);
+														return;
+													}
+													const lines = c
+														.split(/\r?\n/)
+														.filter((l) => l.length > 0)
+														.map((l) => {
+															const sl = l.trim().toLowerCase();
+															const is_abs =
+																sl.substring(0, 3) === "{a}" ? 1 : 0;
+															return {
+																target_text: is_abs ? sl.slice(3) : sl,
+																block_group_id:
+																	blockGroup.selectedBlockGroup?.id,
+																is_absolute: is_abs,
+															};
+														});
+
+													const added_text: Array<blocked_content> = [];
+													for (let i = 0; i < lines.length; i++) {
+														// console.log(lines[0]);
+
+														const cdata = blockedContent.data;
+														// if its alread in the list of this particular group, skip it.
+														if (
+															cdata.some(
+																(c) =>
+																	c.target_text.toLocaleLowerCase() ===
+																		lines[i].target_text &&
+																	c.block_group_id ===
+																		blockGroup.selectedBlockGroup?.id,
+															)
+														) {
+															continue;
+														}
+														added_text.push({
+															target_text: lines[i].target_text,
+															block_group_id: blockGroup.selectedBlockGroup?.id,
+															is_absolute: lines[i].is_absolute === 0 ? 0 : 1,
+														});
+													}
+													setBlockedContentData([
+														...blockedContent.data,
+														...added_text,
+													]);
+												};
+												reader.readAsText(file);
+											}
+										}
+									}}
+								/>
+								<Button
+									variant="text"
+									color="primary"
+									sx={{
+										...keywordFlagButtonSx,
+										height: "2em",
+										mb: 0.5,
+										fontWeight: 500,
+									}}
+									onClick={() => {
+										inputFile?.current?.click();
+									}}
+								>
+									Import
+								</Button>
+								<ToggleButtonGroup
+									value={[
+										blockedContent.input.is_absolute ? "absolute" : null,
+									].filter(Boolean)}
+									onChange={(_, values: string[]) => {
+										setBlockedContentInput({
+											text: blockedContent.input.text,
+											is_absolute: values.includes("absolute"),
+										});
+									}}
+									aria-label="keyword flags"
+									style={{
+										alignItems: "center",
+										alignContent: "center",
+										height: "100%",
+									}}
+								>
+									<Tooltip title="Absolute (exact match – doesn't use partial contains)">
+										<ToggleButton
+											value="absolute"
+											sx={keywordFlagButtonSx}
+											size="small"
+										>
+											Absolute
+										</ToggleButton>
+									</Tooltip>
+								</ToggleButtonGroup>
+							</Stack>
+						</Stack>
 						<Typography
 							variant="caption"
 							sx={{ marginBottom: 1 }}
@@ -338,34 +413,19 @@ export default function BlockingModal(): React.JSX.Element {
 										>
 											{v.target_text}
 										</Typography>
-										<Stack direction={"row"} alignItems={"center"}>
-											{Boolean(v.is_absolute) && (
-												<Chip
-													label="A"
-													color="primary"
-													variant="outlined"
-													sx={{
-														...chipSx,
-														color: "primary.main",
-														borderColor: "primary.main",
-													}}
-													size="small"
-												/>
-											)}
-											{Boolean(v.is_whitelist) && (
-												<Chip
-													label="W"
-													color="success"
-													variant="outlined"
-													sx={{
-														...chipSx,
-														borderColor: "#199473",
-														color: "#199473",
-													}}
-													size="small"
-												/>
-											)}
-										</Stack>
+										{Boolean(v.is_absolute) && (
+											<Chip
+												label="A"
+												color="primary"
+												variant="outlined"
+												sx={{
+													...chipSx,
+													color: "primary.main",
+													borderColor: "primary.main",
+												}}
+												size="small"
+											/>
+										)}
 									</Stack>
 
 									{/* remove the element */}

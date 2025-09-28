@@ -125,7 +125,6 @@ export interface blocked_contentTable {
 	target_text: string;
 	block_group_id: number;
 	is_absolute: 0 | 1;
-	is_whitelist: 0 | 1;
 }
 export type blocked_content = Selectable<blocked_contentTable>;
 

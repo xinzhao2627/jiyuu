@@ -2,9 +2,7 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { useStore } from "./blockingsStore";
 import toast from "react-hot-toast";
-import DeleteIcon from "@mui/icons-material/Delete";
-import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
-import SettingsIcon from "@mui/icons-material/Settings";
+
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import LockIcon from "@mui/icons-material/Lock";
 import {
@@ -22,14 +20,8 @@ import {
 	Typography,
 	CardContent,
 	Fab,
-	Menu,
 	IconButton,
-	Chip,
-	MenuItem,
-	ListItemIcon,
-	ListItemText,
 	Box,
-	SxProps,
 } from "@mui/material";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import AddIcon from "@mui/icons-material/Add";
@@ -37,6 +29,7 @@ import { ipcRendererOn, ipcRendererSend } from "./blockingAPI";
 import BlockingModal from "./components/modals/blockingModal";
 
 import MainBlockGroupModal from "./components/modals/MainBlockGroupModal";
+import MenuIcon from "@mui/icons-material/Menu";
 
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
@@ -51,47 +44,14 @@ import {
 } from "../../jiyuuInterfaces";
 import ConfigModal from "./components/modals/configModal";
 import { scrollbarStyle } from "@renderer/assets/shared/modalStyle";
-import { Theme } from "@emotion/react";
 import { GroupDeactivateDialogue } from "./components/modals/deactivateDialogue";
 import UsageAndPauseMenu from "./components/usageLabel";
+import { saveAs } from "file-saver";
+import { CustomChip } from "@renderer/assets/shared/customChip";
+import { BlockGroupMenu } from "./menu/blockGroupMenu";
+import { ExportAndImportBlockGroup } from "./menu/exportAndImportBlockGroup";
 
-function customChip(
-	optionalIcon: React.JSX.Element | undefined = undefined,
-	label: string | undefined = undefined,
-	chipStyle: SxProps<Theme> | undefined = undefined,
-	optionalOnClick:
-		| React.MouseEventHandler<HTMLDivElement>
-		| undefined = undefined,
-): React.JSX.Element {
-	return (
-		<Chip
-			size="small"
-			variant="outlined"
-			clickable={Boolean(optionalOnClick)}
-			label={
-				<Stack direction={"row"} alignItems={"center"} spacing={0.5}>
-					{optionalIcon}
-					<Typography
-						variant="caption"
-						sx={{
-							fontSize: "12px",
-							lineHeight: 1.2,
-						}}
-					>
-						{label}
-					</Typography>
-				</Stack>
-			}
-			sx={chipStyle}
-			onClick={optionalOnClick}
-		/>
-	);
-}
 export default function Blockings(): React.JSX.Element {
-	const [menuAnchor, setmenuAnchor] = React.useState<null | {
-		el: HTMLElement;
-		v: BlockGroup_Full;
-	}>(null);
 	const {
 		setBlockGroupModal,
 		setBlockGroupData,
@@ -101,7 +61,9 @@ export default function Blockings(): React.JSX.Element {
 		setUsageTimeValueNumber,
 		setBlockedContentData,
 		blockGroup,
+		setBlockGroupMenuAnchor,
 		setBlockedContentState,
+		setFabGroupMenuAnchor,
 		// selectedBlockGroup,
 	} = useStore();
 
@@ -204,6 +166,32 @@ export default function Blockings(): React.JSX.Element {
 					if (data.error)
 						console.error("Error fetching group block: ", data.error);
 					else setBlockedContentData(data.data);
+				},
+			},
+			{
+				channel: "blockedcontent/download/response",
+				handler: (
+					_,
+					data: {
+						error: string | undefined;
+						data: blocked_content[];
+						group_name: string;
+					},
+				) => {
+					if (data.error)
+						console.error("Error fetching group block: ", data.error);
+					else {
+						const blob = new Blob(
+							data.data.map((b) =>
+								b.is_absolute
+									? "{a}" + b.target_text + "\n"
+									: b.target_text + "\n",
+							),
+							{ type: "text/plain;charset=utf-8" },
+						);
+						saveAs(blob, data.group_name + ".txt");
+					}
+					setBlockGroupMenuAnchor(null);
 				},
 			},
 			{
@@ -329,19 +317,21 @@ export default function Blockings(): React.JSX.Element {
 									<CardContent sx={{ paddingBottom: 0 }}>
 										<Stack direction={"row"} justifyContent={"space-between"}>
 											<Stack direction={"row"} gap={1}>
-												{customChip(
-													<Box
-														sx={{
-															width: 6,
-															height: 6,
-															borderRadius: "50%",
-															backgroundColor: v.is_activated
-																? teal[500]
-																: "grey.400",
-														}}
-													/>,
-													v.is_activated ? "Active" : "Inactive",
-													{
+												<CustomChip
+													optionalIcon={
+														<Box
+															sx={{
+																width: 6,
+																height: 6,
+																borderRadius: "50%",
+																backgroundColor: v.is_activated
+																	? teal[500]
+																	: "grey.400",
+															}}
+														/>
+													}
+													label={v.is_activated ? "Active" : "Inactive"}
+													chipStyle={{
 														color: v.is_activated
 															? teal[500]
 															: "text.secondary",
@@ -349,15 +339,17 @@ export default function Blockings(): React.JSX.Element {
 														borderColor: v.is_activated
 															? teal[500]
 															: "grey.300",
-													},
-													v.restriction_type && v.is_activated
-														? undefined
-														: () => modifyActivateButton(v),
-												)}
-												{customChip(
-													undefined,
-													`Auto deactivate ${v.auto_deactivate ? "on" : "off"}`,
-													{
+													}}
+													optionalOnClick={
+														v.restriction_type && v.is_activated
+															? undefined
+															: () => modifyActivateButton(v)
+													}
+												/>
+												<CustomChip
+													optionalIcon={undefined}
+													label={`Auto deactivate ${v.auto_deactivate ? "on" : "off"}`}
+													chipStyle={{
 														color: v.auto_deactivate
 															? blue[800]
 															: "text.secondary",
@@ -365,13 +357,13 @@ export default function Blockings(): React.JSX.Element {
 														borderColor: v.auto_deactivate
 															? blue[800]
 															: "grey.300",
-													},
-													() => {
-														modifyAutoDeactivateButton(v);
-													},
-												)}
-												{v.restriction_type
-													? customChip(
+													}}
+													optionalOnClick={() => modifyAutoDeactivateButton(v)}
+												/>
+												{v.restriction_type ? (
+													<CustomChip
+														optionalOnClick={undefined}
+														optionalIcon={
 															<LockIcon
 																sx={{
 																	width: 12,
@@ -379,51 +371,79 @@ export default function Blockings(): React.JSX.Element {
 																	borderRadius: "50%",
 																	color: "grey.600",
 																}}
-															/>,
-															"Locked",
-															{
-																color: "grey.600",
-																borderColor: "grey.500",
-															},
-														)
-													: undefined}
-												{/* TODO ADD USAGE TIME IN DISPLAY (CHIP & TIME LEFT) */}
-												{v.usage_label
-													? customChip(undefined, "Usage limit", {
+															/>
+														}
+														label="Locked"
+														chipStyle={{
+															color: "grey.600",
+															borderColor: "grey.500",
+														}}
+													/>
+												) : null}
+												{v.usage_label ? (
+													<CustomChip
+														optionalIcon={undefined}
+														optionalOnClick={undefined}
+														label="Usage limit"
+														chipStyle={{
 															color: blue[900],
 															borderColor: blue[900],
-														})
-													: undefined}
-												{v.is_covered
-													? customChip(undefined, "Covered", {
+														}}
+													/>
+												) : null}
+												{v.is_covered ? (
+													<CustomChip
+														optionalIcon={undefined}
+														optionalOnClick={undefined}
+														label="Covered"
+														chipStyle={{
 															color: pink[500],
 															borderColor: pink[500],
-														})
-													: undefined}
-												{v.is_muted
-													? customChip(undefined, "Muted", {
+														}}
+													/>
+												) : null}
+												{v.is_muted ? (
+													<CustomChip
+														optionalIcon={undefined}
+														optionalOnClick={undefined}
+														label="Muted"
+														chipStyle={{
 															color: indigo[500],
 															borderColor: indigo[500],
-														})
-													: undefined}
-												{v.is_grayscaled
-													? customChip(undefined, "Grayscaled", {
+														}}
+													/>
+												) : null}
+												{v.is_grayscaled ? (
+													<CustomChip
+														optionalIcon={undefined}
+														optionalOnClick={undefined}
+														label="Grayscaled"
+														chipStyle={{
 															color: blueGrey[800],
 															borderColor: blueGrey[800],
-														})
-													: undefined}
-												{v.is_blurred
-													? customChip(undefined, "Blurred", {
+														}}
+													/>
+												) : null}
+												{v.is_blurred ? (
+													<CustomChip
+														optionalIcon={undefined}
+														optionalOnClick={undefined}
+														label="Blurred"
+														chipStyle={{
 															color: lightGreen[900],
 															borderColor: lightGreen[900],
-														})
-													: undefined}
+														}}
+													/>
+												) : null}
 											</Stack>
 											<IconButton
 												sx={{ p: 0 }}
 												disableRipple
 												onClick={(e) => {
-													setmenuAnchor({ el: e.currentTarget, v: v });
+													setBlockGroupMenuAnchor({
+														el: e.currentTarget,
+														v: v,
+													});
 												}}
 											>
 												<MoreHorizIcon sx={{ color: "black" }} />
@@ -498,86 +518,57 @@ export default function Blockings(): React.JSX.Element {
 				</Stack>
 
 				{/* Floating Action Button */}
-				<Fab
-					color="primary"
-					variant="extended"
-					disableRipple
-					onClick={() => {
-						setBlockGroupModal("add", true);
-					}}
+				<Box
 					sx={{
 						position: "fixed",
 						bottom: 90,
 						right: 20,
 						letterSpacing: 1,
-						zIndex: 100,
 						fontWeight: 500,
+						overflow: "hidden",
+						borderRadius: "50px",
+						boxShadow: 3,
+						display: "flex",
 					}}
 				>
-					<AddIcon sx={{ mr: 1 }} /> Add group
-				</Fab>
+					<Fab
+						color="primary"
+						variant="extended"
+						disableRipple
+						sx={{
+							borderRadius: "0px",
+						}}
+						onClick={() => {
+							setBlockGroupModal("add", true);
+						}}
+					>
+						<AddIcon sx={{ mr: 1 }} /> Add group
+					</Fab>
+					<Box
+						sx={{
+							width: "1px",
+							bgcolor: "rgba(255,255,255,0.5)",
+							alignSelf: "stretch",
+						}}
+					/>
+					<IconButton
+						onClick={(e) => setFabGroupMenuAnchor(e.currentTarget)}
+						sx={{
+							color: "inherit",
+							borderRadius: 0,
+							px: 1.5,
+						}}
+					>
+						<MenuIcon />
+					</IconButton>
+				</Box>
 			</Stack>
 			<BlockingModal />
 			<MainBlockGroupModal />
 			<ConfigModal />
-			<Menu
-				anchorEl={menuAnchor?.el}
-				open={Boolean(menuAnchor?.el)}
-				onClose={() => {
-					setmenuAnchor(null);
-				}}
-			>
-				<MenuItem
-					disabled={Boolean(menuAnchor?.v.restriction_type)}
-					onClick={(e) => {
-						e.stopPropagation();
-						if (menuAnchor && menuAnchor.v) {
-							setSelectedBlockGroup(menuAnchor.v);
-							setBlockGroupModal("delete", true);
-						}
-						setmenuAnchor(null);
-					}}
-				>
-					<ListItemIcon>
-						<DeleteIcon fontSize="small" />
-					</ListItemIcon>
-					<ListItemText sx={{ letterSpacing: 0.7 }}>Delete</ListItemText>
-				</MenuItem>
-				<MenuItem
-					onClick={(e) => {
-						e.stopPropagation();
-						if (menuAnchor && menuAnchor.v) {
-							setSelectedBlockGroup(menuAnchor?.v);
-							setBlockGroupModal("rename", true);
-						}
-
-						setmenuAnchor(null);
-					}}
-				>
-					<ListItemIcon>
-						<DriveFileRenameOutlineIcon fontSize="small" />
-					</ListItemIcon>
-					<ListItemText sx={{ letterSpacing: 0.7 }}>Rename</ListItemText>
-				</MenuItem>
-				<MenuItem
-					onClick={(e) => {
-						e.stopPropagation();
-						if (menuAnchor && menuAnchor.v) {
-							setSelectedBlockGroup(menuAnchor.v);
-							setIsConfigModalOpen(true);
-						}
-						setmenuAnchor(null);
-					}}
-				>
-					<ListItemIcon>
-						<SettingsIcon fontSize="small" />
-					</ListItemIcon>
-					<ListItemText sx={{ letterSpacing: 0.7 }}>
-						Open configuration
-					</ListItemText>
-				</MenuItem>
-			</Menu>
+			<BlockGroupMenu />
 			<GroupDeactivateDialogue />
+			<ExportAndImportBlockGroup />
 		</>
 	);
 }

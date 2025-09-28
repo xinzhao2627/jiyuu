@@ -76,7 +76,6 @@ const migrations: Array<{ id: string; up: () => Promise<void>; desc: string }> =
 						col.notNull().references("block_group.id"),
 					)
 					.addColumn("is_absolute", "integer", (col) => col.notNull())
-					.addColumn("is_whitelist", "integer", (col) => col.notNull())
 					.execute();
 				console.log("init-blocked_content");
 			},
