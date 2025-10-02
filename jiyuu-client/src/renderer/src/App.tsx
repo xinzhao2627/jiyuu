@@ -28,7 +28,7 @@ function Layout({
 			>
 				<Box sx={{ flex: 1, overflow: "auto" }}>{children}</Box>
 
-				<Box sx={{ flexShrink: 0, width: "100%" }}>
+				<Box sx={{ flexShrink: 0, width: "100%", border: "1px solid #e5e5e5" }}>
 					<Sidebar />
 				</Box>
 

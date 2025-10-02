@@ -3,7 +3,16 @@ import Button from "@mui/material/Button";
 import { useEffect, useState } from "react";
 import { useStore } from "../blockings/blockingsStore";
 import { ipcRendererOn, ipcRendererSend } from "../blockings/blockingAPI";
-import { Box, Switch } from "@mui/material";
+import {
+	Box,
+	FormControl,
+	FormHelperText,
+	MenuItem,
+	Select,
+	SelectChangeEvent,
+	Stack,
+	Switch,
+} from "@mui/material";
 import { modalTextFieldStyle } from "@renderer/assets/shared/modalStyle";
 import { FieldValues, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -12,6 +21,12 @@ export default function Options(): React.JSX.Element {
 	const [hasRestriction, setHasRestriction] = useState<boolean>(false);
 	const isDisabled = (is_on: boolean): boolean => hasRestriction && is_on;
 	const { blockGroup, setBlockGroupData } = useStore();
+
+	const [selectedTheme, setSelectedTheme] = useState<string>("");
+
+	const handleChange = (event: SelectChangeEvent): void => {
+		setSelectedTheme(event.target.value);
+	};
 	const listeners = [
 		{
 			// RECEIVE BLOCK GROUP RESPONSE
@@ -25,6 +40,7 @@ export default function Options(): React.JSX.Element {
 		},
 	];
 	useEffect(() => {
+		setSelectedTheme("light");
 		listeners.forEach((v) => {
 			ipcRendererOn(v.channel, v.handler);
 		});
@@ -51,68 +67,106 @@ export default function Options(): React.JSX.Element {
 			style={{
 				height: "100%",
 				width: "100%",
+				paddingLeft: 50,
+				paddingRight: 50,
 				display: "inline-block",
 			}}
 		>
-			<form
-				noValidate
-				onSubmit={handleSubmit((fv: FieldValues) => {
-					console.log("TODO", fv.preventAccessCalendar);
-					toast.success("saved");
-					reset();
-				})}
+			<div
 				style={{
-					display: "flex",
-					flexWrap: "wrap",
-					width: "fit-content",
+					height: "100%",
+					width: "100%",
+					padding: 50,
+					display: "inline-block",
+					backgroundColor: "white",
+					border: "1px solid #e5e5e5",
 				}}
 			>
-				<Typography variant="body1" color="initial">
-					Seconds until the app terminates the browser if the extension is
-					disabled or {'"'}Allow in incognito{'"'} is disabled
-				</Typography>
-				<Box sx={{ ...modalTextFieldStyle }}>
-					<input
-						type="number"
-						id="restrictDelay"
-						placeholder="e.g 60 - seconds"
-						max={60}
-						min={1}
-						{...register("restrictDelay")}
-					/>
-				</Box>
-				<Typography variant="body1" color="initial">
-					Block unsupported browsers
-				</Typography>
-				<Switch
-					disabled={isDisabled(true)}
-					{...register("blockUnsupportedBrowsers")}
-				/>
-				{/* <Typography variant="caption" color="initial">
-				Currently supports chrome, edge, firefox, brave
-			</Typography>
-			<Switch disabled={isDisabled(true)} /> */}
+				<form
+					noValidate
+					onSubmit={handleSubmit((fv: FieldValues) => {
+						console.log("TODO", fv.preventAccessCalendar);
+						toast.success("saved");
+						reset();
+					})}
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						flexWrap: "wrap",
+						width: "fit-content",
+						gap: "2em",
+					}}
+				>
+					<Stack>
+						<Typography variant="body1" color="initial">
+							Seconds until the app terminates the browser if the extension is{" "}
+							<br />
+							disabled or {'"'}Allow in incognito{'"'} is disabled
+						</Typography>
+						<Box sx={{ ...modalTextFieldStyle }}>
+							<input
+								type="number"
+								id="restrictDelay"
+								placeholder="e.g 60 - seconds"
+								max={60}
+								min={1}
+								{...register("restrictDelay")}
+							/>
+						</Box>
+					</Stack>
+					<Stack>
+						<Stack>
+							<Typography variant="body1" color="initial">
+								Block unsupported browsers
+							</Typography>
+							<Typography variant="subtitle2" color="initial">
+								Supported browsers
+							</Typography>
+						</Stack>
 
-				<Typography variant="body1" color="initial">
-					Prevent access to task manager if there is an active block
-				</Typography>
-				<Switch
-					disabled={isDisabled(true)}
-					{...register("preventAccessTaskManager")}
-				/>
+						<Switch
+							disabled={isDisabled(true)}
+							{...register("blockUnsupportedBrowsers")}
+						/>
+					</Stack>{" "}
+					<Stack>
+						<Stack>
+							<Typography variant="body1" color="initial">
+								Block emulators
+							</Typography>
+							<Typography variant="subtitle2" color="initial">
+								{"(e.g: bluestacks, mumu, nox, ldplayer, etc..)"}
+							</Typography>
+						</Stack>
 
-				<Typography variant="body1" color="initial">
-					Prevent access to date/calendar if there is an active block
-				</Typography>
-				<Switch
-					disabled={isDisabled(true)}
-					{...register("preventAccessCalendar")}
-				/>
-
-				<Button variant="text" color="primary" type="submit">
-					Save
-				</Button>
-			</form>
+						<Switch
+							disabled={isDisabled(true)}
+							{...register("blockEmulators")}
+						/>
+					</Stack>
+					<Stack>
+						<Typography variant="body1" color="initial">
+							Select Theme
+						</Typography>
+						<FormControl sx={{ minWidth: 120 }}>
+							<Select
+								value={selectedTheme}
+								defaultValue="light"
+								onChange={handleChange}
+								displayEmpty
+								inputProps={{ "aria-label": "Without label" }}
+							>
+								<MenuItem value={"dark"}>Dark</MenuItem>
+								<MenuItem value={"light"}>Light</MenuItem>
+							</Select>
+							<FormHelperText>Without label</FormHelperText>
+						</FormControl>
+					</Stack>
+					<Button variant="text" color="primary" type="submit">
+						Save
+					</Button>
+				</form>
+			</div>
 		</div>
 	);
 }

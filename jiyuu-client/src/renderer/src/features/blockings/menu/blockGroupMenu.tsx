@@ -79,7 +79,7 @@ export function BlockGroupMenu(): React.JSX.Element {
 				onClick={(e) => {
 					e.stopPropagation();
 					if (menuAnchor && menuAnchor.v) {
-						ipcRendererSend("blockedcontent/download", {
+						ipcRendererSend("blockedcontent/export", {
 							id: menuAnchor.v.id,
 							group_name: menuAnchor.v.group_name,
 						});

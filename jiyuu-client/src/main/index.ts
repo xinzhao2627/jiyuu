@@ -30,7 +30,10 @@ import {
 	updateBlockGroup,
 } from "./methods/functionsBlockGroup";
 import { block_group, blocked_content } from "./database/tableInterfaces";
-import { getBlockedContentDataOneGroup } from "./methods/functionBlockedSites";
+import {
+	getBlockedContentDataAll,
+	getBlockedContentDataOneGroup,
+} from "./methods/functionBlockedSites";
 import { getBlockGroup_with_config } from "./methods/functionConfig";
 import {
 	BlockGroup_Full,
@@ -263,7 +266,7 @@ app.whenReady().then(async () => {
 		},
 	);
 	ipcMain.on(
-		"blockedcontent/download",
+		"blockedcontent/export",
 		async (
 			event: Electron.IpcMainEvent,
 			_data: { id: number; group_name: string } | undefined,
@@ -275,7 +278,7 @@ app.whenReady().then(async () => {
 				const rows = (await getBlockedContentDataOneGroup(_data)) || [];
 				console.log(rows);
 
-				event.reply("blockedcontent/download/response", {
+				event.reply("blockedcontent/export/response", {
 					data: rows,
 					group_name: _data?.group_name,
 				});
@@ -284,8 +287,115 @@ app.whenReady().then(async () => {
 					err,
 					event,
 					"Error exporting block sites: ",
-					"blockedcontent/download/response",
+					"blockedcontent/export/response",
 				);
+			}
+		},
+	);
+	ipcMain.on("jiyuu/export", async (event: Electron.IpcMainEvent) => {
+		try {
+			const blocked_content_rows = (await getBlockedContentDataAll()) || [];
+			console.log(blocked_content_rows);
+
+			const res = new Map<string, string[]>();
+
+			for (let i = 0; i < blocked_content_rows.length; i++) {
+				const bcn = blocked_content_rows[i].group_name;
+
+				const bctt = blocked_content_rows[i].target_text;
+				const hasGroupName = res.has(bcn);
+				const targetTextList = hasGroupName ? (res.get(bcn) ?? []) : [];
+				res.set(bcn, [...targetTextList, bctt]);
+			}
+			console.log(res);
+
+			const arr_res = Array.from(res, ([k, v]) => ({
+				group_name: k,
+				contents: v,
+			}));
+			event.reply("jiyuu/export/response", {
+				json_string: JSON.stringify(arr_res),
+			});
+		} catch (err) {
+			showError(
+				err,
+				event,
+				"Error exporting block sites: ",
+				"jiyuu/export/response",
+			);
+		}
+	});
+	ipcMain.on(
+		"jiyuu/import",
+		async (event: Electron.IpcMainEvent, _data: { json_string: string }) => {
+			try {
+				if (!_data) throw "Error no import data";
+				if (!_data.json_string) throw "Error no json data";
+				const import_data = JSON.parse(_data.json_string) as {
+					group_name: string;
+					contents: string[];
+				}[];
+				for (let i = 0; i < import_data.length; i++) {
+					let group_name = import_data[i].group_name;
+					const rows =
+						(await db
+							?.selectFrom("block_group")
+							.where("group_name", "=", group_name)
+							.selectAll()
+							.execute()) || [];
+					if (rows) group_name = `${group_name} (${rows.length})`;
+
+					await db
+						?.insertInto("block_group")
+						.values({
+							group_name: group_name,
+							is_activated: 0,
+							is_blurred: 0,
+							is_covered: 0,
+							is_grayscaled: 0,
+							is_muted: 0,
+							auto_deactivate: 0,
+							restriction_type: null,
+							date_created: new Date().toISOString(),
+						})
+						.returning(["id", "group_name as name"])
+						.executeTakeFirstOrThrow();
+					const bgId = await db
+						?.selectFrom("block_group")
+						.select("id")
+						.where("group_name", "=", group_name)
+						.executeTakeFirstOrThrow();
+					if (bgId && bgId.id) {
+						const toInsert = import_data[i].contents.map((c) => {
+							const is_absolute = c.substring(0, 3) === "{a}";
+							const target_text = is_absolute ? c.slice(3) : c;
+							return {
+								target_text: target_text,
+								is_absolute: is_absolute ? (1 as const) : (0 as const),
+								block_group_id: bgId.id,
+							};
+						});
+						await db
+							?.insertInto("blocked_content")
+							.values(toInsert)
+							.executeTakeFirstOrThrow();
+					}
+				}
+				event.reply("jiyuu/import/response", { info: "successfully imported" });
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error exporting block sites: ",
+					"jiyuu/import/response",
+				);
+				// resend the updated block
+				const r = await getBlockGroup_with_config();
+				// console.log("blockgorup: ", r);
+
+				mainWindow.webContents.send("blockgroup/get/response", {
+					data: r,
+				});
 			}
 		},
 	);

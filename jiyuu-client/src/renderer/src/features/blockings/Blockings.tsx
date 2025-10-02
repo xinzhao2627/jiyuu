@@ -169,7 +169,7 @@ export default function Blockings(): React.JSX.Element {
 				},
 			},
 			{
-				channel: "blockedcontent/download/response",
+				channel: "blockedcontent/export/response",
 				handler: (
 					_,
 					data: {
@@ -179,7 +179,7 @@ export default function Blockings(): React.JSX.Element {
 					},
 				) => {
 					if (data.error)
-						console.error("Error fetching group block: ", data.error);
+						console.error("Error exporting group block: ", data.error);
 					else {
 						const blob = new Blob(
 							data.data.map((b) =>
@@ -192,6 +192,39 @@ export default function Blockings(): React.JSX.Element {
 						saveAs(blob, data.group_name + ".txt");
 					}
 					setBlockGroupMenuAnchor(null);
+				},
+			},
+			{
+				channel: "jiyuu/export/response",
+				handler: (
+					_,
+					data: {
+						error: string | undefined;
+						json_string: string;
+					},
+				) => {
+					console.log("received data: ", data.json_string);
+
+					if (data.error) console.error("Error exporting", data.error);
+					else if (data.json_string) {
+						const blob = new Blob([data.json_string], {
+							type: "application/json",
+						});
+						saveAs(blob, "jiyuu-export.json");
+					}
+					setFabGroupMenuAnchor(null);
+				},
+			},
+			{
+				channel: "jiyuu/import/response",
+				handler: (
+					_,
+					data: {
+						error: string | undefined;
+					},
+				) => {
+					if (data.error) console.error("Error importing", data.error);
+					setFabGroupMenuAnchor(null);
 				},
 			},
 			{
