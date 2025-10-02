@@ -11,13 +11,14 @@ import {
 	Select,
 	SelectChangeEvent,
 	Stack,
-	Switch,
+	ToggleButton,
+	ToggleButtonGroup,
 } from "@mui/material";
 import { modalTextFieldStyle } from "@renderer/assets/shared/modalStyle";
-import { FieldValues, useForm } from "react-hook-form";
+import { Controller, FieldValues, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 export default function Options(): React.JSX.Element {
-	const { handleSubmit, register, reset } = useForm();
+	const { handleSubmit, register, reset, control } = useForm();
 	const [hasRestriction, setHasRestriction] = useState<boolean>(false);
 	const isDisabled = (is_on: boolean): boolean => hasRestriction && is_on;
 	const { blockGroup, setBlockGroupData } = useStore();
@@ -63,110 +64,135 @@ export default function Options(): React.JSX.Element {
 		};
 	}, []);
 	return (
-		<div
-			style={{
-				height: "100%",
-				width: "100%",
-				paddingLeft: 50,
-				paddingRight: 50,
-				display: "inline-block",
-			}}
-		>
-			<div
+		<div>
+			<form
+				noValidate
+				onSubmit={handleSubmit((fv: FieldValues) => {
+					console.log("TODO", fv.preventAccessCalendar);
+					toast.success("saved");
+					reset();
+				})}
 				style={{
+					display: "flex",
+					flexDirection: "column",
+					flexWrap: "wrap",
+					width: "fit-content",
+					gap: "2em",
 					height: "100%",
-					width: "100%",
 					padding: 50,
-					display: "inline-block",
-					backgroundColor: "white",
-					border: "1px solid #e5e5e5",
+					overflow: "auto",
 				}}
 			>
-				<form
-					noValidate
-					onSubmit={handleSubmit((fv: FieldValues) => {
-						console.log("TODO", fv.preventAccessCalendar);
-						toast.success("saved");
-						reset();
-					})}
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						flexWrap: "wrap",
-						width: "fit-content",
-						gap: "2em",
-					}}
-				>
+				<Stack>
+					<Typography variant="h6" color="initial">
+						Seconds until the app terminates the browser if the extension is{" "}
+						<br />
+						disabled or {'"'}Allow in incognito{'"'} is disabled
+					</Typography>
+					<Box sx={{ ...modalTextFieldStyle }}>
+						<input
+							type="number"
+							id="restrictDelay"
+							placeholder="e.g 60 - seconds"
+							max={60}
+							min={1}
+							{...register("restrictDelay")}
+						/>
+					</Box>
+				</Stack>
+				<Stack gap={1}>
 					<Stack>
 						<Typography variant="body1" color="initial">
-							Seconds until the app terminates the browser if the extension is{" "}
-							<br />
-							disabled or {'"'}Allow in incognito{'"'} is disabled
+							Block unsupported browsers
 						</Typography>
-						<Box sx={{ ...modalTextFieldStyle }}>
-							<input
-								type="number"
-								id="restrictDelay"
-								placeholder="e.g 60 - seconds"
-								max={60}
-								min={1}
-								{...register("restrictDelay")}
-							/>
-						</Box>
-					</Stack>
-					<Stack>
-						<Stack>
-							<Typography variant="body1" color="initial">
-								Block unsupported browsers
-							</Typography>
-							<Typography variant="subtitle2" color="initial">
-								Supported browsers
-							</Typography>
-						</Stack>
-
-						<Switch
-							disabled={isDisabled(true)}
-							{...register("blockUnsupportedBrowsers")}
-						/>
-					</Stack>{" "}
-					<Stack>
-						<Stack>
-							<Typography variant="body1" color="initial">
-								Block emulators
-							</Typography>
-							<Typography variant="subtitle2" color="initial">
-								{"(e.g: bluestacks, mumu, nox, ldplayer, etc..)"}
-							</Typography>
-						</Stack>
-
-						<Switch
-							disabled={isDisabled(true)}
-							{...register("blockEmulators")}
-						/>
-					</Stack>
-					<Stack>
-						<Typography variant="body1" color="initial">
-							Select Theme
+						<Typography variant="caption" color="initial">
+							Supported browsers
 						</Typography>
-						<FormControl sx={{ minWidth: 120 }}>
-							<Select
-								value={selectedTheme}
-								defaultValue="light"
-								onChange={handleChange}
-								displayEmpty
-								inputProps={{ "aria-label": "Without label" }}
+					</Stack>
+
+					<Controller
+						name="blockUnsupportedBrowsers"
+						control={control}
+						render={({ field }) => (
+							<ToggleButtonGroup
+								color="primary"
+								exclusive
+								aria-label="Platform"
+								value={field.value ?? "on"}
+								onChange={(_, newValue) => {
+									if (newValue !== null) {
+										field.onChange(newValue);
+									}
+								}}
+								disabled={isDisabled(field.value)}
 							>
-								<MenuItem value={"dark"}>Dark</MenuItem>
-								<MenuItem value={"light"}>Light</MenuItem>
-							</Select>
-							<FormHelperText>Without label</FormHelperText>
-						</FormControl>
+								<ToggleButton value="on" disableRipple sx={{ minWidth: 75 }}>
+									On
+								</ToggleButton>
+								<ToggleButton value="off" disableRipple sx={{ minWidth: 75 }}>
+									Off
+								</ToggleButton>
+							</ToggleButtonGroup>
+						)}
+					/>
+				</Stack>{" "}
+				<Stack gap={1}>
+					<Stack>
+						<Typography variant="body1" color="initial">
+							Block emulators
+						</Typography>
+						<Typography variant="caption" color="initial">
+							{"(e.g: bluestacks, mumu, nox, ldplayer, etc..)"}
+						</Typography>
 					</Stack>
-					<Button variant="text" color="primary" type="submit">
-						Save
-					</Button>
-				</form>
-			</div>
+					<Controller
+						name="blockEmulators"
+						control={control}
+						render={({ field }) => (
+							<ToggleButtonGroup
+								color="primary"
+								exclusive
+								aria-label="Platform"
+								value={field.value ?? "on"}
+								onChange={(_, newValue) => {
+									if (newValue !== null) {
+										field.onChange(newValue);
+									}
+								}}
+								disabled={isDisabled(field.value)}
+							>
+								<ToggleButton value="on" disableRipple sx={{ minWidth: 75 }}>
+									On
+								</ToggleButton>
+								<ToggleButton value="off" disableRipple sx={{ minWidth: 75 }}>
+									Off
+								</ToggleButton>
+							</ToggleButtonGroup>
+						)}
+					/>
+				</Stack>
+				<Stack>
+					<Typography variant="body1" color="initial">
+						Select Theme
+					</Typography>
+					<FormControl sx={{ minWidth: 70 }}>
+						<Select
+							value={selectedTheme}
+							defaultValue="light"
+							onChange={handleChange}
+							displayEmpty
+							inputProps={{ "aria-label": "Without label" }}
+						>
+							<MenuItem value={"dark"}>Dark</MenuItem>
+							<MenuItem value={"light"}>Light</MenuItem>
+						</Select>
+						<FormHelperText>Without label</FormHelperText>
+					</FormControl>
+				</Stack>
+				<Button variant="text" color="primary" type="submit">
+					Save
+				</Button>
+			</form>
 		</div>
 	);
 }
