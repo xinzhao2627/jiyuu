@@ -936,6 +936,34 @@ app.whenReady().then(async () => {
 			);
 		}
 	});
+	ipcMain.on("whitelist/put", async (event: Electron.IpcMainEvent, data) => {
+		try {
+			const { whitelistItem, isAbsolute } = data as {
+				whitelistItem: string;
+				isAbsolute: 0 | 1;
+			};
+			if (!whitelistItem) throw "The whitelist item is empty";
+			console.log(isAbsolute);
+
+			// await db
+			// 	?.updateTable("user_options")
+			// 	.set({ dashboardDateMode: dashboardDateMode })
+			// 	.executeTakeFirst();
+			event.reply("useroptions/set/response", {});
+		} catch (err) {
+			showError(
+				err,
+				event,
+				"Error getting dashboard",
+				"useroptions/set/response",
+			);
+		} finally {
+			const r = "";
+			mainWindow.webContents.send("whitelist/get/response", {
+				data: r,
+			});
+		}
+	});
 	if (!isAutoStart) {
 		createWindow();
 	}

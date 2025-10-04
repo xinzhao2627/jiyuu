@@ -9,6 +9,7 @@ import Dashboard from "./features/dashboard/Dashboard";
 import { Toaster } from "react-hot-toast";
 import { Box, CssBaseline } from "@mui/material";
 import Options from "./features/options/Options";
+import Whitelist from "./features/whitelist/Whitelist";
 function Layout({
 	children,
 }: {
@@ -55,7 +56,7 @@ function App(): React.JSX.Element {
 				<Routes>
 					<Route path="/" element={<Blockings />} />
 					<Route path="/dashboard" element={<Dashboard />} />
-					<Route path="/apps" element={<></>} />
+					<Route path="/whitelist" element={<Whitelist />} />
 					<Route path="/option" element={<Options />} />
 				</Routes>
 			</Layout>
