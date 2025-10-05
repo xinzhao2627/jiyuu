@@ -17,7 +17,7 @@ export default function Sidebar(): React.JSX.Element {
 	const location = useLocation();
 	const navigate = useNavigate();
 
-	const routes = ["/", "/dashboard", "/apps", "/option"];
+	const routes = ["/", "/dashboard", "/whitelist", "/option"];
 	const currentTab = routes.indexOf(location.pathname);
 	const handleChange = (
 		_event: React.SyntheticEvent,
@@ -55,7 +55,7 @@ export default function Sidebar(): React.JSX.Element {
 				sx={actionStyle}
 			/>
 			<BottomNavigationAction
-				label="APPS"
+				label="WHITELIST"
 				icon={<AppsIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>

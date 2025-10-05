@@ -936,19 +936,32 @@ app.whenReady().then(async () => {
 			);
 		}
 	});
+	ipcMain.on("whitelist/get", async (event: Electron.IpcMainEvent) => {
+		try {
+			const rows = await db?.selectFrom("whitelist").selectAll().execute();
+			event.reply("whitelist/get/response", { data: rows });
+		} catch (error) {
+			showError(
+				error,
+				event,
+				"Error fetching whitelist",
+				"whitelist/get/response",
+			);
+		}
+	});
 	ipcMain.on("whitelist/put", async (event: Electron.IpcMainEvent, data) => {
 		try {
-			const { whitelistItem, isAbsolute } = data as {
-				whitelistItem: string;
+			const { item, isAbsolute } = data as {
+				item: string;
 				isAbsolute: 0 | 1;
+				whitelist_type: "string";
 			};
-			if (!whitelistItem) throw "The whitelist item is empty";
+			if (!item) throw "The whitelist item is empty";
 			console.log(isAbsolute);
 
-			// await db
-			// 	?.updateTable("user_options")
-			// 	.set({ dashboardDateMode: dashboardDateMode })
-			// 	.executeTakeFirst();
+			// TODO: check if the item is app or web
+			// if web check if theres a current
+
 			event.reply("useroptions/set/response", {});
 		} catch (err) {
 			showError(
@@ -958,7 +971,7 @@ app.whenReady().then(async () => {
 				"useroptions/set/response",
 			);
 		} finally {
-			const r = "";
+			const r = await db?.selectFrom("whitelist").selectAll().execute();
 			mainWindow.webContents.send("whitelist/get/response", {
 				data: r,
 			});

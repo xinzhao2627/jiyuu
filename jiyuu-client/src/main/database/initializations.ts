@@ -204,6 +204,19 @@ const migrations: Array<{ id: string; up: () => Promise<void>; desc: string }> =
 			},
 			desc: "",
 		},
+		{
+			id: "init-whitelist",
+			up: async () => {
+				await db?.schema
+					.createTable("whitelist")
+					.ifNotExists()
+					.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
+					.addColumn("whitelist_type", "text", (col) => col.notNull())
+					.addColumn("item", "text", (col) => col.notNull())
+					.execute();
+			},
+			desc: "",
+		},
 	];
 export const testLog = (): void => console.log(migrations);
 

@@ -77,8 +77,16 @@ export interface DB {
 	user_options: user_optionsTable;
 	migration: migrationTable;
 	click_count: click_countTable;
+	whitelist: whitelistTable;
 }
 
 export interface block_group_WITH_blocked_content
 	extends block_group,
 		blocked_content {}
+
+export interface whitelistTable {
+	id: Generated<number>;
+	item: string;
+	whitelist_type: "app" | "web";
+}
+export type whitelist = Selectable<whitelistTable>;

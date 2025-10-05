@@ -102,13 +102,13 @@ export default function BlockingModal(): React.JSX.Element {
 				return;
 			}
 			setBlockedContentData([
-				...blockedContent.data,
 				{
 					block_group_id: blockGroup.selectedBlockGroup.id,
 					target_text: blockedContent.input.text,
 					// TODO
 					is_absolute: blockedContent.input.is_absolute ? 1 : 0,
 				},
+				...blockedContent.data,
 			]);
 		}
 	};
@@ -366,7 +366,8 @@ export default function BlockingModal(): React.JSX.Element {
 							sx={{ marginBottom: 1 }}
 							color="textSecondary"
 						>
-							Press Enter to include this keyword
+							Press Enter to add a keyword or a website{" "}
+							{"(e.g: facebook.com/reel | r/funny)"}
 						</Typography>
 					</Stack>
 					<Stack

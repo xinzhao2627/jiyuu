@@ -83,12 +83,17 @@ export default function Options(): React.JSX.Element {
 					overflow: "auto",
 				}}
 			>
-				<Stack>
-					<Typography variant="h6" color="initial">
-						Seconds until the app terminates the browser if the extension is{" "}
-						<br />
-						disabled or {'"'}Allow in incognito{'"'} is disabled
-					</Typography>
+				<Stack gap={1}>
+					<Stack>
+						<Typography variant="body1" color="initial">
+							Browser disable delay
+						</Typography>
+						<Typography variant="caption" color="initial">
+							Seconds until the app terminates the browser if the extension is{" "}
+							<br />
+							disabled or {'"'}Allow in incognito{'"'} is disabled
+						</Typography>
+					</Stack>
 					<Box sx={{ ...modalTextFieldStyle }}>
 						<input
 							type="number"
