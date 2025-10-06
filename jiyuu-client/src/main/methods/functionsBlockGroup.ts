@@ -99,15 +99,6 @@ export async function updateBlockGroup(): Promise<void> {
 		.execute();
 	if (!cr) return;
 
-	// let cr = db
-	// 	?.prepare(
-	// 		"SELECT config_type, block_group_id, config_data FROM block_group_config WHERE config_type = 'usageLimit' OR config_type = 'restrictTimer'",
-	// 	)
-	// 	.all() as Array<{
-	// 	config_type: "usageLimit" | "restrictTimer";
-	// 	block_group_id: number;
-	// 	config_data: string;
-	// }>;
 	async function groupAutoDeact(
 		id: number,
 		pause_until: number,

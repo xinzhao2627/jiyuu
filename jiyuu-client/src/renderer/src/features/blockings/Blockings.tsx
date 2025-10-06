@@ -270,9 +270,7 @@ export default function Blockings(): React.JSX.Element {
 
 						if (d && d.config_data) {
 							console.log(d);
-
 							const cd = d.config_data;
-
 							if (cd && cd.config_type === "usageLimit") {
 								setUsageTimeValueNumber({
 									val: cd.usage_reset_value,

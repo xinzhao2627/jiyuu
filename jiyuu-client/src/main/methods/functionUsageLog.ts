@@ -98,3 +98,31 @@ export async function getBlockGroupTimeUsage(
 
 	return blockGroupWithTime;
 }
+
+export async function clearUsageLogIfNeeded(): Promise<void> {
+	const install = await db
+		?.selectFrom("meta_info")
+		.select("value")
+		.where("key", "=", "usage_log_date")
+		.executeTakeFirst();
+
+	if (!install) return;
+
+	const installDate = new Date(install.value);
+	const now = new Date();
+	const monthsPassed =
+		(now.getFullYear() - installDate.getFullYear()) * 12 +
+		(now.getMonth() - installDate.getMonth());
+
+	if (monthsPassed >= 3) {
+		console.log("3 months passed — clearing usage_log...");
+		await db?.deleteFrom("usage_log").execute();
+
+		// update install date so it resets the 3-month cycle
+		await db
+			?.updateTable("meta_info")
+			.set({ value: new Date().toISOString() })
+			.where("key", "=", "usage_log_date")
+			.execute();
+	}
+}

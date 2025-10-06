@@ -78,6 +78,7 @@ export interface DB {
 	migration: migrationTable;
 	click_count: click_countTable;
 	whitelist: whitelistTable;
+	meta_info: meta_infoTable;
 }
 
 export interface block_group_WITH_blocked_content
@@ -87,6 +88,12 @@ export interface block_group_WITH_blocked_content
 export interface whitelistTable {
 	id: Generated<number>;
 	item: string;
-	whitelist_type: "app" | "web";
+	whitelist_type: "app" | "url";
 }
 export type whitelist = Selectable<whitelistTable>;
+
+export interface meta_infoTable {
+	key: string;
+	value: string;
+}
+export type meta_info = Selectable<meta_infoTable>;

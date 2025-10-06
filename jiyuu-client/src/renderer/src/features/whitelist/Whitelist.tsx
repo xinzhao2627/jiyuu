@@ -5,18 +5,17 @@ import {
 	Box,
 	FilledInput,
 	FormControl,
-	IconButton,
-	InputAdornment,
 	InputLabel,
 	Stack,
 	ToggleButton,
 	ToggleButtonGroup,
 	Typography,
 } from "@mui/material";
-import { VisibilityOff } from "@mui/icons-material";
+import { isURL } from "@renderer/assets/shared/general_helper";
 
 export default function Whitelist(): React.JSX.Element {
 	const [whitelistData, setWhitelistData] = useState<string[]>([]);
+	const [whitelistItem, setWhitelistItem] = useState<string>("");
 	useEffect(() => {
 		const listeners = [
 			{
@@ -25,6 +24,9 @@ export default function Whitelist(): React.JSX.Element {
 					if (data.error) {
 						toast.error("error adding a whitelist");
 						console.log(data.error);
+					} else {
+						toast.success("successfully added");
+						setWhitelistItem("");
 					}
 				},
 			},
@@ -99,14 +101,28 @@ export default function Whitelist(): React.JSX.Element {
 				>
 					<InputLabel htmlFor="">Whitelist item</InputLabel>
 					<FilledInput
+						type="text"
+						value={whitelistItem}
+						onChange={(e) => {
+							setWhitelistItem(e.target.value);
+						}}
 						onKeyDown={(e) => {
 							const k = e.key.toLowerCase();
 							if (k === "enter") {
-								// TODO put into whitelist backend
+								const cleaned_item = whitelistItem.toLowerCase().trim();
+								// CHECK IF item is url
+								const wl_type = "url";
+								if (!isURL(cleaned_item)) {
+									toast.error("item must be a url!");
+									return;
+								}
+
+								// TODO: add file path.. for future versions
+
+								// put into whitelist backend
 								ipcRendererSend("whitelist/put", {
-									whitelist_item: "hello",
-									whitelist_type: "world",
-									is_absolute: true,
+									item: cleaned_item,
+									whitelist_type: wl_type,
 								});
 							}
 						}}

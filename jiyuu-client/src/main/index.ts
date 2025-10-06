@@ -17,7 +17,12 @@ import icon from "../../resources/JY.png?asset";
 import { WebSocketServer } from "ws";
 // import sqlite3 from "sqlite3";
 
-import { showError, taskKiller_win } from "./methods/functionHelper";
+import {
+	cleanURL,
+	isURL,
+	showError,
+	taskKiller_win,
+} from "./methods/functionHelper";
 import {
 	updateClickCount,
 	validateTimelist,
@@ -45,12 +50,20 @@ import {
 	UsageLimitData_Config,
 } from "../lib/jiyuuInterfaces";
 import { isIncognito, isTimelist, isWebpage } from "./webSocketInterface";
+import { whitelist_put_type } from "./index-interface";
 import {
+	clearUsageLogIfNeeded,
 	getBlockGroupTimeUsage,
 	getClicksSummarized,
 	getDashboardSummarized,
 } from "./methods/functionUsageLog";
 import { getDashboardDateMode } from "./methods/functionUserOptions";
+import {
+	get_whitelist_all,
+	whitelist_does_exist,
+	whitelist_is_in_blockgroup,
+	whitelist_put,
+} from "./methods/whitelist_helpers";
 const isAutoStart = process.argv.includes("--auto-start");
 export let mainWindow: BrowserWindow;
 let tray: Tray | null = null;
@@ -226,6 +239,7 @@ app.whenReady().then(async () => {
 			lt = ct;
 			try {
 				await updateBlockGroup();
+				await clearUsageLogIfNeeded();
 			} catch (error) {
 				console.error("Error in recursiveGroupChecker:", error);
 			} finally {
@@ -247,10 +261,9 @@ app.whenReady().then(async () => {
 		) => {
 			try {
 				// get the blocked sites of a specific group
-				console.log(_data);
-
+				// console.log(_data);
 				const rows = (await getBlockedContentDataOneGroup(_data)) || [];
-				console.log(rows);
+				// console.log(rows);
 
 				event.reply("blockedcontent/get/response", {
 					data: rows,
@@ -457,8 +470,7 @@ app.whenReady().then(async () => {
 				(await db?.selectFrom("block_group").selectAll().execute()) || [];
 
 			for (let r of rows) {
-				if (group_name === r.group_name)
-					throw `Group name already exist (${group_name}, ${r.group_name})`;
+				if (group_name === r.group_name) throw `Group name already exist!`;
 			}
 
 			// db?.prepare("INSERT INTO block_group(group_name) VALUES(?)").run(
@@ -571,33 +583,21 @@ app.whenReady().then(async () => {
 					group: BlockGroup_Full;
 					blocked_content_data: blocked_content[];
 				};
-				// console.log("blockgroup_blockedcontent/set", data);
 
-				// for block group
+				// for block group all the configs like is_covered, etc
 				setBlockGroup(group);
 
 				// delete blocked sites of that group first to start fresh
-				// db?.prepare("DELETE FROM blocked_sites WHERE block_group_id = ?").run(
-				//     group.id,
-				// );
 				await db
 					?.deleteFrom("blocked_content")
 					.where("block_group_id", "=", group.id)
 					.execute();
-
-				// then insert the latest collections
-				// const inserter = db?.prepare(
-				//     "INSERT OR IGNORE INTO blocked_sites(target_text, block_group_id) VALUES(@target_text, @block_group_id)",
-				// );
-				// const insertMany = db?.transaction((blocked_sites: BlockedSites[]) => {
-				//     for (let s of blocked_sites) {
-				//         inserter?.run(s);
-				//     }
-				// });
-				// if (insertMany) {
-				//     insertMany(blocked_sites_data);
-				// } else throw "Error, the database is not initialized properly";
-				for (let s of blocked_content_data) {
+				const whitelist_to_be_deleted: Set<string> = new Set();
+				const whitelist_rows = await get_whitelist_all();
+				for (const s of blocked_content_data) {
+					const content_is_url = isURL(s.target_text);
+					const cleaned_target_text = cleanURL(s.target_text);
+					// then insert the latest collections
 					await db
 						?.insertInto("blocked_content")
 						.values({
@@ -606,6 +606,28 @@ app.whenReady().then(async () => {
 							is_absolute: s.is_absolute,
 						})
 						.execute();
+
+					// lastly delete any whitelisted items that is present in this blocked contents
+					for (const v of whitelist_rows) {
+						const cleaned_item = cleanURL(v.item);
+						if (
+							content_is_url &&
+							cleaned_item.length > 0 &&
+							cleaned_target_text.length > 0 &&
+							cleaned_item === cleaned_target_text
+						) {
+							whitelist_to_be_deleted.add(v.item);
+						} else if (v.item.includes(s.target_text)) {
+							whitelist_to_be_deleted.add(v.item);
+						}
+					}
+				}
+				// delete all whitelisted items that is affected by this newly added blocked content
+				for (const v of [...whitelist_to_be_deleted]) {
+					await db
+						?.deleteFrom("whitelist")
+						.where("item", "=", v)
+						.executeTakeFirstOrThrow();
 				}
 
 				event.reply("blockgroup_blockedcontent/set/response", {
@@ -949,26 +971,55 @@ app.whenReady().then(async () => {
 			);
 		}
 	});
-	ipcMain.on("whitelist/put", async (event: Electron.IpcMainEvent, data) => {
+	ipcMain.on("whitelist/delete", async (event: Electron.IpcMainEvent, data) => {
 		try {
-			const { item, isAbsolute } = data as {
-				item: string;
-				isAbsolute: 0 | 1;
-				whitelist_type: "string";
-			};
-			if (!item) throw "The whitelist item is empty";
-			console.log(isAbsolute);
-
-			// TODO: check if the item is app or web
-			// if web check if theres a current
-
-			event.reply("useroptions/set/response", {});
+			const { item } = data as { item: string };
+			if (await whitelist_does_exist(item)) {
+				throw "The whitelist item already exist!";
+			}
+			await db
+				?.deleteFrom("whitelist")
+				.where("item", "=", item)
+				.executeTakeFirstOrThrow();
+			event.reply("whitelist/delete/response", {});
 		} catch (err) {
 			showError(
 				err,
 				event,
 				"Error getting dashboard",
-				"useroptions/set/response",
+				"whitelist/delete/response",
+			);
+		} finally {
+			const r = await db?.selectFrom("whitelist").selectAll().execute();
+			mainWindow.webContents.send("whitelist/get/response", {
+				data: r,
+			});
+		}
+	});
+	ipcMain.on("whitelist/put", async (event: Electron.IpcMainEvent, data) => {
+		try {
+			const { item, whitelist_type } = data as whitelist_put_type;
+			if (!item) throw "The whitelist item is empty";
+
+			// TODO: check if the item is app or url or keyword
+
+			// if web check if theres a current item in whitelist db
+			if (await whitelist_does_exist(item)) {
+				throw "The whitelist item already exist!";
+			}
+			// check if it is in some blockgroups
+			const s = await whitelist_is_in_blockgroup(item);
+			if (s.is_included) {
+				throw `Cannot add item, the item is present in the following groups ${s.included_blockgroups.toString()}`;
+			}
+			whitelist_put({ item, whitelist_type });
+			event.reply("whitelist/put/response", {});
+		} catch (err) {
+			showError(
+				err,
+				event,
+				"Error getting dashboard",
+				"whitelist/put/response",
 			);
 		} finally {
 			const r = await db?.selectFrom("whitelist").selectAll().execute();

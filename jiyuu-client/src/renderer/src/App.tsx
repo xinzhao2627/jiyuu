@@ -42,6 +42,28 @@ function Layout({
 							fontWeight: "600",
 							fontFamily: "roboto, Roboto",
 						},
+						success: {
+							style: {
+								background: "#D1FAE5", // light green
+								color: "#065F46", // dark green
+								border: "1px solid #10B981", // green border
+							},
+							iconTheme: {
+								primary: "#10B981", // icon color
+								secondary: "#D1FAE5",
+							},
+						},
+						error: {
+							style: {
+								background: "#FEE2E2", // light red
+								color: "#991B1B", // dark red
+								border: "1px solid #EF4444",
+							},
+							iconTheme: {
+								primary: "#EF4444",
+								secondary: "#FEE2E2",
+							},
+						},
 					}}
 				/>
 			</Box>

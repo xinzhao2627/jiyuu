@@ -110,3 +110,17 @@ export async function blockActivityMonitor_mac(): Promise<void> {
 		);
 	}
 }
+
+export function isURL(str: string): boolean {
+	const pattern =
+		/^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+(\.[a-zA-Z]{2,})(\/[^\s]*)?$/;
+	return pattern.test(str.trim());
+}
+
+export function cleanURL(str: string): string {
+	return str
+		.trim()
+		.replace(/^https?:\/\//, "")
+		.replace(/^www\./, "")
+		.replace(/\/$/, "");
+}

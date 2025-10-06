@@ -217,6 +217,18 @@ const migrations: Array<{ id: string; up: () => Promise<void>; desc: string }> =
 			},
 			desc: "",
 		},
+		{
+			id: "init-meta_info",
+			up: async () => {
+				await db?.schema
+					.createTable("meta_info")
+					.ifNotExists()
+					.addColumn("key", "text", (col) => col.primaryKey())
+					.addColumn("value", "text")
+					.execute();
+			},
+			desc: "",
+		},
 	];
 export const testLog = (): void => console.log(migrations);
 
@@ -266,7 +278,48 @@ export async function startAppDb(): Promise<void> {
 			"Available tables:",
 			tables?.map((t) => t.name),
 		);
+
+		// if the installation date is not initialized, initialize it
+		const info = await db?.selectFrom("meta_info").selectAll().execute();
+		if (info) {
+			// if theres no install date in the meta info, add one
+			if (!info.find((v) => v.key === "install_date")) {
+				await add_install_date();
+			}
+			if (!info.find((v) => v.key === "usage_log_date")) {
+				await add_usage_log_date();
+			}
+			if (!info.find((v) => v.key === "vacuum_date")) {
+				await add_vacuum_date();
+			}
+		} else {
+			await add_install_date();
+			await add_usage_log_date();
+			await add_vacuum_date();
+		}
+		await db?.executeQuery(sql`VACUUM`.compile(db));
 	} catch (error) {
 		console.log("migration error! : ", error);
 	}
+}
+
+async function add_usage_log_date(): Promise<void> {
+	await db
+		?.insertInto("meta_info")
+		.values({ key: "usage_log_date", value: new Date().toISOString() })
+		.executeTakeFirstOrThrow();
+}
+
+async function add_vacuum_date(): Promise<void> {
+	await db
+		?.insertInto("meta_info")
+		.values({ key: "vacuum_date", value: new Date().toISOString() })
+		.executeTakeFirstOrThrow();
+}
+
+async function add_install_date(): Promise<void> {
+	await db
+		?.insertInto("meta_info")
+		.values({ key: "install_date", value: new Date().toISOString() })
+		.executeTakeFirstOrThrow();
 }
