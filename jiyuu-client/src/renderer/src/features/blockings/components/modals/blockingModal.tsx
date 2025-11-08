@@ -371,8 +371,8 @@ export default function BlockingModal(): React.JSX.Element {
 						</Typography>
 					</Stack>
 					<Stack
-						padding={1}
 						height={220}
+						gap={1}
 						overflow={"auto"}
 						sx={{
 							pr: 0.5,
@@ -405,12 +405,20 @@ export default function BlockingModal(): React.JSX.Element {
 								<Stack
 									key={`${v.block_group_id} - ${v.target_text} - ${i}`}
 									direction={"row"}
+									border={"1px solid #CBCBCB"}
+									padding={0.2}
 								>
-									<Stack direction={"row"} width={"100%"}>
+									<Stack
+										direction={"row"}
+										width={"100%"}
+										alignContent={"center"}
+										justifyContent={"center"}
+									>
 										<Typography
-											variant="overline"
+											variant="body1"
 											width={"100%"}
-											sx={{ ...menuButtonStyle, fontWeight: 500 }}
+											alignContent={"center"}
+											justifyContent={"center"}
 										>
 											{v.target_text}
 										</Typography>
@@ -421,6 +429,7 @@ export default function BlockingModal(): React.JSX.Element {
 												variant="outlined"
 												sx={{
 													...chipSx,
+													marginTop: 0.7,
 													color: "primary.main",
 													borderColor: "primary.main",
 												}}

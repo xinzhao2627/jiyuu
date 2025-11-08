@@ -19,6 +19,8 @@ import { WebSocketServer } from "ws";
 
 import {
 	cleanURL,
+	findBrowser,
+	increment_active_browsers,
 	isURL,
 	showError,
 	taskKiller_win,
@@ -49,8 +51,8 @@ import {
 	TimeListInterface,
 	UsageLimitData_Config,
 } from "../lib/jiyuuInterfaces";
-import { isIncognito, isTimelist, isWebpage } from "./webSocketInterface";
-import { whitelist_put_type } from "./index-interface";
+import { isPing, isTimelist, isWebpage } from "./webSocketInterface";
+import { browsersList, whitelist_put_type } from "./index-interface";
 import {
 	clearUsageLogIfNeeded,
 	getBlockGroupTimeUsage,
@@ -208,8 +210,19 @@ app.whenReady().then(async () => {
 		optimizer.watchWindowShortcuts(window);
 	});
 
-	// initialize sqlite
-
+	let browsers_list: browsersList[] = [
+		{ name: "chrome", process: "chrome", elapsedMissing: 0 },
+		{ name: "brave", process: "brave", elapsedMissing: 0 },
+		{ name: "edge", process: "msedge", elapsedMissing: 0 },
+		{ name: "opera", process: "opera.exe", elapsedMissing: 0 },
+		{ name: "opera_gx", process: "opera_gx", elapsedMissing: 0 },
+		{ name: "vivaldi", process: "vivaldi", elapsedMissing: 0 },
+		{ name: "avast_secure", process: "AvastBrowser", elapsedMissing: 0 },
+		{ name: "torch", process: "torch", elapsedMissing: 0 },
+		{ name: "comodo_dragon", process: "dragon", elapsedMissing: 0 },
+		{ name: "chromium", process: "chromium", elapsedMissing: 0 },
+		{ name: "yandex", process: "browser", elapsedMissing: 0 },
+	];
 	// triggers when opening the app
 	try {
 		initDb();
@@ -240,6 +253,34 @@ app.whenReady().then(async () => {
 			try {
 				await updateBlockGroup();
 				await clearUsageLogIfNeeded();
+
+				/**
+				 * Whats happening here?
+				 *
+				 * first increment all elapsed time of all active browsers.
+				 * This means it
+				 * increments forever until it reaches n_seconds
+				 * (regardless if the extension is installed or not)
+				 * (it reverts back to 0 if it is both active
+				 * and enabled in incognito
+				 * (from the websocket code far below))
+				 *
+				 * Then if the elapsedMissing is filled up,
+				 * kill the process of that active browser!
+				 */
+				await increment_active_browsers(browsers_list);
+				const maxTime =
+					(
+						await db
+							?.selectFrom("user_options")
+							.select("secondsUntilClosed")
+							.executeTakeFirst()
+					)?.secondsUntilClosed || 60;
+				for (const b of browsers_list) {
+					if (b.elapsedMissing >= maxTime) {
+						await taskKiller_win(b);
+					}
+				}
 			} catch (error) {
 				console.error("Error in recursiveGroupChecker:", error);
 			} finally {
@@ -974,21 +1015,18 @@ app.whenReady().then(async () => {
 	ipcMain.on("whitelist/delete", async (event: Electron.IpcMainEvent, data) => {
 		try {
 			const { item } = data as { item: string };
-			if (await whitelist_does_exist(item)) {
-				throw "The whitelist item already exist!";
+
+			// Dont delete if theres nothing in the data about this particular item
+			if (!(await whitelist_does_exist(item))) {
+				throw "item does not exist";
 			}
 			await db
 				?.deleteFrom("whitelist")
 				.where("item", "=", item)
-				.executeTakeFirstOrThrow();
+				.executeTakeFirst();
 			event.reply("whitelist/delete/response", {});
 		} catch (err) {
-			showError(
-				err,
-				event,
-				"Error getting dashboard",
-				"whitelist/delete/response",
-			);
+			showError(err, event, "Error deleting item", "whitelist/delete/response");
 		} finally {
 			const r = await db?.selectFrom("whitelist").selectAll().execute();
 			mainWindow.webContents.send("whitelist/get/response", {
@@ -999,30 +1037,30 @@ app.whenReady().then(async () => {
 	ipcMain.on("whitelist/put", async (event: Electron.IpcMainEvent, data) => {
 		try {
 			const { item, whitelist_type } = data as whitelist_put_type;
-			if (!item) throw "The whitelist item is empty";
-
+			if (!item) throw "item is empty";
 			// TODO: check if the item is app or url or keyword
-
 			// if web check if theres a current item in whitelist db
 			if (await whitelist_does_exist(item)) {
-				throw "The whitelist item already exist!";
+				throw "item already exist!";
 			}
 			// check if it is in some blockgroups
 			const s = await whitelist_is_in_blockgroup(item);
 			if (s.is_included) {
-				throw `Cannot add item, the item is present in the following groups ${s.included_blockgroups.toString()}`;
+				throw `item is present in group: ${s.included_blockgroups.toString()}`;
 			}
-			whitelist_put({ item, whitelist_type });
+			await whitelist_put({ item, whitelist_type });
 			event.reply("whitelist/put/response", {});
 		} catch (err) {
 			showError(
 				err,
 				event,
-				"Error getting dashboard",
+				"Error putting whitelist:",
 				"whitelist/put/response",
 			);
 		} finally {
 			const r = await db?.selectFrom("whitelist").selectAll().execute();
+			console.log(r);
+
 			mainWindow.webContents.send("whitelist/get/response", {
 				data: r,
 			});
@@ -1064,7 +1102,7 @@ app.whenReady().then(async () => {
 		ws.on("message", async (message) => {
 			try {
 				const data = JSON.parse(message.toString()) as
-					| isIncognito
+					| isPing
 					| isTimelist
 					| isWebpage;
 				// check if the data passed is a webpage, the app is supposed to monitor and validate a tab/webpage
@@ -1117,25 +1155,15 @@ app.whenReady().then(async () => {
 							ws.send(r);
 						}
 					}
-				}
-
-				// if the allow in incognito is disabled...
-				else if (data.sendType === "isIncognito") {
-					if (!data.isAllowedIncognitoAccess && data.userAgent) {
-						let ua_string = data.userAgent as string;
-						let name = "";
-						if (ua_string.includes("chrome")) name = "chrome";
-						else if (ua_string.includes("firefox")) name = "firefox";
-						else if (ua_string.includes("brave")) name = "brave";
-						else if (ua_string.includes("edg/")) name = "msedge";
-						const restrictDelay = await db
-							?.selectFrom("user_options")
-							.select("secondsUntilClosed")
-							.executeTakeFirst();
-						if (name) {
-							setTimeout(async () => {
-								await taskKiller_win(name);
-							}, restrictDelay?.secondsUntilClosed || 60000);
+				} else if (data.sendType === "isPing") {
+					let ua_string = data.userAgent ? (data.userAgent as string) : "";
+					let name = findBrowser(ua_string);
+					for (const b of browsers_list) {
+						if (b.name === name) {
+							// if incognito access is allowed, reset the filling timer
+							if (data.isAllowedIncognitoAccess) {
+								b.elapsedMissing = 0;
+							}
 						}
 					}
 				}

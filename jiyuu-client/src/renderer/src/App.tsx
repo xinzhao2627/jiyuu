@@ -1,7 +1,4 @@
-// import Versions from './components/Versions'
-
-// import { Router } from "../../lib/electron-router-dom";
-import Sidebar from "./components/Sidebar";
+import BottomNav from "./components/BottomNav";
 import "./input.css";
 import Blockings from "./features/blockings/Blockings";
 import { Route, HashRouter, Routes } from "react-router-dom";
@@ -29,10 +26,12 @@ function Layout({
 			>
 				<Box sx={{ flex: 1, overflow: "auto" }}>{children}</Box>
 
+				{/* BOTTOM NAVIGATION BAR */}
 				<Box sx={{ flexShrink: 0, width: "100%", border: "1px solid #e5e5e5" }}>
-					<Sidebar />
+					<BottomNav />
 				</Box>
 
+				{/* TOAST MESSAGE STYLE */}
 				<Toaster
 					position="top-center"
 					toastOptions={{

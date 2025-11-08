@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: jiyuu-client
+appId: com.jiyuu.app
+productName: jiyuu
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: jiyuu-client
+  executableName: jiyuu
 nsis:
   include: build/installer.nsh
   artifactName: ${name}-${version}-setup.${ext}

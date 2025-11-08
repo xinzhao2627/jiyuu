@@ -12,24 +12,28 @@ export default defineBackground(() => {
 	let _socket: WebSocket | null = null;
 	let lastLogTime = new Date();
 	let timeList = new Map<string, TimeListData>();
+	let lastPingTime = new Date();
 	browser.runtime.onInstalled.addListener((details) => {
 		console.log("Extension installed:", details);
 	});
 	async function init_intervals() {
+		pingServer();
 		incrementor();
 		await log_to_server();
 	}
 	init_intervals().catch(console.error);
+
+	// sends information to the server every 4 to 5 seconds
 	async function log_to_server() {
 		const currentTime = new Date();
+		const elapsedGeneral = currentTime.getTime() - lastLogTime.getTime();
 
 		// if its not yet 5 secs come back again shortly
-		if (currentTime.getTime() - lastLogTime.getTime() < 5000) {
+		if (elapsedGeneral < 5000) {
 			setTimeout(log_to_server, 100);
 			return;
 		}
-		console.log("log to server runnin");
-
+		// console.log("log to server runnin");
 		try {
 			// this will run after 5 seconds elapsed from the lastLogTime and the currentTime
 			browser.tabs.query({ active: true }).then(async (tabs) => {
@@ -87,24 +91,31 @@ export default defineBackground(() => {
 		} finally {
 			lastLogTime = currentTime;
 
+			// repeat again after 5 seconds have passed
+			setTimeout(log_to_server, 5000);
+		}
+	}
+
+	function pingServer() {
+		const currentTime = new Date();
+		const elapsedGeneral = currentTime.getTime() - lastPingTime.getTime();
+		try {
 			browser.extension
 				.isAllowedIncognitoAccess()
 				.then(async (isAllowedAccess) => {
-					// if allowed in incognito is disabled, send a warning to the server
-					if (!isAllowedAccess) {
-						// console.error(
-						// 	"WARNING: ALLOW INCOGNITO MODE IS DISABLED"
-						// );
-						// await sendMessageWs({
-						// 	sendType: "isIncognito",
-						// 	isIncognitoMessage: true,
-						// 	isAllowedIncognitoAccess: isAllowedAccess,
-						// 	userAgent: navigator.userAgent.toLowerCase(),
-						// });
-					}
+					// user agent is the name of the browser (e.g: firefox/115.0, chrome/123)
+					const userAgent = navigator.userAgent.toLowerCase();
+					await sendMessageWs({
+						sendType: "isPing",
+						isAllowedIncognitoAccess: isAllowedAccess,
+						userAgent: userAgent,
+						secondsElapsed: elapsedGeneral,
+					});
 				});
-			// repeat again after 5 seconds have passed
-			setTimeout(log_to_server, 5000);
+		} catch (error) {
+			console.error("Cannot ping server: " + error);
+		} finally {
+			lastPingTime = currentTime;
 		}
 	}
 
@@ -152,6 +163,8 @@ export default defineBackground(() => {
 
 		setTimeout(incrementor, 1000);
 	}
+
+	// this runs when a tab is opened or clicked
 	browser.tabs.onActivated.addListener(async (activeInfo) => {
 		try {
 			await tabsListener(activeInfo);
@@ -159,6 +172,8 @@ export default defineBackground(() => {
 			console.error("Error in Activated listener: ", error);
 		}
 	});
+
+	// this runs when a tab is refreshed
 	browser.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
 		try {
 			if (changeInfo.status === "complete") {
@@ -244,9 +259,9 @@ export default defineBackground(() => {
 			  }
 			| { sendType: "isTimelist"; data: { [k: string]: TimeListData } }
 			| {
-					sendType: "isIncognito";
-					isIncognitoMessage: boolean;
+					sendType: "isPing";
 					isAllowedIncognitoAccess: boolean;
+					secondsElapsed: number;
 					userAgent: string;
 			  }
 	) {

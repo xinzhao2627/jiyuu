@@ -13,7 +13,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 const actionStyle: SxProps<Theme> = { fontWeight: 500, letterSpacing: 1 };
 const iconActionStyle: SxProps<Theme> = { mb: "2px" };
-export default function Sidebar(): React.JSX.Element {
+export default function BottomNav(): React.JSX.Element {
 	const location = useLocation();
 	const navigate = useNavigate();
 
@@ -40,7 +40,6 @@ export default function Sidebar(): React.JSX.Element {
 					maxWidth: "none",
 				},
 				padding: 1,
-				// backdropFilter: "blur(2px)",
 			}}
 		>
 			<BottomNavigationAction

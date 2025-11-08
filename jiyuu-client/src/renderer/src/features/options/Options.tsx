@@ -111,7 +111,8 @@ export default function Options(): React.JSX.Element {
 							Block unsupported browsers
 						</Typography>
 						<Typography variant="caption" color="initial">
-							Supported browsers
+							Supported browsers: Chrome {"(all chromium browsers)"}, Firefox,
+							Edge, Opera, Brave, Vivaldi, Tor
 						</Typography>
 					</Stack>
 

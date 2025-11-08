@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { ipcRendererSend } from "../blockings/blockingAPI";
+import { ipcRendererOn, ipcRendererSend } from "../blockings/blockingAPI";
 import {
 	Box,
 	FilledInput,
 	FormControl,
+	IconButton,
 	InputLabel,
 	Stack,
-	ToggleButton,
-	ToggleButtonGroup,
+	// ToggleButton,
+	// ToggleButtonGroup,
 	Typography,
 } from "@mui/material";
 import { isURL } from "@renderer/assets/shared/general_helper";
+import { whitelist } from "@renderer/jiyuuInterfaces";
+import ClearIcon from "@mui/icons-material/Clear";
 
 export default function Whitelist(): React.JSX.Element {
 	const [whitelistData, setWhitelistData] = useState<string[]>([]);
@@ -22,8 +25,8 @@ export default function Whitelist(): React.JSX.Element {
 				channel: "whitelist/put/response",
 				handler: (_, data: { error: string }) => {
 					if (data.error) {
-						toast.error("error adding a whitelist");
-						console.log(data.error);
+						toast.error(data.error);
+						// console.log();
 					} else {
 						toast.success("successfully added");
 						setWhitelistItem("");
@@ -32,12 +35,12 @@ export default function Whitelist(): React.JSX.Element {
 			},
 			{
 				channel: "whitelist/get/response",
-				handler: (_, data: { error: string; data: string[] }) => {
+				handler: (_, data: { error: string; data: whitelist[] }) => {
 					if (data.error) {
 						toast.error("error fetching whitelist data");
 						console.log(data.error);
 					} else {
-						setWhitelistData(data.data);
+						setWhitelistData(data.data.map((v) => v.item));
 					}
 				},
 			},
@@ -47,11 +50,17 @@ export default function Whitelist(): React.JSX.Element {
 					if (data.error) {
 						toast.error("error fetching whitelist data");
 						console.log(data.error);
+					} else {
+						toast.success("deleted successfully");
 					}
 				},
 			},
 		];
+		listeners.forEach((v) => {
+			ipcRendererOn(v.channel, v.handler);
+		});
 		ipcRendererSend("whitelist/get", {});
+
 		return () => {
 			listeners.forEach((v) => {
 				window.electron.ipcRenderer.removeAllListeners(v.channel);
@@ -68,7 +77,7 @@ export default function Whitelist(): React.JSX.Element {
 					overflow: "auto",
 				}}
 			>
-				<ToggleButtonGroup
+				{/* <ToggleButtonGroup
 					color="primary"
 					exclusive
 					aria-label="Platform"
@@ -88,10 +97,11 @@ export default function Whitelist(): React.JSX.Element {
 					>
 						Website Content
 					</ToggleButton>
-				</ToggleButtonGroup>
+				</ToggleButtonGroup> */}
 				<FormControl
 					fullWidth
 					sx={{
+						mt: 2,
 						p: 0,
 						"& input": {
 							caretColor: "black",
@@ -99,7 +109,7 @@ export default function Whitelist(): React.JSX.Element {
 					}}
 					variant="filled"
 				>
-					<InputLabel htmlFor="">Whitelist item</InputLabel>
+					<InputLabel htmlFor="">Enter whitelist item here</InputLabel>
 					<FilledInput
 						type="text"
 						value={whitelistItem}
@@ -129,18 +139,47 @@ export default function Whitelist(): React.JSX.Element {
 					/>
 				</FormControl>{" "}
 				<Typography variant="caption" sx={{ m: 1 }} color="textSecondary">
-					Press Enter to add a keyword or a website{" "}
-					{"(e.g: facebook.com/reel | r/funny)"}
+					Press Enter to add a url
+					{" (e.g: facebook.com OR reddit.com/r/funny)"}
 				</Typography>
 				<Stack
 					alignContent={"center"}
-					justifyContent={"center"}
 					height={"100%"}
+					mt={2}
+					gap={1}
+					overflow={"auto"}
 				>
 					{whitelistData.length > 0 ? (
 						<>
 							{whitelistData.map((v, i) => {
-								<div key={`${v} - ${i}`}>{v}</div>;
+								return (
+									<Box
+										border={"1px solid #CBCBCB"}
+										p={0.3}
+										key={`${v} - ${i}`}
+										display={"flex"}
+										alignContent={"center"}
+										alignItems={"center"}
+									>
+										<Typography
+											variant="body1"
+											color="initial"
+											ml={1}
+											width={"100%"}
+											textTransform={"none"}
+										>
+											{v}
+										</Typography>
+										<IconButton
+											size="small"
+											onClick={() => {
+												ipcRendererSend("whitelist/delete", { item: v });
+											}}
+										>
+											<ClearIcon />
+										</IconButton>
+									</Box>
+								);
 							})}
 						</>
 					) : (

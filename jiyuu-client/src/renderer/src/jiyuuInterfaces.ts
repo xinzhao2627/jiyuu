@@ -174,3 +174,10 @@ export const THIRTY_MINUTES = TEN_MINUTES * 3;
 export const ONE_HOUR = THIRTY_MINUTES * 2;
 export const SIX_HOURS = ONE_HOUR * 6;
 export const ONE_DAY = SIX_HOURS * 4;
+
+export interface whitelistTable {
+	id: Generated<number>;
+	item: string;
+	whitelist_type: "app" | "url";
+}
+export type whitelist = Selectable<whitelistTable>;

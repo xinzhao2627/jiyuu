@@ -8,6 +8,7 @@ import {
 	UsageLimitData_Config,
 } from "../../lib/jiyuuInterfaces";
 import { db } from "../database/initializations";
+import { get_whitelist_all } from "./whitelist_helpers";
 
 // timelist interface also includes keywords, desc, headers, etc.
 export async function validateTimelist(
@@ -21,7 +22,7 @@ export async function validateTimelist(
 
 		// then get all listed sites/keyword in jiyuu
 		const rows = (await getBlockedContentDataAll()) || [];
-
+		const whitelists = (await get_whitelist_all()).map((v) => v.item);
 		// loops all listed sites/keywords and determine their <group_id, seconds>
 		const blockGroupsList = new Map<number, number>();
 		for (const r of rows) {
@@ -29,7 +30,7 @@ export async function validateTimelist(
 
 			for (const v of siteData.values()) {
 				// if one of the tab is included in the active block...
-				if (siteIncludes(v, target, 1)) {
+				if (siteIncludes(v, target, 1, Boolean(r.is_absolute), whitelists)) {
 					const s = blockGroupsList.get(r.block_group_id);
 
 					// get the corresponding blockgroup/s of the data
@@ -89,6 +90,7 @@ export async function validateWebpage(data: {
 
 		// get all blocked sites and their corresponding effects (grayscale, cover, mute)
 		const rows = (await getBlockedContentDataAll()) || [];
+		const whitelists = (await get_whitelist_all()).map((v) => v.item);
 
 		let grayscale_count = 0;
 		let muted_count = 0;
@@ -101,7 +103,15 @@ export async function validateWebpage(data: {
 		for (const r of rows) {
 			const isact = r.is_activated;
 			const target = r.target_text;
-			if (siteIncludes(siteData, target, isact)) {
+			if (
+				siteIncludes(
+					siteData,
+					target,
+					isact,
+					Boolean(r.is_absolute),
+					whitelists,
+				)
+			) {
 				grayscale_count += r.is_grayscaled;
 				muted_count += r.is_muted;
 				covered_count += r.is_covered;

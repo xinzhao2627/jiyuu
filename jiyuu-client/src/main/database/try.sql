@@ -133,4 +133,6 @@ SELECT bg.*, GROUP_CONCAT(
         ON bg.id = bgc.block_group_id
         GROUP BY  bg.id
 
-PRAGMA table_info(block_group);
+PRAGMA table_info(whitelist);
+
+select * from whitelist;

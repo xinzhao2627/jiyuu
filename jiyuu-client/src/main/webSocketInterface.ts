@@ -11,9 +11,9 @@ export interface isTimelist {
 	data: { [k: string]: TimeListInterface };
 }
 
-export interface isIncognito {
-	sendType: "isIncognito";
-	isIncognitoMessage: boolean;
+export interface isPing {
+	sendType: "isPing";
 	isAllowedIncognitoAccess: boolean;
 	userAgent: string;
+	secondsElapsed: number;
 }

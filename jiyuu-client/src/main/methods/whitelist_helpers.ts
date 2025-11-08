@@ -12,7 +12,7 @@ export async function whitelist_does_exist(item: string): Promise<boolean> {
 		?.selectFrom("whitelist")
 		.selectAll()
 		.where("item", "=", item)
-		.executeTakeFirstOrThrow();
+		.executeTakeFirst();
 	return r ? true : false;
 }
 

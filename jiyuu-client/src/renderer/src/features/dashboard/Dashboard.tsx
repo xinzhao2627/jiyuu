@@ -5,7 +5,6 @@ import {
 	Card,
 	CardContent,
 	Grid,
-	IconButton,
 	Stack,
 	SxProps,
 	Theme,
@@ -14,7 +13,6 @@ import {
 	Typography,
 	LinearProgress,
 } from "@mui/material";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { ipcRendererOn, ipcRendererSend } from "../blockings/blockingAPI";
 import { blue } from "@mui/material/colors";
 
@@ -88,7 +86,6 @@ export default function Dashboard(): React.JSX.Element {
 						const d = data.data as {
 							dashboardDateMode: "m" | "w" | "d" | null;
 						};
-						console.log("d is: ", d);
 
 						setSelectedPeriod(d.dashboardDateMode || "d");
 					}
@@ -119,6 +116,7 @@ export default function Dashboard(): React.JSX.Element {
 	}, []);
 	const tButtonStyle: SxProps<Theme> = {
 		backgroundColor: "white",
+		width: 100,
 		p: 0.7,
 		px: 1.3,
 		textTransform: "none",
@@ -154,7 +152,7 @@ export default function Dashboard(): React.JSX.Element {
 				sum += v;
 			}
 		}
-		const mode = (sum * 1.0) / 60 > 60 ? "hours" : "minutes";
+		const mode = (sum * 1.0) / 60 > 60 ? "hrs" : "mins";
 		const displaySum =
 			(sum * 1.0) / 60 > 60 ? (sum * 1.0) / 3600 : (sum * 1.0) / 60;
 		return (
@@ -174,21 +172,27 @@ export default function Dashboard(): React.JSX.Element {
 		function generateListItem(): React.JSX.Element {
 			const res = arr[0] || null;
 			if (res) {
-				const sum = res[1];
-				const mode = (sum * 1.0) / 60 > 60 ? "h" : "min";
+				const sum = res[1] ?? 200;
+				const mode = (sum * 1.0) / 60 > 60 ? "hrs" : "mins";
 				const displaySum =
 					(sum * 1.0) / 60 > 60 ? (sum * 1.0) / 3600 : (sum * 1.0) / 60;
 
 				return (
-					<Stack direction={"row"} gap={1} alignContent={"center"} mt={2}>
+					<Stack alignContent={"center"} mt={1}>
 						<Typography
 							variant="h5"
 							alignContent={"center"}
 							sx={{ color: blue[700] }}
+							width={"100%"}
+							overflow={"hidden"}
+							textOverflow={"ellipsis"}
 						>
 							{res[0]}
 						</Typography>
-						<Typography variant="h6" sx={{ color: blue[700] }}>
+						<Typography
+							variant="subtitle1"
+							sx={{ color: blue[700], fontWeight: 600 }}
+						>
 							{displaySum.toFixed(1)} {mode}
 						</Typography>
 					</Stack>
@@ -196,7 +200,23 @@ export default function Dashboard(): React.JSX.Element {
 			}
 
 			return (
-				<Typography sx={{ color: blue[700] }}>Nothing to show!</Typography>
+				<Stack
+					sx={{
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					<Typography
+						mt={1}
+						variant="h4"
+						sx={{ fontWeight: 200 }}
+						color="textSecondary"
+					>
+						Data unavailable
+					</Typography>
+				</Stack>
 			);
 		}
 
@@ -220,9 +240,23 @@ export default function Dashboard(): React.JSX.Element {
 		}
 		if (groupsListArr.length === 0)
 			return (
-				<Typography variant="body1" color="initial">
-					Nothing to show in this group
-				</Typography>
+				<Stack
+					sx={{
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					<Typography
+						mt={2.5}
+						variant="h4"
+						sx={{ fontWeight: 200 }}
+						color="textSecondary"
+					>
+						Data unavailable
+					</Typography>
+				</Stack>
 			);
 		// TODO hgow??
 
@@ -263,7 +297,13 @@ export default function Dashboard(): React.JSX.Element {
 				display: "inline-block",
 			}}
 		>
-			<Stack direction={"row"} gap={2} alignContent={"end"} textAlign={"end"}>
+			<Stack
+				direction={"row"}
+				alignContent={"center"}
+				textAlign={"center"}
+				justifyContent={"center"}
+				p={1}
+			>
 				<ToggleButtonGroup
 					value={selectedPeriod}
 					exclusive
@@ -283,6 +323,7 @@ export default function Dashboard(): React.JSX.Element {
 					sx={{
 						alignContent: "center",
 						textAlign: "center",
+						border: "0.5px solid #CBCBCB",
 					}}
 				>
 					<ToggleButton
@@ -310,23 +351,21 @@ export default function Dashboard(): React.JSX.Element {
 						m
 					</ToggleButton>
 				</ToggleButtonGroup>
-				<IconButton>
-					<MoreHorizIcon />
-				</IconButton>
 			</Stack>
 			<Grid container borderRadius={0} spacing={0.8} padding={1}>
 				{/* site visits today */}
-				<Grid size={4}>
+				<Grid size={{ xs: 12, sm: 6, md: 4 }}>
 					<Card
 						sx={{
 							minWidth: 275,
 							minHeight: 130,
 							padding: 0,
+							height: 130,
 						}}
 					>
 						<CardContent>
 							<Typography mb={1} variant="body1" fontWeight={400}>
-								Number of websites visited{" "}
+								Sites visited{" "}
 								{selectedPeriod === "d"
 									? "today"
 									: selectedPeriod === "m"
@@ -338,13 +377,14 @@ export default function Dashboard(): React.JSX.Element {
 					</Card>
 				</Grid>
 
-				{/* time usage today */}
-				<Grid size={4}>
+				{/* time spent today */}
+				<Grid size={{ xs: 12, sm: 6, md: 4 }}>
 					<Card
 						sx={{
 							minWidth: 275,
 							padding: 0,
 							minHeight: 130,
+							height: 130,
 						}}
 					>
 						<CardContent>
@@ -361,7 +401,7 @@ export default function Dashboard(): React.JSX.Element {
 					</Card>
 				</Grid>
 				{/* time usage today */}
-				<Grid size={4}>
+				<Grid size={{ xs: 12, sm: 6, md: 4 }}>
 					<Card
 						sx={{
 							minWidth: 275,
@@ -369,16 +409,16 @@ export default function Dashboard(): React.JSX.Element {
 							minHeight: 130,
 						}}
 					>
-						<CardContent>
+						<CardContent sx={{ height: "100%" }}>
 							<Typography mb={1} variant="body1" fontWeight={400}>
-								Most used website{" "}
+								Most used site{" "}
 								{selectedPeriod === "d"
 									? "today"
 									: selectedPeriod === "m"
 										? "this month"
 										: "this week"}
 							</Typography>
-							{mostUsedDisplay()}
+							<Box height={"100%"}>{mostUsedDisplay()}</Box>
 						</CardContent>
 					</Card>{" "}
 				</Grid>

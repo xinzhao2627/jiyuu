@@ -568,6 +568,7 @@ export default function Blockings(): React.JSX.Element {
 						disableRipple
 						sx={{
 							borderRadius: "0px",
+							boxShadow: "none",
 						}}
 						onClick={() => {
 							setBlockGroupModal("add", true);
