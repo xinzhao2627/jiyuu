@@ -34,6 +34,8 @@ export interface user_optionsTable {
 	secondsUntilClosed: number;
 	blockUnsupportedBrowser: 0 | 1;
 	blockTaskManager: 0 | 1;
+	blockEmulators: 0 | 1;
+	selectedTheme: string;
 	blockCalendar: 0 | 1;
 	dashboardDateMode: "m" | "w" | "d";
 }

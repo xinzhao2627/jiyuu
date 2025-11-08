@@ -144,6 +144,30 @@ const migrations: Array<{ id: string; up: () => Promise<void>; desc: string }> =
 			desc: "",
 		},
 		{
+			id: "alter-user_options-blockEmulators",
+			up: async () => {
+				await db?.schema
+					.alterTable("user_options")
+					.addColumn("blockEmulators", "integer", (col) =>
+						col.notNull().defaultTo(0),
+					)
+					.execute();
+			},
+			desc: "update as of 11/8/2025 (mm/dd/yyyy)",
+		},
+		{
+			id: "alter-user_options-selectedTheme",
+			up: async () => {
+				await db?.schema
+					.alterTable("user_options")
+					.addColumn("selectedTheme", "text", (col) =>
+						col.notNull().defaultTo("light"),
+					)
+					.execute();
+			},
+			desc: "update as of 11/8/2025 (mm/dd/yyyy) (theme)",
+		},
+		{
 			id: "init-click_count",
 			up: async () => {
 				await db?.schema
@@ -167,6 +191,8 @@ const migrations: Array<{ id: string; up: () => Promise<void>; desc: string }> =
 						blockTaskManager: 0,
 						blockCalendar: 0,
 						dashboardDateMode: "d",
+						blockEmulators: 0,
+						selectedTheme: "light",
 					})
 					.executeTakeFirst();
 			},

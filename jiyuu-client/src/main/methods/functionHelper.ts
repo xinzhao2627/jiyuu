@@ -1,7 +1,10 @@
 import { exec } from "child_process";
-import fkill from "fkill";
 import { SiteAttribute, TimeListInterface } from "../../lib/jiyuuInterfaces";
-import { browsersList } from "../index-interface";
+import {
+	browsersList,
+	emulators,
+	unsupported_browsers,
+} from "../index-interface";
 import * as util from "util";
 import { db } from "../database/initializations";
 const execPromise = util.promisify(exec);
@@ -48,18 +51,42 @@ export function showError(
 		error: errorMsg,
 	});
 }
-
+export async function processFinder(lists: string): Promise<string> {
+	let stdout = "";
+	try {
+		const res = await execPromise(`tasklist | findstr /I "${lists}"`);
+		stdout = res.stdout;
+	} catch (error) {
+		if (
+			error &&
+			typeof error === "object" &&
+			"code" in error &&
+			error.code === 1
+		) {
+			stdout = "";
+		} else {
+			console.log("increment_active_browsers ERROR: ", error);
+			return "";
+		}
+	}
+	return stdout;
+}
+export async function processKiller(processName: string): Promise<void> {
+	try {
+		const { stderr } = await execPromise(`taskkill /F /IM ${processName}`);
+		if (!stderr) {
+			console.log("killed ", name);
+		}
+	} catch (error) {
+		console.error(`ERROR KILLING ${processName}, CAUSE: ${error}`);
+	}
+}
 export async function taskKiller_win(b: browsersList): Promise<void> {
 	try {
 		const name = b.name;
 		const processName = name.endsWith(".exe") ? name : `${name}.exe`;
-
+		await processKiller(processName);
 		// await fkill(name);
-		const { stderr } = await execPromise(`taskkill /F /IM ${processName}.exe`);
-
-		if (stderr) {
-			console.error(`ERROR KILLING ${processName}, CAUSE: ${stderr}`);
-		}
 		b.elapsedMissing = 0;
 	} catch (error) {
 		console.log(error instanceof Error ? error.message : error);
@@ -69,17 +96,19 @@ export async function taskKiller_win(b: browsersList): Promise<void> {
 export async function increment_active_browsers(
 	browserLists: browsersList[],
 ): Promise<void> {
-	const { stdout } = await execPromise(
-		`tasklist | findstr /I "${browserLists.map((v) => v.process + ".exe").join(" ")}"`,
+	let stdout = "";
+	stdout = await processFinder(
+		browserLists.map((v) => v.process + ".exe").join(" "),
 	);
-	const res = stdout.trim().toLowerCase();
 
+	stdout = stdout.trim().toLowerCase();
 	for (const b of browserLists) {
 		const processName = b.process;
-		if (res.includes(processName)) {
+		if (stdout.includes(processName)) {
 			b.elapsedMissing += 1;
 		}
 	}
+
 	return;
 }
 export function findBrowser(ua_string: string): string {
@@ -99,19 +128,36 @@ export function findBrowser(ua_string: string): string {
 	else if (ua_string.includes("chrome")) name = "chrome";
 	return name;
 }
-
-export async function killUnsupportedBrowsers(
-	browserLists: browsersList[],
-): Promise<void> {
-	const toBlockUnsupported = (
-		await db
-			?.selectFrom("user_options")
-			.select("blockUnsupportedBrowser")
-			.executeTakeFirst()
-	)?.blockUnsupportedBrowser;
+export async function killManager(): Promise<void> {
+	const r = await db
+		?.selectFrom("user_options")
+		.select(["blockUnsupportedBrowser", "blockEmulators"])
+		.executeTakeFirst();
+	const targetedProcesses: string[] = [];
+	const toBlockUnsupported = r?.blockUnsupportedBrowser;
+	const toBlockEmulators = r?.blockEmulators;
 	if (toBlockUnsupported) {
-		if (browserLists) {
-			console.log("hehe");
+		targetedProcesses.push(
+			...unsupported_browsers.map((v) => v.process + ".exe"),
+		);
+	}
+	if (toBlockEmulators) {
+		targetedProcesses.push(...emulators.map((v) => v + ".exe"));
+	}
+	const res = await processFinder(targetedProcesses.join(" "));
+
+	if (toBlockEmulators) {
+		for (const e of emulators) {
+			if (res.includes(e)) {
+				await processKiller(e + ".exe");
+			}
+		}
+	}
+	if (toBlockUnsupported) {
+		for (const b of unsupported_browsers) {
+			if (res.includes(b.process)) {
+				await processKiller(b.process + ".exe");
+			}
 		}
 	}
 
@@ -148,28 +194,6 @@ export function taskList_win(): string {
 		}
 	});
 	return res;
-}
-
-export async function blockTaskManager_win(): Promise<void> {
-	try {
-		await fkill("Taskmgr", { force: true });
-	} catch (error) {
-		console.error(
-			"Failed to kill Task Manager:",
-			error instanceof Error ? error.message : error,
-		);
-	}
-}
-
-export async function blockActivityMonitor_mac(): Promise<void> {
-	try {
-		await fkill("Activity Monitor", { force: true });
-	} catch (error) {
-		console.error(
-			"Failed to kill Task Manager:",
-			error instanceof Error ? error.message : error,
-		);
-	}
 }
 
 export function isURL(str: string): boolean {

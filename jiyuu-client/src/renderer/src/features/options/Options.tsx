@@ -1,6 +1,6 @@
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useStore } from "../blockings/blockingsStore";
 import { ipcRendererOn, ipcRendererSend } from "../blockings/blockingAPI";
 import {
@@ -9,7 +9,6 @@ import {
 	FormHelperText,
 	MenuItem,
 	Select,
-	SelectChangeEvent,
 	Stack,
 	ToggleButton,
 	ToggleButtonGroup,
@@ -17,17 +16,21 @@ import {
 import { modalTextFieldStyle } from "@renderer/assets/shared/modalStyle";
 import { Controller, FieldValues, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
+import { user_optionsTable } from "@renderer/jiyuuInterfaces";
 export default function Options(): React.JSX.Element {
-	const { handleSubmit, register, reset, control } = useForm();
-	const [hasRestriction, setHasRestriction] = useState<boolean>(false);
-	const isDisabled = (is_on: boolean): boolean => hasRestriction && is_on;
+	const { handleSubmit, register, reset, control } = useForm({
+		defaultValues: {
+			restrictDelay: 60,
+			blockUnsupportedBrowser: 0,
+			blockEmulators: 0,
+			selectedTheme: "light",
+		},
+	});
 	const { blockGroup, setBlockGroupData } = useStore();
+	// const [userOptions, setUserOptions] = useState<user_optionsTable | undefined>(
+	// 	undefined,
+	// );
 
-	const [selectedTheme, setSelectedTheme] = useState<string>("");
-
-	const handleChange = (event: SelectChangeEvent): void => {
-		setSelectedTheme(event.target.value);
-	};
 	const listeners = [
 		{
 			// RECEIVE BLOCK GROUP RESPONSE
@@ -39,24 +42,46 @@ export default function Options(): React.JSX.Element {
 				setBlockGroupData(data.data);
 			},
 		},
+		{
+			channel: "configoptions/set/response",
+			handler: (_, data) => {
+				if (data.error) {
+					console.error("Error configoptions/set/response", data.error);
+					toast.error("Error configuring options, try again");
+				} else {
+					toast.success("Options saved");
+				}
+			},
+		},
+		{
+			channel: "useroptions/get/response",
+			handler: (
+				_,
+				data: { error: string | undefined; data: user_optionsTable },
+			) => {
+				if (data.error) {
+					console.error("Error useroptions/get/response", data.error);
+				} else {
+					// setUserOptions(data.data);
+					console.log("data: ", data.data);
+					reset({
+						restrictDelay: data.data.secondsUntilClosed || 60,
+						blockUnsupportedBrowser: data.data.blockUnsupportedBrowser ?? 0,
+						blockEmulators: data.data.blockEmulators ?? 0,
+						selectedTheme: data.data.selectedTheme ?? "light",
+					});
+				}
+			},
+		},
 	];
+	const isDisabled = blockGroup.data.some((v) => v.restriction_type);
 	useEffect(() => {
-		setSelectedTheme("light");
 		listeners.forEach((v) => {
 			ipcRendererOn(v.channel, v.handler);
 		});
 
-		new Promise((res) => {
-			ipcRendererSend("blockgroup/get", { init: true });
-			res(true);
-		}).then(() => {
-			for (const bgd of blockGroup.data) {
-				if (bgd.restriction_type) {
-					setHasRestriction(true);
-				}
-			}
-		});
-
+		ipcRendererSend("blockgroup/get", { init: true });
+		ipcRendererSend("useroptions/get", {});
 		return () => {
 			listeners.forEach((v) => {
 				window.electron.ipcRenderer.removeAllListeners(v.channel);
@@ -68,9 +93,31 @@ export default function Options(): React.JSX.Element {
 			<form
 				noValidate
 				onSubmit={handleSubmit((fv: FieldValues) => {
-					console.log("TODO", fv.preventAccessCalendar);
-					toast.success("saved");
-					reset();
+					// console.log("TODO", fv);
+					const secondsUntilClosed = Number(fv.restrictDelay);
+					const blockUnsupportedBrowser = Number(fv.blockUnsupportedBrowser);
+					const blockEmulators = Number(fv.blockEmulators);
+					const selectedTheme = fv.selectedTheme;
+					if (Number.isNaN(secondsUntilClosed) && secondsUntilClosed < 5) {
+						toast.error("Invalid delay input: " + fv.restrictDelay);
+					} else if (Number.isNaN(blockUnsupportedBrowser)) {
+						toast.error("Invalid toggle option (Unsupported Browser) ");
+					} else if (Number.isNaN(blockEmulators)) {
+						toast.error(
+							"Invalid toggle option (Block Emulators) " + blockEmulators,
+						);
+					} else if (!(typeof selectedTheme === "string")) {
+						toast.error("Invalid option (Selected theme)" + selectedTheme);
+					} else {
+						ipcRendererSend("configoptions/set", {
+							secondsUntilClosed: secondsUntilClosed,
+							blockUnsupportedBrowser: blockUnsupportedBrowser,
+							blockEmulators: blockEmulators,
+							selectedTheme: selectedTheme,
+						});
+						// reset();
+					}
+					// toast.success("saved");
 				})}
 				style={{
 					display: "flex",
@@ -97,10 +144,11 @@ export default function Options(): React.JSX.Element {
 					<Box sx={{ ...modalTextFieldStyle }}>
 						<input
 							type="number"
+							// defaultValue={userOptions?.secondsUntilClosed || 60}
 							id="restrictDelay"
 							placeholder="e.g 60 - seconds"
 							max={60}
-							min={1}
+							min={6}
 							{...register("restrictDelay")}
 						/>
 					</Box>
@@ -117,25 +165,30 @@ export default function Options(): React.JSX.Element {
 					</Stack>
 
 					<Controller
-						name="blockUnsupportedBrowsers"
+						name="blockUnsupportedBrowser"
 						control={control}
+						// defaultValue={
+						// 	typeof userOptions?.blockUnsupportedBrowser === "undefined"
+						// 		? 0
+						// 		: userOptions.blockUnsupportedBrowser
+						// }
 						render={({ field }) => (
 							<ToggleButtonGroup
 								color="primary"
 								exclusive
 								aria-label="Platform"
-								value={field.value ?? "on"}
+								value={field.value}
 								onChange={(_, newValue) => {
 									if (newValue !== null) {
 										field.onChange(newValue);
 									}
 								}}
-								disabled={isDisabled(field.value)}
+								disabled={isDisabled}
 							>
-								<ToggleButton value="on" disableRipple sx={{ minWidth: 75 }}>
+								<ToggleButton value={1} disableRipple sx={{ minWidth: 75 }}>
 									On
 								</ToggleButton>
-								<ToggleButton value="off" disableRipple sx={{ minWidth: 75 }}>
+								<ToggleButton value={0} disableRipple sx={{ minWidth: 75 }}>
 									Off
 								</ToggleButton>
 							</ToggleButtonGroup>
@@ -154,23 +207,28 @@ export default function Options(): React.JSX.Element {
 					<Controller
 						name="blockEmulators"
 						control={control}
+						// defaultValue={
+						// 	typeof userOptions?.blockEmulators === "undefined"
+						// 		? 0
+						// 		: userOptions.blockEmulators
+						// }
 						render={({ field }) => (
 							<ToggleButtonGroup
 								color="primary"
 								exclusive
 								aria-label="Platform"
-								value={field.value ?? "on"}
+								value={field.value}
 								onChange={(_, newValue) => {
 									if (newValue !== null) {
 										field.onChange(newValue);
 									}
 								}}
-								disabled={isDisabled(field.value)}
+								disabled={isDisabled}
 							>
-								<ToggleButton value="on" disableRipple sx={{ minWidth: 75 }}>
+								<ToggleButton value={1} disableRipple sx={{ minWidth: 75 }}>
 									On
 								</ToggleButton>
-								<ToggleButton value="off" disableRipple sx={{ minWidth: 75 }}>
+								<ToggleButton value={0} disableRipple sx={{ minWidth: 75 }}>
 									Off
 								</ToggleButton>
 							</ToggleButtonGroup>
@@ -179,23 +237,27 @@ export default function Options(): React.JSX.Element {
 				</Stack>
 				<Stack>
 					<Typography variant="body1" color="initial">
-						Select Theme
+						Select Theme {"Coming soon!"}
 					</Typography>
-					<FormControl sx={{ minWidth: 70 }}>
-						<Select
-							value={selectedTheme}
-							defaultValue="light"
-							onChange={handleChange}
-							displayEmpty
-							inputProps={{ "aria-label": "Without label" }}
-						>
-							<MenuItem value={"dark"}>Dark</MenuItem>
-							<MenuItem value={"light"}>Light</MenuItem>
-						</Select>
-						<FormHelperText>Without label</FormHelperText>
-					</FormControl>
+					<Controller
+						name="selectedTheme"
+						control={control}
+						render={({ field }) => (
+							<FormControl sx={{ minWidth: 70 }}>
+								<Select
+									{...field}
+									displayEmpty
+									inputProps={{ "aria-label": "Without label" }}
+								>
+									{/* <MenuItem value={"dark"}>Dark</MenuItem> */}
+									<MenuItem value={"light"}>Light</MenuItem>
+								</Select>
+								<FormHelperText>Without label</FormHelperText>
+							</FormControl>
+						)}
+					/>
 				</Stack>
-				<Button variant="text" color="primary" type="submit">
+				<Button variant="contained" color="primary" type="submit" fullWidth>
 					Save
 				</Button>
 			</form>

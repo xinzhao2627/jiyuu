@@ -22,6 +22,7 @@ import {
 	findBrowser,
 	increment_active_browsers,
 	isURL,
+	killManager,
 	showError,
 	taskKiller_win,
 } from "./methods/functionHelper";
@@ -213,8 +214,8 @@ app.whenReady().then(async () => {
 	let browsers_list: browsersList[] = [
 		{ name: "chrome", process: "chrome", elapsedMissing: 0 },
 		{ name: "brave", process: "brave", elapsedMissing: 0 },
-		{ name: "edge", process: "msedge", elapsedMissing: 0 },
-		{ name: "opera", process: "opera.exe", elapsedMissing: 0 },
+		{ name: "msedge", process: "msedge", elapsedMissing: 0 },
+		{ name: "opera", process: "opera", elapsedMissing: 0 },
 		{ name: "opera_gx", process: "opera_gx", elapsedMissing: 0 },
 		{ name: "vivaldi", process: "vivaldi", elapsedMissing: 0 },
 		{ name: "avast_secure", process: "AvastBrowser", elapsedMissing: 0 },
@@ -222,6 +223,7 @@ app.whenReady().then(async () => {
 		{ name: "comodo_dragon", process: "dragon", elapsedMissing: 0 },
 		{ name: "chromium", process: "chromium", elapsedMissing: 0 },
 		{ name: "yandex", process: "browser", elapsedMissing: 0 },
+		{ name: "firefox", process: "firefox", elapsedMissing: 0 },
 	];
 	// triggers when opening the app
 	try {
@@ -278,9 +280,15 @@ app.whenReady().then(async () => {
 					)?.secondsUntilClosed || 60;
 				for (const b of browsers_list) {
 					if (b.elapsedMissing >= maxTime) {
+						console.log("klling ", b.name);
 						await taskKiller_win(b);
 					}
 				}
+
+				// additionally use here the
+				// killmanager to end process of unsupported browsers
+				// and emulators (if enabled)
+				await killManager();
 			} catch (error) {
 				console.error("Error in recursiveGroupChecker:", error);
 			} finally {
@@ -960,12 +968,16 @@ app.whenReady().then(async () => {
 		try {
 			const d = await db
 				?.selectFrom("user_options")
-				.select("dashboardDateMode")
+				.selectAll()
 				.executeTakeFirst();
 
 			event.reply("useroptions/get/response", {
 				data: {
 					dashboardDateMode: d?.dashboardDateMode || null,
+					secondsUntilClosed: d?.secondsUntilClosed,
+					blockUnsupportedBrowser: d?.blockUnsupportedBrowser,
+					blockEmulators: d?.blockEmulators,
+					selectedTheme: d?.selectedTheme,
 				},
 			});
 		} catch (err) {
@@ -999,6 +1011,42 @@ app.whenReady().then(async () => {
 			);
 		}
 	});
+	ipcMain.on(
+		"configoptions/set",
+		async (event: Electron.IpcMainEvent, data) => {
+			try {
+				const {
+					secondsUntilClosed,
+					blockUnsupportedBrowser,
+					blockEmulators,
+					selectedTheme,
+				} = data as {
+					secondsUntilClosed: number;
+					blockUnsupportedBrowser: 0 | 1;
+					blockEmulators: 0 | 1;
+					selectedTheme: string;
+				};
+
+				await db
+					?.updateTable("user_options")
+					.set({
+						blockUnsupportedBrowser: blockUnsupportedBrowser,
+						secondsUntilClosed: secondsUntilClosed,
+						blockEmulators: blockEmulators,
+						selectedTheme: selectedTheme,
+					})
+					.executeTakeFirst();
+				event.reply("configoptions/set/response", {});
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error getting dashboard",
+					"configoptions/set/response",
+				);
+			}
+		},
+	);
 	ipcMain.on("whitelist/get", async (event: Electron.IpcMainEvent) => {
 		try {
 			const rows = await db?.selectFrom("whitelist").selectAll().execute();
