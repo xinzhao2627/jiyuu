@@ -1,5 +1,9 @@
 import { ExtensionMessage, Message } from "@webext-core/messaging";
-import { BlockParam, Feedback, SentData } from "../assets/interfaces";
+import {
+	BlockParam,
+	Feedback,
+	SentData,
+} from "../assets/interfaces/extension-interface";
 import { defineExtensionMessaging } from "@webext-core/messaging";
 
 export interface ProtocolMap {
@@ -104,7 +108,7 @@ function blockOverride() {
 	let OVERRIDE = `
         <html>
             <head>
-                <title>Custom Page</title>
+                <title>JIYUU WEBSITE BLOCKER</title>
                 <style>
                     body {
                         font-family: Roboto, roboto, sans-serif;
@@ -115,7 +119,7 @@ function blockOverride() {
             </head>
             <body>
                 <h1>Custom Page</h1>
-                <p>This page has been overridden by the extension.</p>
+                <p>This page is included in your blocklist and has been blocked by Jiyuu.</p>
             </body>
         </html>
     `;

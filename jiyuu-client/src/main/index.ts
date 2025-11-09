@@ -269,19 +269,30 @@ app.whenReady().then(async () => {
 				 *
 				 * Then if the elapsedMissing is filled up,
 				 * kill the process of that active browser!
+				 *
+				 * However this only works if there is an active block group
 				 */
-				await increment_active_browsers(browsers_list);
-				const maxTime =
-					(
-						await db
-							?.selectFrom("user_options")
-							.select("secondsUntilClosed")
-							.executeTakeFirst()
-					)?.secondsUntilClosed || 60;
-				for (const b of browsers_list) {
-					if (b.elapsedMissing >= maxTime) {
-						console.log("klling ", b.name);
-						await taskKiller_win(b);
+				const active_blockGroups = await db
+					?.selectFrom("block_group")
+					.select("is_activated")
+					.execute();
+				if (
+					active_blockGroups &&
+					active_blockGroups.some((v) => v.is_activated)
+				) {
+					await increment_active_browsers(browsers_list);
+					const maxTime =
+						(
+							await db
+								?.selectFrom("user_options")
+								.select("secondsUntilClosed")
+								.executeTakeFirst()
+						)?.secondsUntilClosed || 60;
+					for (const b of browsers_list) {
+						if (b.elapsedMissing >= maxTime) {
+							console.log("klling ", b.name);
+							await taskKiller_win(b);
+						}
 					}
 				}
 
@@ -767,6 +778,12 @@ app.whenReady().then(async () => {
 					.where("config_type", "=", "usageLimit")
 					.executeTakeFirst();
 
+				await db
+					?.updateTable("block_group")
+					.set({ is_activated: 0 })
+					.where("id", "=", id)
+					.executeTakeFirst();
+
 				event.reply("blockgroupconfig/usageLimit/pause/set/response", {
 					info: "operation success",
 				});
@@ -1082,6 +1099,15 @@ app.whenReady().then(async () => {
 			});
 		}
 	});
+	ipcMain.on("usagedata/delete", async (event: Electron.IpcMainEvent) => {
+		try {
+			await db?.deleteFrom("usage_log").execute();
+			await db?.deleteFrom("block_group_usage_log").execute();
+			event.reply("usagedata/delete/response", {});
+		} catch (err) {
+			showError(err, event, "Error deleting item", "usagedata/delete/response");
+		}
+	});
 	ipcMain.on("whitelist/put", async (event: Electron.IpcMainEvent, data) => {
 		try {
 			const { item, whitelist_type } = data as whitelist_put_type;
@@ -1188,6 +1214,19 @@ app.whenReady().then(async () => {
 
 				// the time logged may cause duplication if using multiple different browsers at the samew time
 				else if (data.sendType === "isTimelist") {
+					let ua_string = data.userAgent ? (data.userAgent as string) : "";
+					let name = findBrowser(ua_string);
+					// console.log("PING AGENT: " + name);
+					// console.log("DATA: " + data.data[0]);
+
+					for (const b of browsers_list) {
+						if (b.name === name) {
+							// if incognito access is allowed, reset the filling timer
+							if (data.isAllowedIncognitoAccess) {
+								b.elapsedMissing = 0;
+							}
+						}
+					}
 					// update the time
 					const map = new Map<string, TimeListInterface>(
 						Object.entries(data.data),
@@ -1203,18 +1242,21 @@ app.whenReady().then(async () => {
 							ws.send(r);
 						}
 					}
-				} else if (data.sendType === "isPing") {
-					let ua_string = data.userAgent ? (data.userAgent as string) : "";
-					let name = findBrowser(ua_string);
-					for (const b of browsers_list) {
-						if (b.name === name) {
-							// if incognito access is allowed, reset the filling timer
-							if (data.isAllowedIncognitoAccess) {
-								b.elapsedMissing = 0;
-							}
-						}
-					}
 				}
+				//else if (data.sendType === "isPing") {
+				// 	let ua_string = data.userAgent ? (data.userAgent as string) : "";
+				// 	let name = findBrowser(ua_string);
+				// 	console.log("PING AGENT: " + ua_string + "\nNAME: " + name);
+
+				// 	for (const b of browsers_list) {
+				// 		if (b.name === name) {
+				// 			// if incognito access is allowed, reset the filling timer
+				// 			if (data.isAllowedIncognitoAccess) {
+				// 				b.elapsedMissing = 0;
+				// 			}
+				// 		}
+				// 	}
+				// }
 			} catch (e) {
 				const errorMsg = e instanceof Error ? e.message : String(e);
 				console.error("WebSocket message parsing error: ", errorMsg);

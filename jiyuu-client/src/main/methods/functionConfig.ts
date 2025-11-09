@@ -65,9 +65,19 @@ export async function getBlockGroup_with_config(): Promise<
 				if (ct === "usageLimit") {
 					const utl = cd.usage_time_left;
 					let label = "";
+					// dont display negatives
+					const paused_until_value = Math.max(
+						(cd.pause_until - new Date().getTime()) / 1000,
+						0,
+					);
 					const is_paused = Boolean(Math.max(cd.pause_until || 0, 0));
+
 					if (is_paused) {
-						label = "paused";
+						label =
+							"paused " +
+							(paused_until_value > 60
+								? `${(paused_until_value / 60).toFixed(1)} min left`
+								: `${paused_until_value.toFixed(0)} sec left`);
 					} else {
 						label =
 							utl <= 0

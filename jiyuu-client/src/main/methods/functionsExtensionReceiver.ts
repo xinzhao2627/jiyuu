@@ -215,7 +215,7 @@ async function updateUsage(
 		};
 
 		// if this group has no time left, activate its block
-		if (newConfig.usage_time_left <= 0) {
+		if (newConfig.usage_time_left <= 0 && usageLimitData.pause_until <= 0) {
 			await db
 				?.updateTable("block_group")
 				.set({ is_activated: 1 })

@@ -136,3 +136,5 @@ SELECT bg.*, GROUP_CONCAT(
 PRAGMA table_info(whitelist);
 
 select * from whitelist;
+select * from block_group_usage_log;
+select * from usage_log;

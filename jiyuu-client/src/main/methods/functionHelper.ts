@@ -75,7 +75,7 @@ export async function processKiller(processName: string): Promise<void> {
 	try {
 		const { stderr } = await execPromise(`taskkill /F /IM ${processName}`);
 		if (!stderr) {
-			console.log("killed ", name);
+			console.log("killed ", processName);
 		}
 	} catch (error) {
 		console.error(`ERROR KILLING ${processName}, CAUSE: ${error}`);
@@ -97,6 +97,8 @@ export async function increment_active_browsers(
 	browserLists: browsersList[],
 ): Promise<void> {
 	let stdout = "";
+	// console.log("CALLING FROM INCREMENT");
+
 	stdout = await processFinder(
 		browserLists.map((v) => v.process + ".exe").join(" "),
 	);
@@ -144,19 +146,22 @@ export async function killManager(): Promise<void> {
 	if (toBlockEmulators) {
 		targetedProcesses.push(...emulators.map((v) => v + ".exe"));
 	}
-	const res = await processFinder(targetedProcesses.join(" "));
+	// console.log("CALLING FROM kill manager");
+	if (targetedProcesses.length > 0) {
+		const res = await processFinder(targetedProcesses.join(" "));
 
-	if (toBlockEmulators) {
-		for (const e of emulators) {
-			if (res.includes(e)) {
-				await processKiller(e + ".exe");
+		if (toBlockEmulators) {
+			for (const e of emulators) {
+				if (res.includes(e)) {
+					await processKiller(e + ".exe");
+				}
 			}
 		}
-	}
-	if (toBlockUnsupported) {
-		for (const b of unsupported_browsers) {
-			if (res.includes(b.process)) {
-				await processKiller(b.process + ".exe");
+		if (toBlockUnsupported) {
+			for (const b of unsupported_browsers) {
+				if (res.includes(b.process)) {
+					await processKiller(b.process + ".exe");
+				}
 			}
 		}
 	}

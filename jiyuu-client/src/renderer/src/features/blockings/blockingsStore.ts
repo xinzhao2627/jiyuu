@@ -82,8 +82,14 @@ interface BlockedContentStores {
 	) => void;
 	setBlockedContentInput: (d: BCInput) => void;
 }
-
-type FinalStore = BlockGroupStores & ConfigStores & BlockedContentStores;
+interface OptionStores {
+	confirmDeleteModal: boolean;
+	setConfirmDeleteModal: (d: boolean) => void;
+}
+type FinalStore = BlockGroupStores &
+	ConfigStores &
+	BlockedContentStores &
+	OptionStores;
 
 export const useStore = create<FinalStore>((set) => ({
 	blockGroup: {
@@ -224,5 +230,11 @@ export const useStore = create<FinalStore>((set) => ({
 				...state.blockedContent,
 				input: d,
 			},
+		})),
+
+	confirmDeleteModal: false,
+	setConfirmDeleteModal: (d) =>
+		set(() => ({
+			confirmDeleteModal: d,
 		})),
 }));

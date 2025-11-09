@@ -71,7 +71,7 @@ export function RestrictTimerForm({
 					flexWrap: "wrap",
 				}}
 			>
-				<Stack gap={3}>
+				<Stack gap={3} width={"100%"}>
 					<Controller
 						name="restrictTimer"
 						defaultValue={null}

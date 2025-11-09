@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useStore } from "./blockingsStore";
 import toast from "react-hot-toast";
 
@@ -96,16 +96,19 @@ export default function Blockings(): React.JSX.Element {
 			},
 		});
 	};
-	const [isBlockGroupRetrieveReady, setIsBlockGroupRetrieveReady] =
-		useState<boolean>(true);
-	const getBlockGroup = (): void => {
-		if (isBlockGroupRetrieveReady) {
-			setIsBlockGroupRetrieveReady(false);
-			ipcRendererSend("blockgroup/get", { init: true });
-		}
-	};
+	// const [isBlockGroupRetrieveReady, setIsBlockGroupRetrieveReady] =
+	// 	useState<boolean>(true);
+
 	useEffect(() => {
-		const isUnmounted = false;
+		let isUnmounted = false;
+		let isReady = true;
+		let timerId: NodeJS.Timeout | null = null;
+		const getBlockGroup = (): void => {
+			if (isReady && !isUnmounted) {
+				isReady = false;
+				ipcRendererSend("blockgroup/get", { init: true });
+			}
+		};
 		const listeners = [
 			{
 				channel: "blockedcontent/put/response",
@@ -123,9 +126,15 @@ export default function Blockings(): React.JSX.Element {
 						console.error("Error blockgroup/get/response: ", data.error);
 
 					setBlockGroupData(data.data);
-					setIsBlockGroupRetrieveReady(true);
+					// setIsBlockGroupRetrieveReady(true);
+					isReady = true;
+					console.log("HEY IM CALLED");
+					if (timerId) {
+						clearTimeout(timerId);
+					}
+
 					if (!isUnmounted) {
-						setTimeout(() => getBlockGroup(), 1000);
+						timerId = setTimeout(() => getBlockGroup(), 1000);
 					}
 				},
 			},
@@ -308,6 +317,10 @@ export default function Blockings(): React.JSX.Element {
 		getBlockGroup();
 
 		return () => {
+			isUnmounted = true;
+			if (timerId) {
+				clearTimeout(timerId);
+			}
 			listeners.forEach((v) => {
 				window.electron.ipcRenderer.removeAllListeners(v.channel);
 			});

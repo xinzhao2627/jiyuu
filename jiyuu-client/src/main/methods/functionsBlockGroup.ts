@@ -133,7 +133,7 @@ export async function updateBlockGroup(): Promise<void> {
 				// if there is a block that has a day reset,
 				// check if the day is new then if it is, reset the timeleft.. do also for hour and week
 				case "d": {
-					// we also check month and year besides the they if a user didnt logged in for 1 month or 1 year
+					// we also check month and year if a user didnt logged in for 1 month or 1 year
 					if (!isSameDay(candiDate, currentDate)) {
 						cd.last_updated_date = currentDate.toISOString();
 						cd.usage_time_left = cd.usage_reset_value;
@@ -165,7 +165,8 @@ export async function updateBlockGroup(): Promise<void> {
 				}
 			}
 			if (new_pause_until > 0) {
-				cd.pause_until = new_pause_until;
+				// cd.pause_until = new_pause_until;
+				cd.pause_until = 0;
 			}
 		}
 		// else if ... do also for restricted timer

@@ -113,11 +113,12 @@ export async function clearUsageLogIfNeeded(): Promise<void> {
 	const monthsPassed =
 		(now.getFullYear() - installDate.getFullYear()) * 12 +
 		(now.getMonth() - installDate.getMonth());
-
+	// console.log("PASSED: " + monthsPassed);
+	// monthsPassed >= 3
 	if (monthsPassed >= 3) {
 		console.log("3 months passed — clearing usage_log...");
 		await db?.deleteFrom("usage_log").execute();
-
+		await db?.deleteFrom("block_group_usage_log").execute();
 		// update install date so it resets the 3-month cycle
 		await db
 			?.updateTable("meta_info")

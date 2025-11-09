@@ -9,6 +9,8 @@ export interface isWebpage {
 export interface isTimelist {
 	sendType: "isTimelist";
 	data: { [k: string]: TimeListInterface };
+	userAgent: string;
+	isAllowedIncognitoAccess: boolean;
 }
 
 export interface isPing {

@@ -17,6 +17,7 @@ import { modalTextFieldStyle } from "@renderer/assets/shared/modalStyle";
 import { Controller, FieldValues, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { user_optionsTable } from "@renderer/jiyuuInterfaces";
+import { DeleteUsageConfirmation } from "./modals/deleteUsageConfirmation";
 export default function Options(): React.JSX.Element {
 	const { handleSubmit, register, reset, control } = useForm({
 		defaultValues: {
@@ -26,7 +27,7 @@ export default function Options(): React.JSX.Element {
 			selectedTheme: "light",
 		},
 	});
-	const { blockGroup, setBlockGroupData } = useStore();
+	const { blockGroup, setBlockGroupData, setConfirmDeleteModal } = useStore();
 	// const [userOptions, setUserOptions] = useState<user_optionsTable | undefined>(
 	// 	undefined,
 	// );
@@ -260,7 +261,29 @@ export default function Options(): React.JSX.Element {
 				<Button variant="contained" color="primary" type="submit" fullWidth>
 					Save
 				</Button>
+				<Stack>
+					<Typography variant="body1" color="initial" fontWeight={600}>
+						Delete usage data
+					</Typography>
+					<Typography variant="caption" color="initial">
+						{
+							"Delete all recorded time spent on websites from the database. (Warning, your dashboard will be emptied!)"
+						}
+					</Typography>
+					<Button
+						variant="outlined"
+						color="error"
+						fullWidth
+						style={{ marginTop: 12 }}
+						onClick={() => {
+							setConfirmDeleteModal(true);
+						}}
+					>
+						Delete
+					</Button>
+				</Stack>
 			</form>
+			<DeleteUsageConfirmation />
 		</div>
 	);
 }

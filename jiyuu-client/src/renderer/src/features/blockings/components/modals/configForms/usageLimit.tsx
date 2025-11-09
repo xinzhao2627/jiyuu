@@ -145,14 +145,16 @@ export function UsageLimitForm({ formVal }: FormInterface): React.JSX.Element {
 			style={{
 				display: "flex",
 				flexWrap: "wrap",
-				width: "fit-content",
+				width: "100%",
+				// width: "fit-content",
 			}}
 		>
-			<Stack gap={2}>
+			<Stack gap={2} width={"100%"}>
 				<Stack direction={"row"} gap={2}>
-					<Box sx={{ ...modalTextFieldStyle }}>
+					<Box sx={{ ...modalTextFieldStyle, width: "100%" }}>
 						<input
 							type="number"
+							style={{ width: "100%" }}
 							{...(blockGroup.selectedBlockGroup?.restriction_type && {
 								max: config.usage.timeValueNumber?.val,
 							})}

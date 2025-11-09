@@ -12,6 +12,7 @@ import {
 	FIVE_MINUTES,
 	ONE_DAY,
 	ONE_HOUR,
+	ONE_MINUTE,
 	SIX_HOURS,
 	TEN_MINUTES,
 	THIRTY_MINUTES,
@@ -109,6 +110,9 @@ export default function UsageAndPauseMenu({
 			{!restriction_type && (
 				<StyledMenu anchorEl={anchorEl} open={open} onClose={handleClose}>
 					<StyledListHeader>Pause the usage limit: </StyledListHeader>
+					<MenuItem onClick={() => pauseInitiate(ONE_MINUTE)} disableRipple>
+						<AccessTimeIcon />1 min
+					</MenuItem>
 					<MenuItem onClick={() => pauseInitiate(FIVE_MINUTES)} disableRipple>
 						<AccessTimeIcon />5 mins
 					</MenuItem>
