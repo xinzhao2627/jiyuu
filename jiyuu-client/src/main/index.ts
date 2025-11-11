@@ -67,6 +67,7 @@ import {
 	whitelist_is_in_blockgroup,
 	whitelist_put,
 } from "./methods/whitelist_helpers";
+import { exec } from "child_process";
 const isAutoStart = process.argv.includes("--auto-start");
 export let mainWindow: BrowserWindow;
 let tray: Tray | null = null;
@@ -212,18 +213,63 @@ app.whenReady().then(async () => {
 	});
 
 	let browsers_list: browsersList[] = [
-		{ name: "chrome", process: "chrome", elapsedMissing: 0 },
-		{ name: "brave", process: "brave", elapsedMissing: 0 },
-		{ name: "msedge", process: "msedge", elapsedMissing: 0 },
-		{ name: "opera", process: "opera", elapsedMissing: 0 },
-		{ name: "opera_gx", process: "opera_gx", elapsedMissing: 0 },
-		{ name: "vivaldi", process: "vivaldi", elapsedMissing: 0 },
-		{ name: "avast_secure", process: "AvastBrowser", elapsedMissing: 0 },
-		{ name: "torch", process: "torch", elapsedMissing: 0 },
-		{ name: "comodo_dragon", process: "dragon", elapsedMissing: 0 },
-		{ name: "chromium", process: "chromium", elapsedMissing: 0 },
-		{ name: "yandex", process: "browser", elapsedMissing: 0 },
-		{ name: "firefox", process: "firefox", elapsedMissing: 0 },
+		{
+			name: "chrome",
+			process: "chrome",
+			elapsedMissing: 0,
+			url: "facebook.com",
+		},
+		{ name: "brave", process: "brave", elapsedMissing: 0, url: "facebook.com" },
+		{
+			name: "msedge",
+			process: "msedge",
+			elapsedMissing: 0,
+			url: "facebook.com",
+		},
+		{ name: "opera", process: "opera", elapsedMissing: 0, url: "facebook.com" },
+		{
+			name: "opera_gx",
+			process: "opera_gx",
+			elapsedMissing: 0,
+			url: "facebook.com",
+		},
+		{
+			name: "vivaldi",
+			process: "vivaldi",
+			elapsedMissing: 0,
+			url: "facebook.com",
+		},
+		{
+			name: "avast_secure",
+			process: "AvastBrowser",
+			elapsedMissing: 0,
+			url: "facebook.com",
+		},
+		{ name: "torch", process: "torch", elapsedMissing: 0, url: "facebook.com" },
+		{
+			name: "comodo_dragon",
+			process: "dragon",
+			elapsedMissing: 0,
+			url: "facebook.com",
+		},
+		{
+			name: "chromium",
+			process: "chromium",
+			elapsedMissing: 0,
+			url: "facebook.com",
+		},
+		{
+			name: "yandex",
+			process: "browser",
+			elapsedMissing: 0,
+			url: "facebook.com",
+		},
+		{
+			name: "firefox",
+			process: "firefox",
+			elapsedMissing: 0,
+			url: "facebook.com",
+		},
 	];
 	// triggers when opening the app
 	try {
@@ -276,11 +322,12 @@ app.whenReady().then(async () => {
 					?.selectFrom("block_group")
 					.select("is_activated")
 					.execute();
+				await increment_active_browsers(browsers_list, mainWindow);
+
 				if (
 					active_blockGroups &&
 					active_blockGroups.some((v) => v.is_activated)
 				) {
-					await increment_active_browsers(browsers_list);
 					const maxTime =
 						(
 							await db
@@ -311,8 +358,27 @@ app.whenReady().then(async () => {
 	} catch (e) {
 		console.log(e);
 	}
-
+	// url opener when open extension is clicked in the ui
+	ipcMain.on(
+		"openurl",
+		async (
+			event: Electron.IpcMainEvent,
+			_data: { url: string; process: string } | undefined,
+		) => {
+			try {
+				if (!_data) throw "No data to process";
+				if (!_data.url) throw "No url to open";
+				if (!browsers_list.some((v) => v.process === _data.process))
+					throw "No browser to use";
+				exec(`start ${_data.process} ${_data.url}`);
+				event.reply("openurl/response", {});
+			} catch (err) {
+				showError(err, event, "Error opening url: ", "openurl/response");
+			}
+		},
+	);
 	// retrieves all blocked sites of a specific group
+
 	ipcMain.on(
 		"blockedcontent/get",
 		async (
@@ -321,9 +387,7 @@ app.whenReady().then(async () => {
 		) => {
 			try {
 				// get the blocked sites of a specific group
-				// console.log(_data);
 				const rows = (await getBlockedContentDataOneGroup(_data)) || [];
-				// console.log(rows);
 
 				event.reply("blockedcontent/get/response", {
 					data: rows,

@@ -11,6 +11,7 @@ export type browsersList = {
 	name: string;
 	process: string;
 	elapsedMissing: number;
+	url: string;
 };
 
 export const emulators = [

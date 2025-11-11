@@ -50,6 +50,7 @@ import { saveAs } from "file-saver";
 import { CustomChip } from "@renderer/assets/shared/customChip";
 import { BlockGroupMenu } from "./menu/blockGroupMenu";
 import { ExportAndImportBlockGroup } from "./menu/exportAndImportBlockGroup";
+import { NavbarExtension } from "./components/navbarExtension";
 
 export default function Blockings(): React.JSX.Element {
 	const {
@@ -334,6 +335,7 @@ export default function Blockings(): React.JSX.Element {
 					height: "100%",
 				}}
 			>
+				<NavbarExtension />
 				<Stack
 					sx={{
 						flex: 1,

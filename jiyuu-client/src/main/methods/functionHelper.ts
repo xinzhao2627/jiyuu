@@ -7,6 +7,7 @@ import {
 } from "../index-interface";
 import * as util from "util";
 import { db } from "../database/initializations";
+import { BrowserWindow } from "electron";
 const execPromise = util.promisify(exec);
 export function siteIncludes(
 	siteData: SiteAttribute | TimeListInterface,
@@ -95,20 +96,57 @@ export async function taskKiller_win(b: browsersList): Promise<void> {
 
 export async function increment_active_browsers(
 	browserLists: browsersList[],
+	mainWindow: BrowserWindow | undefined | null,
 ): Promise<void> {
 	let stdout = "";
 	// console.log("CALLING FROM INCREMENT");
 
+	// get the list of all current active browsers
 	stdout = await processFinder(
 		browserLists.map((v) => v.process + ".exe").join(" "),
 	);
 
 	stdout = stdout.trim().toLowerCase();
+
+	const toWarnBrowsers: { process: string; url: string }[] = [];
+
+	const oneThirdTime =
+		((
+			await db
+				?.selectFrom("user_options")
+				.select("secondsUntilClosed")
+				.executeTakeFirst()
+		)?.secondsUntilClosed || 1) / 3;
+
 	for (const b of browserLists) {
 		const processName = b.process;
 		if (stdout.includes(processName)) {
 			b.elapsedMissing += 1;
+
+			// this is for ui:
+			// if the app still cant detect the extension from the active brower,
+			// send the warning to the ui if it exceeds one third of the delay
+			if (b.elapsedMissing >= oneThirdTime) {
+				toWarnBrowsers.push({ process: processName, url: b.url });
+			}
 		}
+	}
+
+	// send warning through a response channel
+	try {
+		if (toWarnBrowsers.length > 0) {
+			if (mainWindow) {
+				mainWindow.webContents.send("extensionwarning/response", {
+					data: toWarnBrowsers,
+				});
+			}
+		}
+	} catch (error) {
+		console.log("INCREMENT ERROR: " + error);
+
+		mainWindow?.webContents.send("extensionwarning/response", {
+			error: error,
+		});
 	}
 
 	return;
