@@ -138,3 +138,12 @@ PRAGMA table_info(whitelist);
 select * from whitelist;
 select * from block_group_usage_log;
 select * from usage_log;
+
+
+SELECT 
+  name AS table_name,
+  SUM(pgsize) AS size_bytes,
+  ROUND(SUM(pgsize) / 1024.0, 2) AS size_kb,
+  ROUND(SUM(pgsize) / 1048576.0, 2) AS size_mb
+FROM dbstat
+WHERE name = 'block_group_usage_log';

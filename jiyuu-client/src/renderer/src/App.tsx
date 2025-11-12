@@ -7,6 +7,7 @@ import { Toaster } from "react-hot-toast";
 import { Box, CssBaseline } from "@mui/material";
 import Options from "./features/options/Options";
 import Whitelist from "./features/whitelist/Whitelist";
+import { BotbarTutorial } from "./components/botbarTutorial";
 function Layout({
 	children,
 }: {
@@ -28,6 +29,7 @@ function Layout({
 
 				{/* BOTTOM NAVIGATION BAR */}
 				<Box sx={{ flexShrink: 0, width: "100%", border: "1px solid #e5e5e5" }}>
+					<BotbarTutorial />
 					<BottomNav />
 				</Box>
 

@@ -567,7 +567,7 @@ export default function Blockings(): React.JSX.Element {
 				<Box
 					sx={{
 						position: "fixed",
-						bottom: 90,
+						bottom: 110,
 						right: 20,
 						letterSpacing: 1,
 						fontWeight: 500,
@@ -594,13 +594,14 @@ export default function Blockings(): React.JSX.Element {
 					<Box
 						sx={{
 							width: "1px",
-							bgcolor: "rgba(255,255,255,0.5)",
+							bgcolor: "white",
 							alignSelf: "stretch",
 						}}
 					/>
 					<IconButton
 						onClick={(e) => setFabGroupMenuAnchor(e.currentTarget)}
 						sx={{
+							backgroundColor: "white",
 							color: "inherit",
 							borderRadius: 0,
 							px: 1.5,

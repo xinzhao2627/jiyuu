@@ -211,7 +211,7 @@ app.whenReady().then(async () => {
 	app.on("browser-window-created", (_, window) => {
 		optimizer.watchWindowShortcuts(window);
 	});
-
+	const JIYUU_URL = "facebook.com";
 	let browsers_list: browsersList[] = [
 		{
 			name: "chrome",
@@ -367,7 +367,15 @@ app.whenReady().then(async () => {
 		) => {
 			try {
 				if (!_data) throw "No data to process";
+				if (!_data.process) throw "No process";
+
+				if (_data.process === "default") {
+					exec(`powershell Start-Process https://${JIYUU_URL}`);
+					event.reply("openurl/response", {});
+					return;
+				}
 				if (!_data.url) throw "No url to open";
+
 				if (!browsers_list.some((v) => v.process === _data.process))
 					throw "No browser to use";
 				exec(`start ${_data.process} ${_data.url}`);

@@ -66,7 +66,8 @@ export function NavbarExtension(): JSX.Element {
 				alignItems={"center"}
 			>
 				<Typography variant="caption" fontWeight={600}>
-					Extension not detected/installed in the following browsers:
+					Extension not detected/installed in the following browsers{" "}
+					{"(will be closed if there's an active block group)"}:
 				</Typography>
 				<Stack direction="row" gap={1} flexWrap="wrap">
 					{urlList.map((v, i) => (
