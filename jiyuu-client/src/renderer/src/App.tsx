@@ -1,7 +1,4 @@
-// import Versions from './components/Versions'
-
-// import { Router } from "../../lib/electron-router-dom";
-import Sidebar from "./components/Sidebar";
+import BottomNav from "./components/BottomNav";
 import "./input.css";
 import Blockings from "./features/blockings/Blockings";
 import { Route, HashRouter, Routes } from "react-router-dom";
@@ -9,6 +6,8 @@ import Dashboard from "./features/dashboard/Dashboard";
 import { Toaster } from "react-hot-toast";
 import { Box, CssBaseline } from "@mui/material";
 import Options from "./features/options/Options";
+import Whitelist from "./features/whitelist/Whitelist";
+import { BotbarTutorial } from "./components/botbarTutorial";
 function Layout({
 	children,
 }: {
@@ -28,10 +27,13 @@ function Layout({
 			>
 				<Box sx={{ flex: 1, overflow: "auto" }}>{children}</Box>
 
-				<Box sx={{ flexShrink: 0, width: "100%" }}>
-					<Sidebar />
+				{/* BOTTOM NAVIGATION BAR */}
+				<Box sx={{ flexShrink: 0, width: "100%", border: "1px solid #e5e5e5" }}>
+					<BotbarTutorial />
+					<BottomNav />
 				</Box>
 
+				{/* TOAST MESSAGE STYLE */}
 				<Toaster
 					position="top-center"
 					toastOptions={{
@@ -40,6 +42,28 @@ function Layout({
 						style: {
 							fontWeight: "600",
 							fontFamily: "roboto, Roboto",
+						},
+						success: {
+							style: {
+								background: "#D1FAE5", // light green
+								color: "#065F46", // dark green
+								border: "1px solid #10B981", // green border
+							},
+							iconTheme: {
+								primary: "#10B981", // icon color
+								secondary: "#D1FAE5",
+							},
+						},
+						error: {
+							style: {
+								background: "#FEE2E2", // light red
+								color: "#991B1B", // dark red
+								border: "1px solid #EF4444",
+							},
+							iconTheme: {
+								primary: "#EF4444",
+								secondary: "#FEE2E2",
+							},
 						},
 					}}
 				/>
@@ -55,7 +79,7 @@ function App(): React.JSX.Element {
 				<Routes>
 					<Route path="/" element={<Blockings />} />
 					<Route path="/dashboard" element={<Dashboard />} />
-					<Route path="/apps" element={<></>} />
+					<Route path="/whitelist" element={<Whitelist />} />
 					<Route path="/option" element={<Options />} />
 				</Routes>
 			</Layout>

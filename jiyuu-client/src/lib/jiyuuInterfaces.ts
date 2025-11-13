@@ -1,11 +1,11 @@
+import { block_group } from "../main/database/tableInterfaces";
+
 // THESE 3 are different types of inputs came from the extension
 export interface SiteAttribute {
 	desc: string;
 	keywords: string;
 	url: string;
 	title: string;
-	descDoc: string;
-	keywordsDoc: string;
 }
 export interface TimeListInterface extends SiteAttribute {
 	secondsElapsed: number;
@@ -14,33 +14,6 @@ export interface TimeListInterface extends SiteAttribute {
 	dateObject: string;
 	baseUrl: string;
 	fullUrl: string;
-}
-
-////
-export interface BlockedSites {
-	target_text: string;
-	block_group_id: number;
-}
-
-export interface BlockedSites_with_configs extends BlockedSites {
-	is_grayscaled: 0 | 1;
-	is_blurred: 0 | 1;
-	is_covered: 0 | 1;
-	is_muted: 0 | 1;
-	group_name: string;
-	is_activated: 0 | 1;
-}
-
-export interface BlockGroup {
-	id: number;
-	group_name: string;
-	is_grayscaled: 0 | 1;
-	is_blurred: 0 | 1;
-	is_covered: 0 | 1;
-	is_muted: 0 | 1;
-	is_activated: 0 | 1;
-	restriction_type: string | null;
-	auto_deactivate: 0 | 1;
 }
 
 export type ConfigType =
@@ -58,6 +31,9 @@ export interface UsageLimitData_Config {
 	usage_reset_value_mode: "minute" | "hour";
 	config_type: "usageLimit";
 	last_updated_date: string;
+
+	// this num indicates the date.getTime() or the pause deadline
+	pause_until: number;
 }
 export interface Password_Config {
 	password: string;
@@ -82,11 +58,9 @@ export interface BlockGroupConfig {
 		| RandomText_Config;
 	config_type: ConfigType;
 }
-// export interface BlockGroupConfig {
 
-// }
 // for full block groups with ui indications
-export interface BlockGroup_Full extends BlockGroup {
+export interface BlockGroup_Full extends block_group {
 	configs_json: string;
 	usage_label: string;
 	restriction_label: string;

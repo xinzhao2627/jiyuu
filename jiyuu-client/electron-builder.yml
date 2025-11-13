@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: jiyuu-client
+appId: com.jiyuu.app
+productName: jiyuu
 directories:
   buildResources: build
 files:
@@ -12,12 +12,16 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: jiyuu-client
+  executableName: jiyuu
 nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: false
+  include: build/installer.nsh
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
-  createDesktopShortcut: always
+  createDesktopShortcut: "always"
+  deleteAppDataOnUninstall: true
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -26,6 +30,9 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+extraResources:
+  - from: build/scripts
+    to: scripts
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:

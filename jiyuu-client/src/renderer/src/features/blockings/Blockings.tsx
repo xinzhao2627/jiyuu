@@ -2,9 +2,7 @@ import * as React from "react";
 import { useEffect } from "react";
 import { useStore } from "./blockingsStore";
 import toast from "react-hot-toast";
-import DeleteIcon from "@mui/icons-material/Delete";
-import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
-import SettingsIcon from "@mui/icons-material/Settings";
+
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import LockIcon from "@mui/icons-material/Lock";
 import {
@@ -22,110 +20,74 @@ import {
 	Typography,
 	CardContent,
 	Fab,
-	Menu,
 	IconButton,
-	Chip,
-	MenuItem,
-	ListItemIcon,
-	ListItemText,
 	Box,
-	SxProps,
 } from "@mui/material";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import AddIcon from "@mui/icons-material/Add";
 import { ipcRendererOn, ipcRendererSend } from "./blockingAPI";
-import BlockingModal from "./components/blockingModal";
-import NewBlockGroupModal from "./components/newBlockGroupModal";
-import DeleteBlockGroupModal from "./components/deleteBlockGroupModal";
-import RenameBlockGroupModal from "./components/renameBlockGroupModal";
+import BlockingModal from "./components/modals/blockingModal";
+
+import MainBlockGroupModal from "./components/modals/MainBlockGroupModal";
+import MenuIcon from "@mui/icons-material/Menu";
+
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import {
-	BlockGroup,
+	block_group,
+	block_group_config,
+	blocked_content,
 	BlockGroup_Full,
-	ConfigType,
-	Password_Config,
-	RandomText_Config,
-	RestrictTimer_Config,
-	UsageLimitData_Config,
+	Error_Info,
 } from "../../jiyuuInterfaces";
-import ConfigModal from "./components/configModal";
+import ConfigModal from "./components/modals/configModal";
 import { scrollbarStyle } from "@renderer/assets/shared/modalStyle";
-import { Theme } from "@emotion/react";
+import { GroupDeactivateDialogue } from "./components/modals/deactivateDialogue";
+import UsageAndPauseMenu from "./components/usageLabel";
+import { saveAs } from "file-saver";
+import { CustomChip } from "@renderer/assets/shared/customChip";
+import { BlockGroupMenu } from "./menu/blockGroupMenu";
+import { ExportAndImportBlockGroup } from "./menu/exportAndImportBlockGroup";
+import { NavbarExtension } from "./components/navbarExtension";
 
-function customChip(
-	optionalIcon: React.JSX.Element | undefined = undefined,
-	label: string | undefined = undefined,
-	chipStyle: SxProps<Theme> | undefined = undefined,
-	optionalOnClick:
-		| React.MouseEventHandler<HTMLDivElement>
-		| undefined = undefined,
-): React.JSX.Element {
-	return (
-		<Chip
-			size="small"
-			variant="outlined"
-			clickable={Boolean(optionalOnClick)}
-			label={
-				<Stack direction={"row"} alignItems={"center"} spacing={0.5}>
-					{optionalIcon}
-					<Typography
-						variant="caption"
-						sx={{
-							fontSize: "12px",
-							lineHeight: 1.2,
-						}}
-					>
-						{label}
-					</Typography>
-				</Stack>
-			}
-			sx={chipStyle}
-			onClick={optionalOnClick}
-		/>
-	);
-}
 export default function Blockings(): React.JSX.Element {
-	const [menuAnchor, setmenuAnchor] = React.useState<null | {
-		el: HTMLElement;
-		v: BlockGroup;
-	}>(null);
 	const {
-		blockGroupData,
+		setBlockGroupModal,
 		setBlockGroupData,
-		setBlockedSitesData,
 		setSelectedBlockGroup,
-		setIsCoveredState,
-		setIsBlurredState,
-		setIsGrayscaledState,
-		setIsMutedState,
-		setIsNewGroupModalOpen,
-		setIsBlockingModalOpen,
-		setIsDeleteGroupModalOpen,
-		setIsRenameGroupModalOpen,
 		setIsConfigModalOpen,
 		setUsageResetPeriod,
 		setUsageTimeValueNumber,
+		setBlockedContentData,
+		blockGroup,
+		setBlockGroupMenuAnchor,
+		setBlockedContentState,
+		setFabGroupMenuAnchor,
 		// selectedBlockGroup,
 	} = useStore();
 
-	const openModal = (v: BlockGroup): void => {
+	const openModal = (v: block_group): void => {
 		// GET BLOCK SITE OF SPECIFIC BLOCK GROUP
-		ipcRendererSend("blockedsites/get", {
+		ipcRendererSend("blockedcontent/get", {
 			id: v.id,
 			group_name: v.group_name,
 		});
-		setIsBlockingModalOpen(true);
+		setBlockGroupModal("blockingModal", true);
 	};
 	const modifyActivateButton = (v: BlockGroup_Full): void => {
-		ipcRendererSend("blockgroup/set", {
-			group: {
-				...v,
-				is_activated: v.is_activated ? 0 : 1,
-			},
-		});
+		if (!v.usage_label || v.usage_label.includes("pause")) {
+			ipcRendererSend("blockgroup/set", {
+				group: {
+					...v,
+					is_activated: v.is_activated ? 0 : 1,
+				},
+			});
+		} else {
+			setSelectedBlockGroup(v);
+			setBlockGroupModal("deactivateGroupModal", true);
+		}
 	};
 	const modifyAutoDeactivateButton = (v: BlockGroup_Full): void => {
 		ipcRendererSend("blockgroup/set", {
@@ -135,11 +97,23 @@ export default function Blockings(): React.JSX.Element {
 			},
 		});
 	};
+	// const [isBlockGroupRetrieveReady, setIsBlockGroupRetrieveReady] =
+	// 	useState<boolean>(true);
+
 	useEffect(() => {
+		let isUnmounted = false;
+		let isReady = true;
+		let timerId: NodeJS.Timeout | null = null;
+		const getBlockGroup = (): void => {
+			if (isReady && !isUnmounted) {
+				isReady = false;
+				ipcRendererSend("blockgroup/get", { init: true });
+			}
+		};
 		const listeners = [
 			{
-				channel: "blockedsites/put/response",
-				handler: (_, data) => {
+				channel: "blockedcontent/put/response",
+				handler: (_, data: Error_Info) => {
 					if (data.error)
 						console.error("putting target text response: ", data.error);
 					else console.info("inserting data success");
@@ -153,19 +127,29 @@ export default function Blockings(): React.JSX.Element {
 						console.error("Error blockgroup/get/response: ", data.error);
 
 					setBlockGroupData(data.data);
+					// setIsBlockGroupRetrieveReady(true);
+					isReady = true;
+					console.log("HEY IM CALLED");
+					if (timerId) {
+						clearTimeout(timerId);
+					}
+
+					if (!isUnmounted) {
+						timerId = setTimeout(() => getBlockGroup(), 1000);
+					}
 				},
 			},
 			{
 				// RECEIVE BLOCK GROUP (ONE ONLY) RESPONSE
 				channel: "blockgroup/get/id/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error)
 						console.error("Error blockgroup/get/id/response: ", data.error);
 				},
 			},
 			{
 				channel: "blockgroup/set/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error) {
 						console.error("Error blockgroup/set/response: ", data.error);
 						toast.error(data.error);
@@ -175,7 +159,7 @@ export default function Blockings(): React.JSX.Element {
 			{
 				// RECEIVE BLOCK GROUP CREATE/PUT RESPONSE (when you create a block  group)
 				channel: "blockgroup/put/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error) {
 						console.error("Error blockgroup/get/response: ", data.error);
 						toast.error(data.error);
@@ -184,17 +168,79 @@ export default function Blockings(): React.JSX.Element {
 			},
 			{
 				// RECEIVE BLOCK SITE RESPONSE
-				channel: "blockedsites/get/response",
-				handler: (_, data) => {
+				channel: "blockedcontent/get/response",
+				handler: (
+					_,
+					data: { error: string | undefined; data: blocked_content[] },
+				) => {
 					if (data.error)
 						console.error("Error fetching group block: ", data.error);
-					else setBlockedSitesData(data.data);
+					else setBlockedContentData(data.data);
+				},
+			},
+			{
+				channel: "blockedcontent/export/response",
+				handler: (
+					_,
+					data: {
+						error: string | undefined;
+						data: blocked_content[];
+						group_name: string;
+					},
+				) => {
+					if (data.error)
+						console.error("Error exporting group block: ", data.error);
+					else {
+						const blob = new Blob(
+							data.data.map((b) =>
+								b.is_absolute
+									? "{a}" + b.target_text + "\n"
+									: b.target_text + "\n",
+							),
+							{ type: "text/plain;charset=utf-8" },
+						);
+						saveAs(blob, data.group_name + ".txt");
+					}
+					setBlockGroupMenuAnchor(null);
+				},
+			},
+			{
+				channel: "jiyuu/export/response",
+				handler: (
+					_,
+					data: {
+						error: string | undefined;
+						json_string: string;
+					},
+				) => {
+					console.log("received data: ", data.json_string);
+
+					if (data.error) console.error("Error exporting", data.error);
+					else if (data.json_string) {
+						const blob = new Blob([data.json_string], {
+							type: "application/json",
+						});
+						saveAs(blob, "jiyuu-export.json");
+					}
+					setFabGroupMenuAnchor(null);
+				},
+			},
+			{
+				channel: "jiyuu/import/response",
+				handler: (
+					_,
+					data: {
+						error: string | undefined;
+					},
+				) => {
+					if (data.error) console.error("Error importing", data.error);
+					setFabGroupMenuAnchor(null);
 				},
 			},
 			{
 				// SETTING ALL BLOCK GROUP DATA AND BLOCKED SITES DATA response
-				channel: "blockgroup_blockedsites/set/response",
-				handler: (_, data) => {
+				channel: "blockgroup_blockedcontent/set/response",
+				handler: (_, data: Error_Info) => {
 					if (data.error)
 						console.error("ERROR MODIFYING THE ENTIRE GORUP: ", data.error);
 					else if (data.info) toast.success(data.info);
@@ -203,7 +249,7 @@ export default function Blockings(): React.JSX.Element {
 			{
 				// gets a reply when deleting a block group
 				channel: "blockgroup/delete/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error) {
 						console.error("Error deleting a block group: ", data.error);
 						toast.error(data.error);
@@ -212,7 +258,7 @@ export default function Blockings(): React.JSX.Element {
 			},
 			{
 				channel: "blockgroupconfig/set/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error) {
 						console.error("Error setting a block group config: ", data.error);
 						toast.error(data.error);
@@ -221,27 +267,20 @@ export default function Blockings(): React.JSX.Element {
 			},
 			{
 				channel: "blockgroupconfig/get/response",
-				handler: (_, data) => {
+				handler: (
+					_,
+					data: { error: string | undefined; data: block_group_config },
+				) => {
 					if (data.error) {
 						console.error("Error getting a block group config: ", data.error);
 						toast.error(data.error);
 					} else if (data.data) {
-						const d = data.data as {
-							block_group_id: number;
-							config_type: ConfigType;
-							config_data: string;
-						};
+						const d = data.data;
 						console.log("d isL: ", d);
 
 						if (d && d.config_data) {
 							console.log(d);
-
-							const cd = JSON.parse(d.config_data) as
-								| UsageLimitData_Config
-								| Password_Config
-								| RandomText_Config
-								| RestrictTimer_Config;
-
+							const cd = d.config_data;
 							if (cd && cd.config_type === "usageLimit") {
 								setUsageTimeValueNumber({
 									val: cd.usage_reset_value,
@@ -255,11 +294,19 @@ export default function Blockings(): React.JSX.Element {
 			},
 			{
 				channel: "blockgroupconfig/delete/response",
-				handler: (_, data) => {
+				handler: (_, data: Error_Info) => {
 					if (data.error) {
 						toast.error(data.error);
 					} else if (data.info) {
 						toast.success("Restriction successfully removed");
+					}
+				},
+			},
+			{
+				channel: "blockgroupconfig/usageLimit/pause/set/response",
+				handler: (_, data: Error_Info) => {
+					if (data.error) {
+						toast.error(data.error);
 					}
 				},
 			},
@@ -268,9 +315,13 @@ export default function Blockings(): React.JSX.Element {
 			ipcRendererOn(v.channel, v.handler);
 		});
 		// GET ALL BLOCK GROUP (INITIALIZATION)
-		ipcRendererSend("blockgroup/get", { init: true });
+		getBlockGroup();
 
 		return () => {
+			isUnmounted = true;
+			if (timerId) {
+				clearTimeout(timerId);
+			}
 			listeners.forEach((v) => {
 				window.electron.ipcRenderer.removeAllListeners(v.channel);
 			});
@@ -284,6 +335,7 @@ export default function Blockings(): React.JSX.Element {
 					height: "100%",
 				}}
 			>
+				<NavbarExtension />
 				<Stack
 					sx={{
 						flex: 1,
@@ -292,8 +344,8 @@ export default function Blockings(): React.JSX.Element {
 						...scrollbarStyle,
 					}}
 				>
-					{blockGroupData &&
-						blockGroupData.map((v, i) => {
+					{blockGroup.data &&
+						blockGroup.data.map((v, i) => {
 							// console.log(v);
 
 							return (
@@ -311,19 +363,21 @@ export default function Blockings(): React.JSX.Element {
 									<CardContent sx={{ paddingBottom: 0 }}>
 										<Stack direction={"row"} justifyContent={"space-between"}>
 											<Stack direction={"row"} gap={1}>
-												{customChip(
-													<Box
-														sx={{
-															width: 6,
-															height: 6,
-															borderRadius: "50%",
-															backgroundColor: v.is_activated
-																? teal[500]
-																: "grey.400",
-														}}
-													/>,
-													v.is_activated ? "Active" : "Inactive",
-													{
+												<CustomChip
+													optionalIcon={
+														<Box
+															sx={{
+																width: 6,
+																height: 6,
+																borderRadius: "50%",
+																backgroundColor: v.is_activated
+																	? teal[500]
+																	: "grey.400",
+															}}
+														/>
+													}
+													label={v.is_activated ? "Active" : "Inactive"}
+													chipStyle={{
 														color: v.is_activated
 															? teal[500]
 															: "text.secondary",
@@ -331,15 +385,17 @@ export default function Blockings(): React.JSX.Element {
 														borderColor: v.is_activated
 															? teal[500]
 															: "grey.300",
-													},
-													v.restriction_type && v.is_activated
-														? undefined
-														: () => modifyActivateButton(v),
-												)}
-												{customChip(
-													undefined,
-													`Auto deactivate ${v.auto_deactivate ? "on" : "off"}`,
-													{
+													}}
+													optionalOnClick={
+														v.restriction_type && v.is_activated
+															? undefined
+															: () => modifyActivateButton(v)
+													}
+												/>
+												<CustomChip
+													optionalIcon={undefined}
+													label={`Auto deactivate ${v.auto_deactivate ? "on" : "off"}`}
+													chipStyle={{
 														color: v.auto_deactivate
 															? blue[800]
 															: "text.secondary",
@@ -347,13 +403,13 @@ export default function Blockings(): React.JSX.Element {
 														borderColor: v.auto_deactivate
 															? blue[800]
 															: "grey.300",
-													},
-													() => {
-														modifyAutoDeactivateButton(v);
-													},
-												)}
-												{v.restriction_type
-													? customChip(
+													}}
+													optionalOnClick={() => modifyAutoDeactivateButton(v)}
+												/>
+												{v.restriction_type ? (
+													<CustomChip
+														optionalOnClick={undefined}
+														optionalIcon={
 															<LockIcon
 																sx={{
 																	width: 12,
@@ -361,51 +417,79 @@ export default function Blockings(): React.JSX.Element {
 																	borderRadius: "50%",
 																	color: "grey.600",
 																}}
-															/>,
-															"Locked",
-															{
-																color: "grey.600",
-																borderColor: "grey.500",
-															},
-														)
-													: undefined}
-												{/* TODO ADD USAGE TIME IN DISPLAY (CHIP & TIME LEFT) */}
-												{v.usage_label
-													? customChip(undefined, "Usage limit", {
+															/>
+														}
+														label="Locked"
+														chipStyle={{
+															color: "grey.600",
+															borderColor: "grey.500",
+														}}
+													/>
+												) : null}
+												{v.usage_label ? (
+													<CustomChip
+														optionalIcon={undefined}
+														optionalOnClick={undefined}
+														label="Usage limit"
+														chipStyle={{
 															color: blue[900],
 															borderColor: blue[900],
-														})
-													: undefined}
-												{v.is_covered
-													? customChip(undefined, "Covered", {
+														}}
+													/>
+												) : null}
+												{v.is_covered ? (
+													<CustomChip
+														optionalIcon={undefined}
+														optionalOnClick={undefined}
+														label="Covered"
+														chipStyle={{
 															color: pink[500],
 															borderColor: pink[500],
-														})
-													: undefined}
-												{v.is_muted
-													? customChip(undefined, "Muted", {
+														}}
+													/>
+												) : null}
+												{v.is_muted ? (
+													<CustomChip
+														optionalIcon={undefined}
+														optionalOnClick={undefined}
+														label="Muted"
+														chipStyle={{
 															color: indigo[500],
 															borderColor: indigo[500],
-														})
-													: undefined}
-												{v.is_grayscaled
-													? customChip(undefined, "Grayscaled", {
+														}}
+													/>
+												) : null}
+												{v.is_grayscaled ? (
+													<CustomChip
+														optionalIcon={undefined}
+														optionalOnClick={undefined}
+														label="Grayscaled"
+														chipStyle={{
 															color: blueGrey[800],
 															borderColor: blueGrey[800],
-														})
-													: undefined}
-												{v.is_blurred
-													? customChip(undefined, "Blurred", {
+														}}
+													/>
+												) : null}
+												{v.is_blurred ? (
+													<CustomChip
+														optionalIcon={undefined}
+														optionalOnClick={undefined}
+														label="Blurred"
+														chipStyle={{
 															color: lightGreen[900],
 															borderColor: lightGreen[900],
-														})
-													: undefined}
+														}}
+													/>
+												) : null}
 											</Stack>
 											<IconButton
 												sx={{ p: 0 }}
 												disableRipple
 												onClick={(e) => {
-													setmenuAnchor({ el: e.currentTarget, v: v });
+													setBlockGroupMenuAnchor({
+														el: e.currentTarget,
+														v: v,
+													});
 												}}
 											>
 												<MoreHorizIcon sx={{ color: "black" }} />
@@ -421,23 +505,24 @@ export default function Blockings(): React.JSX.Element {
 												variant="h5"
 												letterSpacing={1}
 												component={"div"}
+												minWidth={"33%"}
 												onClick={() => {
 													setSelectedBlockGroup(v);
-													setIsCoveredState({
-														val: v.is_covered,
-														init_val: v.is_covered,
+													setBlockedContentState("covered", {
+														val: Boolean(v.is_covered),
+														init_val: Boolean(v.is_covered),
 													});
-													setIsGrayscaledState({
-														val: v.is_grayscaled,
-														init_val: v.is_grayscaled,
+													setBlockedContentState("grayscaled", {
+														val: Boolean(v.is_grayscaled),
+														init_val: Boolean(v.is_grayscaled),
 													});
-													setIsMutedState({
-														val: v.is_muted,
-														init_val: v.is_muted,
+													setBlockedContentState("muted", {
+														val: Boolean(v.is_muted),
+														init_val: Boolean(v.is_muted),
 													});
-													setIsBlurredState({
-														val: v.is_blurred,
-														init_val: v.is_blurred,
+													setBlockedContentState("blurred", {
+														val: Boolean(v.is_blurred),
+														init_val: Boolean(v.is_blurred),
 													});
 													openModal(v);
 												}}
@@ -453,13 +538,8 @@ export default function Blockings(): React.JSX.Element {
 											>
 												{v.group_name}
 											</Typography>
-											<Typography
-												color="initial"
-												variant={"subtitle2"}
-												alignContent={"center"}
-											>
-												{v.usage_label}
-											</Typography>
+											{v.usage_label && <UsageAndPauseMenu blockGroup={v} />}
+
 											<Button
 												disableRipple
 												size="small"
@@ -484,80 +564,59 @@ export default function Blockings(): React.JSX.Element {
 				</Stack>
 
 				{/* Floating Action Button */}
-				<Fab
-					color="primary"
-					variant="extended"
-					disableRipple
-					onClick={() => {
-						setIsNewGroupModalOpen(true);
-					}}
+				<Box
 					sx={{
 						position: "fixed",
-						bottom: 90,
+						bottom: 110,
 						right: 20,
 						letterSpacing: 1,
-						zIndex: 100,
 						fontWeight: 500,
+						overflow: "hidden",
+						borderRadius: "50px",
+						boxShadow: 3,
+						display: "flex",
 					}}
 				>
-					<AddIcon sx={{ mr: 1 }} /> Add group
-				</Fab>
+					<Fab
+						color="primary"
+						variant="extended"
+						disableRipple
+						sx={{
+							borderRadius: "0px",
+							boxShadow: "none",
+						}}
+						onClick={() => {
+							setBlockGroupModal("add", true);
+						}}
+					>
+						<AddIcon sx={{ mr: 1 }} /> Add group
+					</Fab>
+					<Box
+						sx={{
+							width: "1px",
+							bgcolor: "white",
+							alignSelf: "stretch",
+						}}
+					/>
+					<IconButton
+						onClick={(e) => setFabGroupMenuAnchor(e.currentTarget)}
+						sx={{
+							backgroundColor: "white",
+							color: "inherit",
+							borderRadius: 0,
+							px: 1.5,
+						}}
+					>
+						<MenuIcon />
+					</IconButton>
+				</Box>
 			</Stack>
 			<BlockingModal />
-			<NewBlockGroupModal />
-			<DeleteBlockGroupModal />
-			<RenameBlockGroupModal />
+			<MainBlockGroupModal />
 			<ConfigModal />
-			<Menu
-				anchorEl={menuAnchor?.el}
-				open={Boolean(menuAnchor?.el)}
-				onClose={() => {
-					setmenuAnchor(null);
-				}}
-			>
-				<MenuItem
-					disabled={Boolean(menuAnchor?.v.restriction_type)}
-					onClick={(e) => {
-						e.stopPropagation();
-						setSelectedBlockGroup(menuAnchor?.v);
-						setIsDeleteGroupModalOpen(true);
-						setmenuAnchor(null);
-					}}
-				>
-					<ListItemIcon>
-						<DeleteIcon fontSize="small" />
-					</ListItemIcon>
-					<ListItemText sx={{ letterSpacing: 0.7 }}>Delete</ListItemText>
-				</MenuItem>
-				<MenuItem
-					onClick={(e) => {
-						e.stopPropagation();
-						setSelectedBlockGroup(menuAnchor?.v);
-						setIsRenameGroupModalOpen(true);
-						setmenuAnchor(null);
-					}}
-				>
-					<ListItemIcon>
-						<DriveFileRenameOutlineIcon fontSize="small" />
-					</ListItemIcon>
-					<ListItemText sx={{ letterSpacing: 0.7 }}>Rename</ListItemText>
-				</MenuItem>
-				<MenuItem
-					onClick={(e) => {
-						e.stopPropagation();
-						setSelectedBlockGroup(menuAnchor?.v);
-						setIsConfigModalOpen(true);
-						setmenuAnchor(null);
-					}}
-				>
-					<ListItemIcon>
-						<SettingsIcon fontSize="small" />
-					</ListItemIcon>
-					<ListItemText sx={{ letterSpacing: 0.7 }}>
-						Open configuration
-					</ListItemText>
-				</MenuItem>
-			</Menu>
+			<BlockGroupMenu />
+			<GroupDeactivateDialogue />
+			<ExportAndImportBlockGroup />
 		</>
 	);
 }

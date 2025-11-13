@@ -1,0 +1,114 @@
+[
+	{
+		"name": "Microsoft Edge",
+		"process_name": "msedge.exe",
+		"identifier": ["edg", "edge"],
+		"finder_keywords": ["edg/"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Microsoft Edge"
+	},
+	{
+		"name": "Google Chrome",
+		"process_name": "chrome.exe",
+		"identifier": ["chrome", "google"],
+		"finder_keywords": ["chrome/"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Google Chrome"
+	},
+	{
+		"name": "Mozilla Firefox",
+		"process_name": "firefox.exe",
+		"identifier": ["firefox", "mozilla"],
+		"finder_keywords": ["firefox/"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Mozilla Firefox"
+	},
+	{
+		"name": "Brave",
+		"process_name": "brave.exe",
+		"identifier": ["brave"],
+		"finder_keywords": ["brave/"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Brave"
+	},
+	{
+		"name": "Opera",
+		"process_name": "opera.exe",
+		"identifier": ["opera"],
+		"finder_keywords": ["opr/"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Opera"
+	},
+	{
+		"name": "Vivaldi",
+		"process_name": "vivaldi.exe",
+		"identifier": ["vivaldi"],
+		"finder_keywords": ["vivaldi/"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Vivaldi"
+	},
+	{
+		"name": "Opera GX",
+		"process_name": "opera.exe",
+		"identifier": ["opera", "gx"],
+		"finder_keywords": ["opr/"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Opera GX"
+	},
+	{
+		"name": "Google Chrome Canary",
+		"process_name": "chrome.exe",
+		"identifier": ["google", "chrome", "canary"],
+		"finder_keywords": ["chrome/", "canary"],
+		"registry_location": "HKEY_CURRENT_USER\\Software\\Clients\\StartMenuInternet\\Google Chrome Canary"
+	},
+	{
+		"name": "Microsoft Edge Dev",
+		"process_name": "msedge.exe",
+		"identifier": ["edge", "dev", "developer"],
+		"finder_keywords": ["edg/", "dev"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Microsoft Edge Dev"
+	},
+	{
+		"name": "Microsoft Edge Beta",
+		"process_name": "msedge.exe",
+		"identifier": ["edge", "beta"],
+		"finder_keywords": ["edg/", "beta"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Microsoft Edge Beta"
+	},
+	{
+		"name": "Microsoft Edge Canary",
+		"process_name": "msedge.exe",
+		"identifier": ["canary", "edge"],
+		"finder_keywords": ["edg/", "canary"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Microsoft Edge Canary"
+	},
+	{
+		"name": "Brave Beta",
+		"process_name": "brave.exe",
+		"identifier": ["beta", "brave"],
+		"finder_keywords": ["brave/", "beta"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Brave BETA"
+	},
+	{
+		"name": "Brave Nightly",
+		"process_name": "brave.exe",
+		"identifier": ["brave", "nightly"],
+		"finder_keywords": ["brave/", "nightly"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Brave NIGHTLY"
+	},
+	{
+		"name": "Firefox Nightly",
+		"process_name": "firefox.exe",
+		"identifier": ["firefox", "mozilla", "nightly"],
+		"finder_keywords": ["firefox/", "nightly"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Firefox Nightly"
+	},
+	{
+		"name": "Firefox Developer Edition",
+		"process_name": "firefox.exe",
+		"identifier": ["firefox", "mozilla", "developer"],
+		"finder_keywords": ["firefox/", "developer"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Firefox Developer Edition"
+	},
+	{
+		"name": "Avast Secure Browser",
+		"process_name": "AvastBrowser.exe",
+		"identifier": ["avast"],
+		"finder_keywords": ["avast/"],
+		"registry_location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Avast Secure Browser"
+	}
+]
