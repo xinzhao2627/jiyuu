@@ -1,7 +1,7 @@
 {
-	"name": "jiyuu-client",
+	"name": "jiyuu",
 	"version": "1.0.0",
-	"description": "An Electron application with React and TypeScript",
+	"description": "Jiyuu - Website Blocker",
 	"main": "./out/main/index.js",
 	"author": "example.com",
 	"homepage": "https://electron-vite.org",
@@ -17,6 +17,7 @@
 		"postinstall": "electron-builder install-app-deps",
 		"build:unpack": "npm run build && electron-builder --dir",
 		"build:win": "npm run build && electron-builder --win",
+		"release": "npm run build && electron-builder --win --publish always",
 		"build:mac": "electron-vite build && electron-builder --mac",
 		"build:linux": "electron-vite build && electron-builder --linux"
 	},

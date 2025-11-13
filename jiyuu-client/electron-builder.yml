@@ -14,11 +14,13 @@ asarUnpack:
 win:
   executableName: jiyuu
 nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: false
   include: build/installer.nsh
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
-  createDesktopShortcut: always
+  createDesktopShortcut: "always"
   deleteAppDataOnUninstall: true
 mac:
   entitlementsInherit: build/entitlements.mac.plist

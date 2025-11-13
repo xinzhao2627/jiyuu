@@ -3,5 +3,5 @@
 !macroend
 
 !macro customUnInstall
-    nsExec::ExecToLog 'powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File "$INSTDIR\resources\scripts\TaskSchedUninstall.ps1"'
+    nsExec::ExecToLog 'powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Unregister-ScheduledTask -TaskName \"JiyuuClientWatchdog\" -Confirm:$$false -ErrorAction SilentlyContinue"'
 !macroend
