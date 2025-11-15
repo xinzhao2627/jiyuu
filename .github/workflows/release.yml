@@ -23,7 +23,7 @@ jobs:
               with:
                   node-version: "20"
             - name: Install Dependencies
-              uses: npm ci
+              run: npm ci
 
             - name: Build Electron app
               env:
