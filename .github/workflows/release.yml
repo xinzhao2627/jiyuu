@@ -33,8 +33,8 @@ jobs:
               uses: softprops/action-gh-release@v2
               with:
                   files: |
-                      dist/*.exe
-                      dist/*.blockmap
-                      dist/*.yaml
+                      jiyuu-client/dist/*.exe
+                      jiyuu-client/dist/*.blockmap
+                      jiyuu-client/dist/*.yaml
               env:
                   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
