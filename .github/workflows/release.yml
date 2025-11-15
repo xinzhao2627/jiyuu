@@ -8,14 +8,33 @@ on:
 jobs:
     release:
         runs-on: windows-latest
+        defaults:
+            run:
+                shell: bash
+                working-directory: ./jiyuu-client
         permissions:
             contents: write
         steps:
             - name: Checkout code
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v5
               with:
                   node-version: "20"
-                  cache: "npm"
+            - name: Install Dependencies
+              uses: npm ci
+
+            - name: Build Electron app
+              env:
+                  GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+              run: npm run build:win
+            - name: Upload Resources
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: |
+                      dist/*.exe
+                      dist/*.blockmap
+                      dist/*.yaml
+              env:
+                  GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
