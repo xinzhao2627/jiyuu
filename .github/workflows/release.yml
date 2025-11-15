@@ -25,20 +25,20 @@ jobs:
 
             - name: Install Dependencies
               run: npm ci
-              working-directory: ./jiyuu-client
+            #   working-directory: ./jiyuu-client
 
             - name: Build Electron app
               env:
                   GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
               run: npm run build:win
-              working-directory: ./jiyuu-client
+            #   working-directory: ./jiyuu-client
 
             - name: Upload Resources
               uses: softprops/action-gh-release@v2
               with:
                   files: |
-                      dist/*.exe
-                      dist/*.blockmap
-                      dist/*.yaml
+                      jiyuu-client/dist/*.exe
+                      jiyuu-client/dist/*.blockmap
+                      jiyuu-client/dist/*.yaml
               env:
                   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
