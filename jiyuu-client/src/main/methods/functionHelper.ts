@@ -166,6 +166,8 @@ export function findBrowser(ua_string: string): string {
 	else if (ua_string.includes("yabrowser/")) name = "yandex";
 	else if (ua_string.includes("chromium/")) name = "chromium";
 	else if (ua_string.includes("chrome")) name = "chrome";
+
+	// do for nightly? or other variants of other browsers?
 	return name;
 }
 export async function killManager(): Promise<void> {
