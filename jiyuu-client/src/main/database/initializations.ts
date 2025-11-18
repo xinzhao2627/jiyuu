@@ -12,10 +12,11 @@ function logDbError(error: unknown, context: string): void {
 
 	fs.appendFileSync(logPath, msg, { encoding: "utf-8" });
 }
+export const DB_WORKSPACE_FILE_PATH = "../../src/main/database";
 export function initDb(): Kysely<DB> {
 	const dbPath = app.isPackaged
 		? join(app.getPath("userData"), "jiyuuData.db")
-		: join(__dirname, "../../src/main/database/jiyuuData.db");
+		: join(__dirname, DB_WORKSPACE_FILE_PATH + "/jiyuuData.db");
 	console.log(dbPath);
 
 	db = new Kysely<DB>({

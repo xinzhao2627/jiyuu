@@ -6,9 +6,49 @@ import {
 	unsupported_browsers,
 } from "../index-interface";
 import * as util from "util";
-import { db } from "../database/initializations";
-import { BrowserWindow } from "electron";
+import * as fs from "fs";
+import { db, DB_WORKSPACE_FILE_PATH } from "../database/initializations";
+import { app, BrowserWindow } from "electron";
+import { join } from "path";
 const execPromise = util.promisify(exec);
+
+export async function blockUninstallIfNeeded(): Promise<void> {
+	let hasRestriction = false;
+	try {
+		const r =
+			(await db
+				?.selectFrom("block_group")
+				.select("restriction_type")
+				.execute()) || [];
+		for (const bg of r) {
+			if (bg.restriction_type) {
+				hasRestriction = true;
+			}
+		}
+		const path = app.isPackaged
+			? join(app.getPath("userData"), "hasRestriction.txt")
+			: join(__dirname, DB_WORKSPACE_FILE_PATH + "/hasRestriction.txt");
+
+		if (hasRestriction) {
+			// if that txt already exists then do nothing, but if not, create the txt
+			if (hasRestriction && !fs.existsSync(path)) {
+				fs.writeFileSync(path, "true");
+				console.log("lock txt file created");
+			}
+		} else {
+			// clean now if there is no restriction
+			if (fs.existsSync(path)) {
+				fs.unlinkSync(path);
+				console.log("no restriction, lock file deleted");
+			}
+		}
+	} catch (error) {
+		console.log("error checking blockuninstall: " + error);
+	}
+
+	return;
+}
+
 export function siteIncludes(
 	siteData: SiteAttribute | TimeListInterface,
 	target: string,
