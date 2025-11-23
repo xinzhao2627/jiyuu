@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"description": "Jiyuu - Website Blocker",
 	"main": "./out/main/index.js",
-	"author": "example.com",
+	"author": "xinzhao2627",
 	"homepage": "https://electron-vite.org",
 	"scripts": {
 		"format": "prettier --write .",

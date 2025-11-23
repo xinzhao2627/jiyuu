@@ -327,6 +327,8 @@ export default defineBackground(() => {
 				const d = JSON.parse(event.data) as SentData;
 				// electron will reply if we should block the tab or not
 				if (d.isBlocked && d.tabId) {
+					console.log("PARAM: " + d.blockParam);
+
 					const feedback = await sendMessage(
 						"toBlockData",
 						d.blockParam,

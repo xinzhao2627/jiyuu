@@ -119,7 +119,8 @@ export async function validateWebpage(data: {
 				following_detected_texts.push(r.target_text);
 			}
 		}
-		const is_blocked = covered_count + muted_count + grayscale_count > 0;
+		const is_blocked =
+			covered_count + muted_count + grayscale_count + blurred_count > 0;
 
 		// update the ui
 		const blockgroup_rows = await getBlockGroup_with_config();

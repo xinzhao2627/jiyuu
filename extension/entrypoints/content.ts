@@ -32,13 +32,23 @@ function blockProcessor(blockParam: BlockParam): Feedback {
 	try {
 		console.log("gs called: ", blockParam);
 
-		if (blockParam.is_muted) blockMute();
-		if (blockParam.is_covered) blockOverride();
+		if (blockParam.is_muted) {
+			blockMute();
+		}
+		if (blockParam.is_covered) {
+			blockOverride();
+		}
 
-		if (blockParam.is_grayscaled && blockParam.is_blurred)
+		if (blockParam.is_grayscaled && blockParam.is_blurred) {
 			blockGrayscaleBlur();
-		else if (blockParam.is_grayscaled) blockGrayscale();
-		else if (blockParam.is_blurred) blockBlur();
+		}
+
+		if (blockParam.is_grayscaled) {
+			blockGrayscale();
+		}
+		if (blockParam.is_blurred) {
+			blockBlur();
+		}
 
 		return {
 			status: 200,
@@ -101,6 +111,8 @@ function blockGrayscale() {
 }
 
 function blockGrayscaleBlur() {
+	console.log("blurred running");
+
 	document.documentElement.style.filter = "blur(5px) grayscale(100%)";
 }
 

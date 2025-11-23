@@ -4,6 +4,7 @@ on:
     push:
         tags:
             - "v*.*.*"
+            - "v*.*.*-*"
 
 jobs:
     release:
@@ -36,5 +37,7 @@ jobs:
                       jiyuu-client/dist/*.exe
                       jiyuu-client/dist/*.blockmap
                       jiyuu-client/dist/*.yaml
+                  body: |
+                      **Important:** Only download the `.exe` file. The other files are irrelevant if you only want to use Jiyuu.
               env:
                   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
