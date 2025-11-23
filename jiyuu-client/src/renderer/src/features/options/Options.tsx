@@ -74,6 +74,15 @@ export default function Options(): React.JSX.Element {
 				}
 			},
 		},
+		{
+			channel: "openurl/response",
+			handler: (_, data) => {
+				if (data.error) {
+					toast.error("Error opening url");
+					console.log(data.error);
+				}
+			},
+		},
 	];
 	const isDisabled = blockGroup.data.some((v) => v.restriction_type);
 	useEffect(() => {
@@ -132,6 +141,23 @@ export default function Options(): React.JSX.Element {
 				}}
 			>
 				<Stack gap={1}>
+					<Button
+						size="small"
+						variant="outlined"
+						sx={{
+							fontWeight: 600,
+							cursor: "pointer",
+							width: "200px",
+							textAlign: "left",
+							alignItems: "flex-start",
+							mb: 2,
+						}}
+						onClick={() => {
+							ipcRendererSend("openurl", { process: "default" });
+						}}
+					>
+						Go to Jiyuu Website
+					</Button>
 					<Stack>
 						<Typography variant="body1" color="initial">
 							Browser disable delay

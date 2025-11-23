@@ -1,6 +1,6 @@
 {
 	"name": "jiyuu",
-	"version": "1.0.0",
+	"version": "1.0.1-STABLE",
 	"description": "Jiyuu - Website Blocker",
 	"main": "./out/main/index.js",
 	"author": "xinzhao2627",

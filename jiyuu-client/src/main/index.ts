@@ -225,79 +225,79 @@ if (!gotTheLock) {
 		app.on("browser-window-created", (_, window) => {
 			optimizer.watchWindowShortcuts(window);
 		});
-		const JIYUU_URL = "facebook.com";
+		const JIYUU_URL = "jiyuu.app";
 		let browsers_list: browsersList[] = [
 			{
 				name: "chrome",
 				process: "chrome",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "https://chromewebstore.google.com/detail/jiyuu-web-blocker/imhjffmochmoadnclabphkcdjndmbjkf",
 			},
 			{
 				name: "brave",
 				process: "brave",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "google.com",
 			},
 			{
 				name: "msedge",
 				process: "msedge",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "google.com",
 			},
 			{
 				name: "opera",
 				process: "opera",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "google.com",
 			},
 			{
 				name: "opera_gx",
 				process: "opera_gx",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "google.com",
 			},
 			{
 				name: "vivaldi",
 				process: "vivaldi",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "google.com",
 			},
 			{
 				name: "avast_secure",
 				process: "AvastBrowser",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "google.com",
 			},
 			{
 				name: "torch",
 				process: "torch",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "google.com",
 			},
 			{
 				name: "comodo_dragon",
 				process: "dragon",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "google.com",
 			},
 			{
 				name: "chromium",
 				process: "chromium",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "google.com",
 			},
 			{
 				name: "yandex",
 				process: "browser",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "google.com",
 			},
 			{
 				name: "firefox",
 				process: "firefox",
 				elapsedMissing: 0,
-				url: "facebook.com",
+				url: "https://addons.mozilla.org/en-US/firefox/addon/jiyuu-web-blocker/",
 			},
 		];
 		// triggers when opening the app

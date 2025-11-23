@@ -32,7 +32,7 @@ export function BotbarTutorial(): JSX.Element {
 			});
 		};
 	}, []);
-	if (isTutOpen) return <></>;
+	if (!isTutOpen) return <></>;
 
 	return (
 		<Stack
@@ -60,6 +60,10 @@ export function BotbarTutorial(): JSX.Element {
 						paddingRight: 10,
 						color: "white",
 						borderColor: "white",
+					}}
+					onClick={() => {
+						localStorage.removeItem("isTutOpen");
+						setIsTutOpen(false);
 					}}
 				>
 					Close & don&apos;t show again
