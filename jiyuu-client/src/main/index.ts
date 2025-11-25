@@ -447,6 +447,7 @@ if (!gotTheLock) {
 						isUpdateAvailable: true,
 						updateInfo: res.updateInfo,
 					});
+					return;
 				}
 
 				event.reply("check-for-update/response", {});
