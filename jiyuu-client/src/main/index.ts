@@ -222,6 +222,7 @@ if (!gotTheLock) {
 		electronApp.setAppUserModelId("com.jiyuu");
 
 		autoUpdater.autoDownload = false;
+
 		autoUpdater.autoInstallOnAppQuit = true;
 		autoUpdater.checkForUpdatesAndNotify();
 
@@ -443,11 +444,13 @@ if (!gotTheLock) {
 				const res = await autoUpdater.checkForUpdates();
 
 				if (res && res.updateInfo) {
-					event.reply("check-for-update/response", {
-						isUpdateAvailable: true,
-						updateInfo: res.updateInfo,
-					});
-					return;
+					if (res.updateInfo.version !== app.getVersion()) {
+						event.reply("check-for-update/response", {
+							isUpdateAvailable: true,
+							updateInfo: res.updateInfo,
+						});
+						return;
+					}
 				}
 
 				event.reply("check-for-update/response", {});

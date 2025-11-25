@@ -113,7 +113,7 @@ export default function Options(): React.JSX.Element {
 			channel: "download-update/response",
 			handler: (_, data) => {
 				if (data.error) {
-					toast.error("Error downloading update: " + +data.error);
+					toast.error("Error downloading update: " + data.error);
 					console.log(data.error);
 				} else {
 					setUpdateTextState("install");
