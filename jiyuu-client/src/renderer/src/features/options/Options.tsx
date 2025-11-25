@@ -1,10 +1,13 @@
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+
 import { useStore } from "../blockings/blockingsStore";
 import { ipcRendererOn, ipcRendererSend } from "../blockings/blockingAPI";
 import {
 	Box,
+	Chip,
 	FormControl,
 	FormHelperText,
 	MenuItem,
@@ -13,12 +16,19 @@ import {
 	ToggleButton,
 	ToggleButtonGroup,
 } from "@mui/material";
+import Divider from "@mui/material/Divider";
 import { modalTextFieldStyle } from "@renderer/assets/shared/modalStyle";
 import { Controller, FieldValues, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { user_optionsTable } from "@renderer/jiyuuInterfaces";
 import { DeleteUsageConfirmation } from "./modals/deleteUsageConfirmation";
+import { blue } from "@mui/material/colors";
 export default function Options(): React.JSX.Element {
+	const [isLoading, setIsLoading] = useState<boolean>(false);
+	const [updateTextState, setUpdateTextState] = useState<
+		"no-update" | "download" | "install" | null
+	>(null);
+	const [updateVersion, setUpdateVersion] = useState<number | null>();
 	const { handleSubmit, register, reset, control } = useForm({
 		defaultValues: {
 			restrictDelay: 60,
@@ -83,6 +93,44 @@ export default function Options(): React.JSX.Element {
 				}
 			},
 		},
+		{
+			channel: "check-for-update/response",
+			handler: (_, data) => {
+				if (data.error) {
+					toast.error("Error fetching updates: " + data.error);
+					console.log(data.error);
+				} else if (data.isUpdateAvailable) {
+					setUpdateTextState("download");
+					setUpdateVersion(Number(data.updateInfo.version));
+				} else {
+					setUpdateTextState("no-update");
+				}
+				setIsLoading(false);
+			},
+		},
+		{
+			channel: "download-update/response",
+			handler: (_, data) => {
+				if (data.error) {
+					toast.error("Error downloading update: " + +data.error);
+					console.log(data.error);
+				} else {
+					setUpdateTextState("install");
+				}
+				setIsLoading(false);
+			},
+		},
+		{
+			channel: "install-update/response",
+			handler: (_, data) => {
+				if (data.error) {
+					toast.error("Error installing update: " + data.error);
+				} else {
+					setUpdateTextState(null);
+				}
+				setIsLoading(false);
+			},
+		},
 	];
 	const isDisabled = blockGroup.data.some((v) => v.restriction_type);
 	useEffect(() => {
@@ -99,7 +147,16 @@ export default function Options(): React.JSX.Element {
 		};
 	}, []);
 	return (
-		<div>
+		<div
+			style={{
+				width: "100%",
+				display: "flex",
+				flexDirection: "row",
+				padding: "40px",
+				paddingTop: "30px",
+				minHeight: "100vh",
+			}}
+		>
 			<form
 				noValidate
 				onSubmit={handleSubmit((fv: FieldValues) => {
@@ -133,31 +190,12 @@ export default function Options(): React.JSX.Element {
 					display: "flex",
 					flexDirection: "column",
 					flexWrap: "wrap",
-					width: "fit-content",
+					width: "50%",
 					gap: "2em",
-					height: "100%",
-					padding: 50,
 					overflow: "auto",
 				}}
 			>
 				<Stack gap={1}>
-					<Button
-						size="small"
-						variant="outlined"
-						sx={{
-							fontWeight: 600,
-							cursor: "pointer",
-							width: "200px",
-							textAlign: "left",
-							alignItems: "flex-start",
-							mb: 2,
-						}}
-						onClick={() => {
-							ipcRendererSend("openurl", { process: "default" });
-						}}
-					>
-						Go to Jiyuu Website
-					</Button>
 					<Stack>
 						<Typography variant="body1" color="initial">
 							Browser disable delay
@@ -309,6 +347,105 @@ export default function Options(): React.JSX.Element {
 					</Button>
 				</Stack>
 			</form>
+			<Divider orientation="vertical" flexItem sx={{ mx: 2 }} />{" "}
+			<Stack
+				sx={{
+					display: "flex",
+					flexDirection: "column",
+					flexWrap: "wrap",
+					width: "50%",
+					height: "100%",
+					gap: 0,
+				}}
+			>
+				<Typography
+					variant="h2"
+					color="initial"
+					sx={{ fontWeight: 600, color: blue[700] }}
+				>
+					JIYUU
+				</Typography>
+				<Stack direction={"row"} gap={1} mb={2}>
+					<Typography variant="subtitle2" color="initial">
+						developed by:{" "}
+					</Typography>
+					<Typography
+						variant="subtitle2"
+						color="initial"
+						sx={{ fontWeight: 400 }}
+					>
+						xinzhao2627
+					</Typography>
+				</Stack>
+				<Chip
+					label={"Go to Jiyuu website"}
+					style={{
+						padding: 4,
+						fontWeight: 500,
+						width: "fit-content",
+						backgroundColor: blue[700],
+					}}
+					onClick={() => {
+						ipcRendererSend("openurl", { process: "default" });
+					}}
+					onDelete={() => {}}
+					deleteIcon={<OpenInNewIcon fontSize="small" />}
+					color="primary"
+					variant="filled"
+					size="small"
+				/>
+				<Typography
+					variant="body2"
+					color="initial"
+					my={3}
+					textAlign={"justify"}
+				>
+					Jiyuu is a desktop app, specifically used for blocking websites. It is
+					an open-source project which you can publicly view at
+					github.com/xinzhao2627/jiyuu. For concerns or additional feature
+					suggestions, you may email me at rainnsoft@gmail.com.
+				</Typography>
+
+				<Button
+					size="small"
+					loading={isLoading}
+					variant="contained"
+					sx={{
+						fontWeight: 600,
+						cursor: "pointer",
+						width: "200px",
+						textAlign: "left",
+						alignItems: "flex-start",
+						mb: 2,
+					}}
+					onClick={() => {
+						setIsLoading(true);
+						if (updateTextState === null || updateTextState === "no-update") {
+							ipcRendererSend("check-for-update", {});
+						} else if (updateTextState === "download") {
+							ipcRendererSend("download-update", {});
+						} else if (updateTextState === "install") {
+							ipcRendererSend("install-update", {});
+						}
+					}}
+				>
+					{updateTextState === null || updateTextState === "no-update"
+						? "Check for update"
+						: updateTextState === "download"
+							? "Download update"
+							: "Restart & install"}
+				</Button>
+				{updateVersion && (
+					<Typography variant="caption" color="success" fontWeight={600}>
+						Update version: {updateVersion}
+					</Typography>
+				)}
+				{updateTextState === "no-update" && (
+					<Typography variant="caption" color="success" fontWeight={600}>
+						You are currently in the latest version
+					</Typography>
+				)}
+			</Stack>
 			<DeleteUsageConfirmation />
 		</div>
 	);

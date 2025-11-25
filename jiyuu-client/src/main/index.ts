@@ -16,7 +16,6 @@ import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import icon from "../../resources/JY.png?asset";
 import { WebSocketServer } from "ws";
 // import sqlite3 from "sqlite3";
-
 import {
 	blockUninstallIfNeeded,
 	cleanURL,
@@ -69,7 +68,10 @@ import {
 	whitelist_put,
 } from "./methods/whitelist_helpers";
 import { exec } from "child_process";
+import { getAutoUpdater } from "./updater";
+import { UpdateInfo } from "electron-updater";
 const isAutoStart = process.argv.includes("--auto-start");
+const autoUpdater = getAutoUpdater();
 export let mainWindow: BrowserWindow;
 let tray: Tray | null = null;
 let isQuitting: boolean = false;
@@ -211,13 +213,33 @@ if (!gotTheLock) {
 		if (mainWindow) {
 			// if (mainWindow.isMinimized()) mainWindow.restore();
 			// if (!mainWindow.isVisible()) mainWindow.show();
-			mainWindow.focus();
+			// mainWindow.focus();
 		}
 	});
 	app.whenReady().then(async () => {
 		// Set app user model id for windows
 		createTray();
 		electronApp.setAppUserModelId("com.jiyuu");
+
+		autoUpdater.autoDownload = false;
+		autoUpdater.autoInstallOnAppQuit = true;
+		autoUpdater.checkForUpdatesAndNotify();
+
+		// autoUpdater.on("checking-for-update", () => {
+		// 	console.log("checking for updates...");
+		// });
+		// autoUpdater.on("update-not-available", (info) => {
+		// 	console.log("Update not available:", info.version);
+		// });
+
+		// autoUpdater.on("error", (err) => {
+		// 	console.error("Update error:", err);
+		// });
+
+		// autoUpdater.on("update-available", (info) => {
+		// 	console.log("update available: " + info.version);
+		// 	mainWindow.webContents.send("update-available", info);
+		// });
 
 		// Default open or close DevTools by F12 in development
 		// and ignore CommandOrControl + R in production.
@@ -416,8 +438,70 @@ if (!gotTheLock) {
 				}
 			},
 		);
-		// retrieves all blocked sites of a specific group
+		ipcMain.on("check-for-update", async (event) => {
+			try {
+				const res = await autoUpdater.checkForUpdates();
 
+				if (res?.isUpdateAvailable) {
+					event.reply("check-for-update/response", { data: res });
+				}
+				event.reply("check-for-update/response", {});
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error getting checking for update: ",
+					"check-for-update/response",
+				);
+			}
+		});
+		ipcMain.on("download-update", async (event) => {
+			try {
+				await autoUpdater.downloadUpdate();
+				event.reply("download-update/response", {});
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error getting downloading update: ",
+					"download-update/response",
+				);
+			}
+		});
+		ipcMain.on("install-update", async (event) => {
+			try {
+				isQuitting = true;
+				autoUpdater.quitAndInstall();
+			} catch (err) {
+				isQuitting = false;
+				showError(
+					err,
+					event,
+					"Error getting installing update: ",
+					"install-update/response",
+				);
+			}
+		});
+		ipcMain.on("update-available", async (event, _data: UpdateInfo | null) => {
+			try {
+				if (_data) {
+					const version = _data.version;
+					if (version) {
+						event.reply("update-available/response", {
+							data: { version: version },
+						});
+					}
+				}
+			} catch (err) {
+				showError(
+					err,
+					event,
+					"Error getting getting update: ",
+					"update-available/response",
+				);
+			}
+		});
+		// retrieves all blocked sites of a specific group
 		ipcMain.on(
 			"blockedcontent/get",
 			async (
