@@ -28,7 +28,7 @@ export default function Options(): React.JSX.Element {
 	const [updateTextState, setUpdateTextState] = useState<
 		"no-update" | "download" | "install" | null
 	>(null);
-	const [updateVersion, setUpdateVersion] = useState<number | null>();
+	const [updateVersion, setUpdateVersion] = useState<string | null>();
 	const { handleSubmit, register, reset, control } = useForm({
 		defaultValues: {
 			restrictDelay: 60,
@@ -102,7 +102,7 @@ export default function Options(): React.JSX.Element {
 					console.log(data.error);
 				} else if (data.isUpdateAvailable) {
 					setUpdateTextState("download");
-					setUpdateVersion(Number(data.updateInfo.version));
+					setUpdateVersion(data.updateInfo.version);
 				} else {
 					setUpdateTextState("no-update");
 				}

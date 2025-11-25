@@ -442,8 +442,11 @@ if (!gotTheLock) {
 			try {
 				const res = await autoUpdater.checkForUpdates();
 
-				if (res?.isUpdateAvailable) {
-					event.reply("check-for-update/response", { data: res });
+				if (res && res.updateInfo) {
+					event.reply("check-for-update/response", {
+						isUpdateAvailable: true,
+						updateInfo: res.updateInfo,
+					});
 				}
 				event.reply("check-for-update/response", {});
 			} catch (err) {
