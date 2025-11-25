@@ -448,6 +448,7 @@ if (!gotTheLock) {
 						updateInfo: res.updateInfo,
 					});
 				}
+
 				event.reply("check-for-update/response", {});
 			} catch (err) {
 				showError(
