@@ -36,6 +36,7 @@ jobs:
                       jiyuu-client/dist/*.exe
                       jiyuu-client/dist/*.blockmap
                       jiyuu-client/dist/*.yaml
+                      jiyuu-client/dist/*.yml
                   body: |
                       **Important:** Only download the `.exe` file. The other files are irrelevant if you only want to use Jiyuu.
               env:
