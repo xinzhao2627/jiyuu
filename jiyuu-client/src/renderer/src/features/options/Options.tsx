@@ -93,11 +93,12 @@ export default function Options(): React.JSX.Element {
 				}
 			},
 		},
+
 		{
 			channel: "check-for-update/response",
 			handler: (_, data) => {
 				if (data.error) {
-					toast.error("Error fetching updates: " + data.error);
+					toast.error("Error Fetching updates: " + data.error);
 					console.log(data.error);
 				} else if (data.isUpdateAvailable) {
 					setUpdateTextState("download");
