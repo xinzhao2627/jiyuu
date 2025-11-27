@@ -1399,11 +1399,6 @@ if (!gotTheLock) {
 					if (data.sendType === "isWebpage") {
 						if (data.data) {
 							const d = data.data;
-							const validateResult = await validateWebpage({
-								tabId: data.tabId,
-								data: d,
-							});
-							ws.send(validateResult);
 
 							// then update the clickcount
 							await updateClickCount(data.data);
@@ -1421,6 +1416,11 @@ if (!gotTheLock) {
 									groupTimeSummarized: groupTimeRes,
 								},
 							});
+							const validateResult = await validateWebpage({
+								tabId: data.tabId,
+								data: d,
+							});
+							ws.send(validateResult);
 						}
 					}
 
@@ -1451,10 +1451,18 @@ if (!gotTheLock) {
 							await validateTimelist(map);
 
 							// once the log is fresh, check if blockable
-							for (const v of map.values()) {
+							console.log(map);
+
+							for (const [k, v] of map) {
+								if (v.fullUrl.length <= 1) {
+									v.fullUrl = k;
+								}
 								const r = await validateWebpage({ data: v, tabId: v.tabId });
 								ws.send(r);
 							}
+							mainWindow.webContents.send("options/test/response", {
+								data: map,
+							});
 						}
 					}
 				} catch (e) {
