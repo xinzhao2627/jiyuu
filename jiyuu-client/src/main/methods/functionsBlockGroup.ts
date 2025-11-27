@@ -39,30 +39,6 @@ export async function setBlockGroup(
 		})
 		.where("id", "=", group.id)
 		.executeTakeFirst();
-
-	// db?.up(
-	// 	`UPDATE block_group
-	// 			SET
-	// 				group_name = ?,
-	// 				is_activated = ?,
-	// 				is_grayscaled = ?,
-	// 				is_covered = ?,
-	// 				is_muted = ?,
-	// 				restriction_type = ?,
-	// 				auto_deactivate = ?,
-	// 				is_blurred = ?
-	// 			WHERE id = ?`,
-	// ).run(
-	// 	name,
-	// 	group.is_activated,
-	// 	group.is_grayscaled,
-	// 	group.is_covered,
-	// 	group.is_muted,
-	// 	group.restriction_type,
-	// 	group.auto_deactivate,
-	// 	group.is_blurred,
-	// 	group.id,
-	// );
 }
 
 export async function blockGroupDelete(id: number): Promise<void> {

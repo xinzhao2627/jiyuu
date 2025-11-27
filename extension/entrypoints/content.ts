@@ -10,6 +10,7 @@ export interface ProtocolMap {
 	getStringLength(s: string): number;
 	getBlockData(d: { tabUrl: string; tabId: number }): Feedback;
 	toBlockData(d: BlockParam): Feedback;
+	clearFilter(): Feedback;
 }
 
 export const { sendMessage, onMessage } =
@@ -18,6 +19,7 @@ export default defineContentScript({
 	matches: ["http://*/*", "https://*/*"],
 	main() {
 		console.log("Hello content.");
+
 		onMessage("getBlockData", (message) => {
 			const s = manipulate(message);
 			return s;
@@ -26,12 +28,34 @@ export default defineContentScript({
 			const s = blockProcessor(message.data);
 			return s;
 		});
+		onMessage("clearFilter", () => {
+			const s = filterProcessor();
+			return s;
+		});
 	},
 });
+
+function filterProcessor(): Feedback {
+	try {
+		document.documentElement.style.filter = "";
+
+		return {
+			status: 200,
+			data: null,
+			error: "",
+		};
+	} catch (e) {
+		return {
+			status: 400,
+			data: null,
+			error: e instanceof Error ? e.message : (e as string),
+		};
+	}
+}
+
 function blockProcessor(blockParam: BlockParam): Feedback {
 	try {
 		console.log("gs called: ", blockParam);
-
 		if (blockParam.is_muted) {
 			blockMute();
 		}
@@ -41,13 +65,14 @@ function blockProcessor(blockParam: BlockParam): Feedback {
 
 		if (blockParam.is_grayscaled && blockParam.is_blurred) {
 			blockGrayscaleBlur();
-		}
-
-		if (blockParam.is_grayscaled) {
+		} else if (blockParam.is_grayscaled) {
 			blockGrayscale();
-		}
-		if (blockParam.is_blurred) {
+		} else if (blockParam.is_blurred) {
 			blockBlur();
+		}
+		// visual checker only
+		else {
+			document.documentElement.style.filter = "";
 		}
 
 		return {
@@ -67,8 +92,6 @@ function manipulate(
 	message: Message<ProtocolMap, "getBlockData"> & ExtensionMessage
 ): Feedback {
 	try {
-		console.log("the script is running!!");
-
 		const data = message.data;
 		let descDoc = document.querySelector("meta[name='description']") || "";
 		let keywordsDoc = document.querySelector("meta[name='keywords']") || "";
@@ -91,7 +114,7 @@ function manipulate(
 			// descDoc: descDoc,
 			// keywordsDoc: keywordsDoc,
 		};
-		console.log("sending messgae!: ", siteContent);
+		// console.log("sending messgae!: ", siteContent);
 
 		return { status: 200, data: siteContent, error: "" };
 	} catch (e) {

@@ -1448,8 +1448,6 @@ if (!gotTheLock) {
 							Object.entries(data.data),
 						);
 						if (map.size > 0) {
-							console.log("map: ", map);
-
 							await validateTimelist(map);
 
 							// once the log is fresh, check if blockable
@@ -1459,20 +1457,6 @@ if (!gotTheLock) {
 							}
 						}
 					}
-					//else if (data.sendType === "isPing") {
-					// 	let ua_string = data.userAgent ? (data.userAgent as string) : "";
-					// 	let name = findBrowser(ua_string);
-					// 	console.log("PING AGENT: " + ua_string + "\nNAME: " + name);
-
-					// 	for (const b of browsers_list) {
-					// 		if (b.name === name) {
-					// 			// if incognito access is allowed, reset the filling timer
-					// 			if (data.isAllowedIncognitoAccess) {
-					// 				b.elapsedMissing = 0;
-					// 			}
-					// 		}
-					// 	}
-					// }
 				} catch (e) {
 					const errorMsg = e instanceof Error ? e.message : String(e);
 					console.error("WebSocket message parsing error: ", errorMsg);

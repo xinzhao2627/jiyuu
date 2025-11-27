@@ -77,13 +77,6 @@ export default defineBackground(() => {
 				}
 			});
 			// finally send it to server and empty the timelist records (do this if its already connected to the database)
-
-			// console.log("is is: ", s);
-			// console.log("timelist is: ", timeList);
-			// console.log(
-			// 	"data outside: " +
-			// 		JSON.stringify(Array.from(timeList.entries()))
-			// );
 			// use await here or not?
 			const userAgent = navigator.userAgent.toLowerCase();
 			const isAllowed =
@@ -110,36 +103,6 @@ export default defineBackground(() => {
 			setTimeout(log_to_server, 5000);
 		}
 	}
-
-	// function pingServer() {
-	// 	const currentTime = new Date();
-	// 	const elapsedGeneral = currentTime.getTime() - lastPingTime.getTime();
-	// 	try {
-	// 		if (elapsedGeneral < 1000) {
-	// 			setTimeout(pingServer, 100);
-	// 			return;
-	// 		}
-	// 		console.log("SENDING PING");
-
-	// 		browser.extension
-	// 			.isAllowedIncognitoAccess()
-	// 			.then(async (isAllowedAccess) => {
-	// 				// user agent is the name of the browser (e.g: firefox/115.0, chrome/123)
-	// 				const userAgent = navigator.userAgent.toLowerCase();
-	// 				sendMessageWs({
-	// 					sendType: "isPing",
-	// 					isAllowedIncognitoAccess: isAllowedAccess,
-	// 					userAgent: userAgent,
-	// 					secondsElapsed: elapsedGeneral,
-	// 				});
-	// 			});
-	// 	} catch (error) {
-	// 		console.error("Cannot ping server: " + error);
-	// 	} finally {
-	// 		lastPingTime = currentTime;
-	// 		setTimeout(pingServer, 1000);
-	// 	}
-	// }
 
 	function incrementor() {
 		// the get the currentTime, I will use this to subtract from the startingTime
@@ -172,16 +135,10 @@ export default defineBackground(() => {
 						url: tabData?.url || "",
 						title: tabData?.title || "",
 					};
-					timeList.set(
-						tab.url,
-						// only update the seconds elapsed, else initialize it
-						d
-					);
+					timeList.set(tab.url, d);
 				}
 			}
 		});
-		// console.log("%cincrementor running...", "font-size: 10px");
-		// check if incognito is enabled
 
 		setTimeout(incrementor, 1000);
 	}
@@ -344,8 +301,27 @@ export default defineBackground(() => {
 							feedback
 						);
 					}
-				} else {
-					console.log(`from websocket not blocked: ${d.tabId}`);
+				} else if (d.tabId && !d.isBlocked) {
+					if (d.tabId) {
+						console.log(
+							`from websocket not blocked, clearing filter: ${d.tabId}`
+						);
+						const feedback = await sendMessage(
+							"clearFilter",
+							undefined,
+							d.tabId
+						);
+						if (feedback.status !== 200) {
+							console.log(
+								"error clearing filter: ",
+								feedback.error
+							);
+						}
+					} else {
+						console.log(
+							"website not blocked, theres also no tab id so unable to clear filter"
+						);
+					}
 				}
 			};
 			_socket.onclose = () => {

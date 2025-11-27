@@ -22,7 +22,7 @@ import { Controller, FieldValues, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { user_optionsTable } from "@renderer/jiyuuInterfaces";
 import { DeleteUsageConfirmation } from "./modals/deleteUsageConfirmation";
-import { blue } from "@mui/material/colors";
+import { blue, green } from "@mui/material/colors";
 export default function Options(): React.JSX.Element {
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [updateTextState, setUpdateTextState] = useState<
@@ -362,7 +362,7 @@ export default function Options(): React.JSX.Element {
 				<Typography
 					variant="h2"
 					color="initial"
-					sx={{ fontWeight: 600, color: blue[700] }}
+					sx={{ fontWeight: 600, color: green[900] }}
 				>
 					JIYUU
 				</Typography>
@@ -398,7 +398,8 @@ export default function Options(): React.JSX.Element {
 				<Typography
 					variant="body2"
 					color="initial"
-					my={3}
+					my={1}
+					mt={5}
 					textAlign={"justify"}
 				>
 					Jiyuu is a desktop app, specifically used for blocking websites. It is
@@ -406,7 +407,17 @@ export default function Options(): React.JSX.Element {
 					github.com/xinzhao2627/jiyuu. For concerns or additional feature
 					suggestions, you may email me at rainnsoft@gmail.com.
 				</Typography>
-
+				<Typography
+					variant="body2"
+					color="initial"
+					my={3}
+					textAlign={"justify"}
+				>
+					Warning: If you are using a browser that doesn{"'"}t have the Jiyuu
+					Extension while a block group is active, that browser will be stopped
+					after one minute. So it is highly recommended that you install the
+					Jiyuu OR deactivate all the block groups.
+				</Typography>
 				<Button
 					size="small"
 					loading={isLoading}

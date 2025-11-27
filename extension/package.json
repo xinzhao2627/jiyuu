@@ -2,7 +2,7 @@
 	"name": "jiyuu web blocker",
 	"description": "Block distracting websites with Jiyuu. Use with Jiyuu desktop app to for custom blocklists, usage limits, and scheduled restrictions",
 	"private": true,
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"type": "module",
 	"scripts": {
 		"dev": "wxt",

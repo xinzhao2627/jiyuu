@@ -174,7 +174,7 @@ async function logToUsageLog(
 
 	// EXPERIMENTAL
 	for (const sd of siteData.values()) {
-		console.log(sd);
+		// console.log(sd);
 
 		toInsert.push({
 			base_url: sd.baseUrl,
