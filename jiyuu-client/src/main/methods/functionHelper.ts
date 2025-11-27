@@ -56,11 +56,16 @@ export function siteIncludes(
 	is_absolute: undefined | boolean = true,
 	whitelists: string[],
 ): boolean {
+	const isFullUrlIncluded = "fullUrl" in siteData;
+
 	// IF A KEYWORD IS ABSOLUTE YOU
 	// MUST ONLY COMPARE EACH ATTRIBUTE OF A WEBPAGE,
 	// NOT ITS PREFIX OR SUFFIX
 	let res = false;
-	if (whitelists.some((v) => siteData.url.includes(v))) {
+	if (
+		whitelists.some((v) => siteData.url.includes(v)) ||
+		(isFullUrlIncluded && whitelists.some((v) => siteData.fullUrl.includes(v)))
+	) {
 		res = false;
 	} else if (!is_absolute) {
 		res =
@@ -68,14 +73,16 @@ export function siteIncludes(
 			(siteData.desc?.includes(target) ||
 				siteData.keywords?.includes(target) ||
 				siteData.title?.includes(target) ||
-				siteData.url?.includes(target));
+				siteData.url?.includes(target) ||
+				(isFullUrlIncluded && siteData.fullUrl.includes(target)));
 	} else {
 		res =
 			Boolean(isact) &&
 			(siteData.desc === target ||
 				siteData.keywords === target ||
 				siteData.title === target ||
-				siteData.url === target);
+				siteData.url === target ||
+				(isFullUrlIncluded && siteData.fullUrl === target));
 	}
 	return res;
 }

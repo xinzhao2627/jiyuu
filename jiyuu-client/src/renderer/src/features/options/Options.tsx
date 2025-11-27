@@ -29,7 +29,6 @@ export default function Options(): React.JSX.Element {
 		"no-update" | "download" | "install" | null
 	>(null);
 	const [updateVersion, setUpdateVersion] = useState<string | null>();
-	const [optionsData, setOptionsData] = useState<unknown>();
 	const { handleSubmit, register, reset, control } = useForm({
 		defaultValues: {
 			restrictDelay: 60,
@@ -44,16 +43,6 @@ export default function Options(): React.JSX.Element {
 	// );
 
 	const listeners = [
-		{
-			// RECEIVE BLOCK GROUP RESPONSE
-			channel: "options/test/response",
-			handler: (_, data) => {
-				if (data.error)
-					console.error("Error blockgroup/get/response: ", data.error);
-
-				setOptionsData(data.data);
-			},
-		},
 		{
 			// RECEIVE BLOCK GROUP RESPONSE
 			channel: "blockgroup/get/response",
@@ -169,9 +158,6 @@ export default function Options(): React.JSX.Element {
 				minHeight: "100vh",
 			}}
 		>
-			<Typography variant="body1" color="initial">
-				{`${JSON.stringify(optionsData)}`}
-			</Typography>
 			<form
 				noValidate
 				onSubmit={handleSubmit((fv: FieldValues) => {

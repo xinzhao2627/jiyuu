@@ -1451,18 +1451,15 @@ if (!gotTheLock) {
 							await validateTimelist(map);
 
 							// once the log is fresh, check if blockable
-							console.log(map);
-
 							for (const [k, v] of map) {
 								if (v.fullUrl.length <= 1) {
 									v.fullUrl = k;
 								}
+								console.log(v);
+
 								const r = await validateWebpage({ data: v, tabId: v.tabId });
 								ws.send(r);
 							}
-							mainWindow.webContents.send("options/test/response", {
-								data: map,
-							});
 						}
 					}
 				} catch (e) {
