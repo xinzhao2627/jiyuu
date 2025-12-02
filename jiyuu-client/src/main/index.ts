@@ -1314,6 +1314,7 @@ if (!gotTheLock) {
 			try {
 				await db?.deleteFrom("usage_log").execute();
 				await db?.deleteFrom("block_group_usage_log").execute();
+				await db?.deleteFrom("click_count").execute();
 				event.reply("usagedata/delete/response", {});
 			} catch (err) {
 				showError(

@@ -410,13 +410,24 @@ export default function Options(): React.JSX.Element {
 				<Typography
 					variant="body2"
 					color="initial"
-					my={3}
+					my={1}
 					textAlign={"justify"}
 				>
 					Warning: If you are using a browser that doesn{"'"}t have the Jiyuu
 					Extension while a block group is active, that browser will be stopped
-					after one minute. So it is highly recommended that you install the
-					Jiyuu OR deactivate all the block groups.
+					after one minute {"(default)"}. So it is highly recommended that you
+					install the Jiyuu OR deactivate all the block groups.
+				</Typography>
+				<Typography
+					variant="body2"
+					color="initial"
+					mt={1}
+					mb={3}
+					textAlign={"justify"}
+				>
+					If you made a mistake blocking stuff and want to forcibly uninstall
+					Jiyuu, please go to the official website to download the one-click
+					uninstaller script .
 				</Typography>
 				<Button
 					size="small"
