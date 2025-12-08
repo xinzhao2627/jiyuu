@@ -310,12 +310,12 @@ if (!gotTheLock) {
 				elapsedMissing: 0,
 				url: "google.com",
 			},
-			{
-				name: "yandex",
-				process: "browser",
-				elapsedMissing: 0,
-				url: "google.com",
-			},
+			// {
+			// 	name: "yandex",
+			// 	process: "browser",
+			// 	elapsedMissing: 0,
+			// 	url: "google.com",
+			// },
 			{
 				name: "firefox",
 				process: "firefox",

@@ -174,7 +174,7 @@ export async function increment_active_browsers(
 			// if the app still cant detect the extension from the active brower,
 			// send the warning to the ui if it exceeds one third of the delay
 			if (b.elapsedMissing >= oneThirdTime) {
-				toWarnBrowsers.push({ process: processName, url: b.url });
+				toWarnBrowsers.push({ process: b.name, url: b.url });
 			}
 		}
 	}
