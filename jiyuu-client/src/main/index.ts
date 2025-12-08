@@ -441,6 +441,14 @@ if (!gotTheLock) {
 		);
 		ipcMain.on("check-for-update", async (event) => {
 			try {
+				const groups = await db
+					?.selectFrom("block_group")
+					.select("restriction_type")
+					.execute();
+				if (groups && groups.some((v) => v.restriction_type)) {
+					throw "Cannot update, there some block groups are restricted";
+				}
+
 				const res = await autoUpdater.checkForUpdates();
 
 				if (res && res.updateInfo) {
