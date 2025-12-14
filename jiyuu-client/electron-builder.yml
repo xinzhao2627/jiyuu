@@ -17,7 +17,7 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: false
   include: build/installer.nsh
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: "always"
