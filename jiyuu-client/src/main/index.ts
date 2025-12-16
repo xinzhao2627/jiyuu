@@ -281,42 +281,6 @@ if (!gotTheLock) {
 				url: "https://chromewebstore.google.com/detail/jiyuu-web-blocker/imhjffmochmoadnclabphkcdjndmbjkf",
 			},
 			{
-				name: "vivaldi",
-				process: "vivaldi",
-				elapsedMissing: 0,
-				url: "https://chromewebstore.google.com/detail/jiyuu-web-blocker/imhjffmochmoadnclabphkcdjndmbjkf",
-			},
-			{
-				name: "avast_secure",
-				process: "AvastBrowser",
-				elapsedMissing: 0,
-				url: "https://chromewebstore.google.com/detail/jiyuu-web-blocker/imhjffmochmoadnclabphkcdjndmbjkf",
-			},
-			{
-				name: "torch",
-				process: "torch",
-				elapsedMissing: 0,
-				url: "https://chromewebstore.google.com/detail/jiyuu-web-blocker/imhjffmochmoadnclabphkcdjndmbjkf",
-			},
-			{
-				name: "comodo_dragon",
-				process: "dragon",
-				elapsedMissing: 0,
-				url: "https://chromewebstore.google.com/detail/jiyuu-web-blocker/imhjffmochmoadnclabphkcdjndmbjkf",
-			},
-			{
-				name: "chromium",
-				process: "chromium",
-				elapsedMissing: 0,
-				url: "https://chromewebstore.google.com/detail/jiyuu-web-blocker/imhjffmochmoadnclabphkcdjndmbjkf",
-			},
-			// {
-			// 	name: "yandex",
-			// 	process: "browser",
-			// 	elapsedMissing: 0,
-			// 	url: "google.com",
-			// },
-			{
 				name: "firefox",
 				process: "firefox",
 				elapsedMissing: 0,
@@ -1441,7 +1405,6 @@ if (!gotTheLock) {
 					else if (data.sendType === "isTimelist") {
 						let ua_string = data.userAgent ? (data.userAgent as string) : "";
 						let name = findBrowser(ua_string);
-						// console.log("PING AGENT: " + name);
 						// console.log("DATA: " + data.data[0]);
 
 						for (const b of browsers_list) {
@@ -1452,6 +1415,7 @@ if (!gotTheLock) {
 								}
 							}
 						}
+
 						// update the time
 						const map = new Map<string, TimeListInterface>(
 							Object.entries(data.data),
@@ -1464,8 +1428,6 @@ if (!gotTheLock) {
 								if (v.fullUrl.length <= 1) {
 									v.fullUrl = k;
 								}
-								console.log(v);
-
 								const r = await validateWebpage({ data: v, tabId: v.tabId });
 								ws.send(r);
 							}

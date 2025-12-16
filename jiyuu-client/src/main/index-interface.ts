@@ -25,6 +25,10 @@ export const emulators = [
 ];
 
 export const unsupported_browsers = [
+	{ name: "Comodo Dragon", process: "dragon" },
+	{ name: "Yandex Browser", process: "browser" },
+	{ name: "Vivaldi", process: "vivaldi" },
+	{ name: "AvastBrowser", process: "AvastBrowser" },
 	{ name: "internet_explorer", process: "iexplore" },
 	{ name: "waterfox", process: "waterfox" },
 	{ name: "palemoon", process: "palemoon" },

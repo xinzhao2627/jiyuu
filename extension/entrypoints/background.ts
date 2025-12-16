@@ -78,7 +78,16 @@ export default defineBackground(() => {
 			});
 			// finally send it to server and empty the timelist records (do this if its already connected to the database)
 			// use await here or not?
-			const userAgent = navigator.userAgent.toLowerCase();
+			let userAgent = navigator.userAgent.toLowerCase();
+
+			const navBrave = (navigator as any).brave;
+
+			if (
+				(typeof navBrave?.isBrave === "function" &&
+					(await navBrave.isBrave())) === true
+			) {
+				userAgent = "brave";
+			}
 			const isAllowed =
 				await browser.extension.isAllowedIncognitoAccess();
 
