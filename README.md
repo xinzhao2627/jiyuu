@@ -83,3 +83,14 @@ Then restart
 |        Opera Browser        |
 |          Opera GX           |
 |       Microsoft Edge        |
+
+## Technology
+
+-   React
+-   Node Typescript
+-   SQLite
+-   NSIS
+-   Electron (Vite)
+-   Electron-builder
+-   WXT-Framework
+-   Material UI, Kysely, Zustand, WebsocketJs
