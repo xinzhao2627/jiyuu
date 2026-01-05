@@ -1287,6 +1287,19 @@ if (!gotTheLock) {
 				await db?.deleteFrom("usage_log").execute();
 				await db?.deleteFrom("block_group_usage_log").execute();
 				await db?.deleteFrom("click_count").execute();
+
+				// UPDATE 1/5/2026
+				/* 
+					This resets the meta info's 3-month cycle of usage data
+					basically when you manually delete the data, it refreshes the deadline on 
+					when it should delete the data 
+				**/
+				await db
+					?.updateTable("meta_info")
+					.set({ value: new Date().toISOString() })
+					.where("key", "=", "usage_log_date")
+					.execute();
+
 				event.reply("usagedata/delete/response", {});
 			} catch (err) {
 				showError(
