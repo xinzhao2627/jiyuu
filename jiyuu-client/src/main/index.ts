@@ -56,9 +56,9 @@ import { isPing, isTimelist, isWebpage } from "./webSocketInterface";
 import { browsersList, whitelist_put_type } from "./index-interface";
 import {
 	clearUsageLogIfNeeded,
-	getBlockGroupTimeUsage,
-	getClicksSummarized,
-	getDashboardSummarized,
+	getBlockGroupTimeUsageOptimized,
+	getClicksOptimized,
+	getDashboardOptimized,
 } from "./methods/functionUsageLog";
 import { getDashboardDateMode } from "./methods/functionUserOptions";
 import {
@@ -1134,9 +1134,9 @@ if (!gotTheLock) {
 		ipcMain.on("dashboard/get", async (event: Electron.IpcMainEvent) => {
 			try {
 				const mode = await getDashboardDateMode();
-				const d = await getDashboardSummarized(mode);
-				const c = await getClicksSummarized(mode);
-				const g = await getBlockGroupTimeUsage(mode);
+				const d = await getDashboardOptimized(mode);
+				const c = await getClicksOptimized(mode);
+				const g = await getBlockGroupTimeUsageOptimized(mode);
 				event.reply("dashboard/get/response", {
 					data: {
 						clicksSummarized: c,
@@ -1389,19 +1389,19 @@ if (!gotTheLock) {
 							// then update the clickcount
 							await updateClickCount(data.data);
 
-							// then get the summary dashboard
-							const mode = await getDashboardDateMode();
-							const dashboardRes = await getDashboardSummarized(mode);
-							const clicksRes = await getClicksSummarized(mode);
-							const groupTimeRes = await getBlockGroupTimeUsage(mode);
-							// send it to react ui, do this every time a user access a new website
-							mainWindow.webContents.send("dashboard/get/response", {
-								data: {
-									usageLogSummarized: dashboardRes,
-									clicksSummarized: clicksRes,
-									groupTimeSummarized: groupTimeRes,
-								},
-							});
+							// // then get the summary dashboard
+							// const mode = await getDashboardDateMode();
+							// const dashboardRes = await getDashboardOptimized(mode);
+							// const clicksRes = await getClicksOptimized(mode);
+							// const groupTimeRes = await getBlockGroupTimeUsageOptimized(mode);
+							// // send it to react ui, do this every time a user access a new website
+							// mainWindow.webContents.send("dashboard/get/response", {
+							// 	data: {
+							// 		usageLogSummarized: dashboardRes,
+							// 		clicksSummarized: clicksRes,
+							// 		groupTimeSummarized: groupTimeRes,
+							// 	},
+							// });
 							const validateResult = await validateWebpage({
 								tabId: data.tabId,
 								data: d,

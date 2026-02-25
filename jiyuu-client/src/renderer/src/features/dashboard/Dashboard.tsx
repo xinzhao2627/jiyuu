@@ -12,6 +12,7 @@ import {
 	ToggleButtonGroup,
 	Typography,
 	LinearProgress,
+	CircularProgress,
 } from "@mui/material";
 import { ipcRendererOn, ipcRendererSend } from "../blockings/blockingAPI";
 import { blue } from "@mui/material/colors";
@@ -29,18 +30,18 @@ export default function Dashboard(): React.JSX.Element {
 	const [selectedPeriod, setSelectedPeriod] = React.useState<"m" | "w" | "d">(
 		"d",
 	);
-	// const [isKpiLoading, setIsKpiLoading] = React.useState<boolean>(false);
-	const [dashboardRetrieveReady, setDashboardRetrieveReady] =
-		React.useState<boolean>(true);
+	const [isKpiLoading, setIsKpiLoading] = React.useState<boolean>(false);
+	// const [dashboardRetrieveReady, setDashboardRetrieveReady] =
+	// 	React.useState<boolean>(true);
 	function dashboardGet(): void {
-		// setIsKpiLoading(initiateLoading);
-		if (dashboardRetrieveReady) {
-			setDashboardRetrieveReady(false);
-			ipcRendererSend("dashboard/get", {});
-		}
+		setIsKpiLoading(true);
+		// if (dashboardRetrieveReady) {
+		// setDashboardRetrieveReady(false);
+		ipcRendererSend("dashboard/get", {});
+		// }
 	}
 	React.useEffect(() => {
-		let isUnmounted = false;
+		// let isUnmounted = false;
 		const listeners = [
 			{
 				channel: "dashboard/get/response",
@@ -69,12 +70,13 @@ export default function Dashboard(): React.JSX.Element {
 						);
 						// console.log("the d: ", d);
 					}
+					// UPDATE 2/25/2026: NO LONGER FETCHES THE DASHBOARD EVERY SECONDS TO PREVENT PERFORMANCE DEGREDATION
+					// setDashboardRetrieveReady(true);
+					setIsKpiLoading(false);
 
-					setDashboardRetrieveReady(true);
-					// setIsKpiLoading(false);
-					if (!isUnmounted) {
-						setTimeout(() => dashboardGet(), 1000);
-					}
+					// if (!isUnmounted) {
+					// 	setTimeout(() => dashboardGet(), 1000);
+					// }
 				},
 			},
 			{
@@ -104,11 +106,10 @@ export default function Dashboard(): React.JSX.Element {
 		listeners.forEach((v) => {
 			ipcRendererOn(v.channel, v.handler);
 		});
-
 		dashboardGet();
 		ipcRendererSend("useroptions/get", {});
 		return () => {
-			isUnmounted = true;
+			// isUnmounted = true;
 			listeners.forEach((v) => {
 				window.electron.ipcRenderer.removeAllListeners(v.channel);
 			});
@@ -117,6 +118,7 @@ export default function Dashboard(): React.JSX.Element {
 	const tButtonStyle: SxProps<Theme> = {
 		backgroundColor: "white",
 		width: 100,
+		height: 40,
 		p: 0.7,
 		px: 1.3,
 		textTransform: "none",
@@ -328,27 +330,51 @@ export default function Dashboard(): React.JSX.Element {
 				>
 					<ToggleButton
 						value="d"
+						disabled={isKpiLoading}
 						aria-label="left aligned"
 						disableRipple
 						sx={tButtonStyle}
 					>
-						d
+						{isKpiLoading ? (
+							<CircularProgress
+								size={"24px"}
+								sx={{ color: selectedPeriod == "d" ? "white" : "#1976d2" }}
+							/>
+						) : (
+							"d"
+						)}
 					</ToggleButton>
 					<ToggleButton
 						value="w"
+						disabled={isKpiLoading}
 						aria-label="centered"
 						disableRipple
 						sx={tButtonStyle}
 					>
-						w
+						{isKpiLoading ? (
+							<CircularProgress
+								size={"24px"}
+								sx={{ color: selectedPeriod == "w" ? "white" : "#1976d2" }}
+							/>
+						) : (
+							"w"
+						)}
 					</ToggleButton>
 					<ToggleButton
 						value="m"
+						disabled={isKpiLoading}
 						aria-label="right aligned"
 						disableRipple
 						sx={tButtonStyle}
 					>
-						m
+						{isKpiLoading ? (
+							<CircularProgress
+								size={"24px"}
+								sx={{ color: selectedPeriod == "m" ? "white" : "#1976d2" }}
+							/>
+						) : (
+							"m"
+						)}
 					</ToggleButton>
 				</ToggleButtonGroup>
 			</Stack>

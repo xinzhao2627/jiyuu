@@ -1,4 +1,4 @@
-import { isSameDay, isSameMonth, isSameWeek } from "date-fns";
+import { endOfDay, endOfMonth, endOfWeek, isSameDay, isSameMonth, isSameWeek, startOfDay, startOfMonth, startOfWeek } from "date-fns";
 import { db } from "../database/initializations";
 
 export async function getDashboardSummarized(
@@ -32,6 +32,42 @@ export async function getDashboardSummarized(
 	return summarized;
 }
 
+
+export async function getDashboardOptimized(
+	mode: "m" | "w" | "d",
+): Promise<Map<string, number>> {
+	  const now = new Date();
+
+	const query = db?.selectFrom("usage_log")
+		.select([
+			"base_url",
+			db.fn.sum("seconds_elapsed").as("total_seconds")
+		])
+		.where((eb) => {
+			if (mode === "d") {
+			return eb("date_object", ">=", startOfDay(now).toISOString())
+						.and("date_object", "<", endOfDay(now).toISOString());
+			}
+			if (mode === "w") {
+			return eb("date_object", ">=", startOfWeek(now).toISOString())
+						.and("date_object", "<", endOfWeek(now).toISOString());
+			}
+			return eb("date_object", ">=", startOfMonth(now).toISOString())
+					.and("date_object", "<", endOfMonth(now).toISOString());
+		})
+		.groupBy("base_url");
+
+  	const res = await query?.execute();
+
+  	const summarized = new Map<string, number>();
+	if (res){
+		for (const r of res) {
+			summarized.set(r.base_url ?? "other_urls", Number(r.total_seconds));
+		}
+	}
+	return summarized;
+}
+
 export async function getClicksSummarized(
 	mode: "m" | "w" | "d",
 ): Promise<Map<string, number>> {
@@ -56,6 +92,35 @@ export async function getClicksSummarized(
 		}
 	}
 	return clicksSummarized;
+}
+export async function getClicksOptimized(
+	mode: "m" | "w" | "d",
+): Promise<Map<string, number>> {
+	const now = new Date();
+
+	const { start, end } = getDateRange(mode, now);
+
+	const rows = await db?.selectFrom("click_count")
+		.select([
+			"base_url",
+			(eb) => eb.fn.count("base_url").as("total")
+		])
+		.where("date_object", ">=", start.toISOString())
+		.where("date_object", "<", end.toISOString())
+		.groupBy("base_url")
+		.execute();
+
+	const map = new Map<string, number>();
+	if (rows){
+		for (const r of rows) {
+			if (r.base_url) {
+				map.set(r.base_url, Number(r.total));
+			}
+		}
+	}
+
+
+	return map;
 }
 export async function getBlockGroupTimeUsage(
 	mode: "m" | "w" | "d",
@@ -98,7 +163,38 @@ export async function getBlockGroupTimeUsage(
 
 	return blockGroupWithTime;
 }
+export async function getBlockGroupTimeUsageOptimized(
+  mode: "m" | "w" | "d",
+): Promise<Map<number, { name: string; secondsElapsed: number }>> {
 
+	const now = new Date();
+	const { start, end } = getDateRange(mode, now);
+
+	const rows = await db?.selectFrom("block_group_usage_log as log")
+	.innerJoin("block_group as bg", "bg.id", "log.block_group_id")
+	.select([
+		"bg.id",
+		"bg.group_name",
+		(eb) => eb.fn.sum("log.seconds_elapsed").as("total_seconds")
+	])
+	.where("log.date_object", ">=", start.toISOString())
+	.where("log.date_object", "<", end.toISOString())
+	.groupBy(["bg.id", "bg.group_name"])
+	.execute();
+
+	const map = new Map<number,{ name: string; secondsElapsed: number }>();
+	if (rows){
+		for (const r of rows) {
+			map.set(r.id, {
+			name: r.group_name,
+			secondsElapsed: Number(r.total_seconds),
+			});
+		}
+	}
+
+
+  return map;
+}
 export async function clearUsageLogIfNeeded(): Promise<void> {
 	const install = await db
 		?.selectFrom("meta_info")
@@ -127,4 +223,13 @@ export async function clearUsageLogIfNeeded(): Promise<void> {
 			.where("key", "=", "usage_log_date")
 			.execute();
 	}
+}
+function getDateRange(mode: "m" | "w" | "d", now: Date) {
+	if (mode === "d") {
+		return { start: startOfDay(now), end: endOfDay(now) };
+	}
+	if (mode === "w") {
+		return { start: startOfWeek(now), end: endOfWeek(now) };
+	}
+	return { start: startOfMonth(now), end: endOfMonth(now) };
 }
