@@ -225,6 +225,7 @@ export async function clearUsageLogIfNeeded(): Promise<void> {
 	}
 }
 function getDateRange(mode: "m" | "w" | "d", now: Date): {start: Date, end: Date} {
+	// edited march March 8, 2026: updated return type
 	if (mode === "d") {
 		return { start: startOfDay(now), end: endOfDay(now) };
 	}
