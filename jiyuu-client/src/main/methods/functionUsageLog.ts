@@ -224,7 +224,7 @@ export async function clearUsageLogIfNeeded(): Promise<void> {
 			.execute();
 	}
 }
-function getDateRange(mode: "m" | "w" | "d", now: Date) {
+function getDateRange(mode: "m" | "w" | "d", now: Date): {start: Date, end: Date} {
 	if (mode === "d") {
 		return { start: startOfDay(now), end: endOfDay(now) };
 	}
