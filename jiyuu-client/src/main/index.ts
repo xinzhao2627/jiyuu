@@ -1417,8 +1417,12 @@ if (!gotTheLock) {
 					// the time logged may cause duplication if using multiple different browsers at the samew time
 					else if (data.sendType === "isTimelist") {
 						let ua_string = data.userAgent ? (data.userAgent as string) : "";
+						
+						
 						let name = findBrowser(ua_string);
 						// console.log("DATA: " + data.data[0]);
+						console.log("useragent: ", ua_string);
+						console.log("name: ", name);
 
 						for (const b of browsers_list) {
 							if (b.name === name) {

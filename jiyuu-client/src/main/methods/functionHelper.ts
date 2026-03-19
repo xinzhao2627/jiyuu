@@ -154,7 +154,8 @@ export async function increment_active_browsers(
 	);
 
 	stdout = stdout.trim().toLowerCase();
-
+	console.log("stdout: ", stdout);
+	
 	const toWarnBrowsers: { process: string; url: string }[] = [];
 
 	const oneThirdTime =
@@ -165,6 +166,7 @@ export async function increment_active_browsers(
 				.executeTakeFirst()
 		)?.secondsUntilClosed || 1) / 3;
 
+	// just increment active browsers first, we'll return them to 0 once there is an update from the extension
 	for (const b of browserLists) {
 		const processName = b.process;
 		if (stdout.includes(processName)) {
