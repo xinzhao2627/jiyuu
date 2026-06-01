@@ -5,3 +5,4 @@ out
 .eslintcache
 *.log*
 src/main/database/jiyuuData.db
+.agents

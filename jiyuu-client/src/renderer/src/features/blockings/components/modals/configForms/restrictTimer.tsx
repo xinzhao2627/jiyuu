@@ -69,6 +69,7 @@ export function RestrictTimerForm({
 				style={{
 					display: "flex",
 					flexWrap: "wrap",
+					marginTop: "16px",
 				}}
 			>
 				<Stack gap={3} width={"100%"}>
@@ -94,7 +95,7 @@ export function RestrictTimerForm({
 						)}
 					/>
 
-					<Typography variant="body1" color="initial">
+					<Typography variant="body2" color="text.secondary">
 						Select the end period for the restriction
 					</Typography>
 					<Button type="submit" variant="contained" sx={{ fontWeight: "600" }}>

@@ -94,6 +94,7 @@ export function PasswordForm({ formVal }: FormInterface): React.JSX.Element {
 				display: "flex",
 				flexWrap: "wrap",
 				width: "100%",
+				marginTop: "16px",
 			}}
 			onSubmit={handleSubmit((fv) => {
 				if (
@@ -120,7 +121,7 @@ export function PasswordForm({ formVal }: FormInterface): React.JSX.Element {
 						}
 						{...register("password")}
 					/>
-					<Typography variant="caption" color="initial">
+					<Typography variant="caption" color="text.secondary">
 						{blockGroup.selectedBlockGroup?.restriction_type &&
 						blockGroup.selectedBlockGroup.restriction_type === "password"
 							? "Enter your password to remove restriction"

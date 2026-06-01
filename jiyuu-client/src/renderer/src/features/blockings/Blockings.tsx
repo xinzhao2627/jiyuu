@@ -51,6 +51,7 @@ import { CustomChip } from "@renderer/assets/shared/customChip";
 import { BlockGroupMenu } from "./menu/blockGroupMenu";
 import { ExportAndImportBlockGroup } from "./menu/exportAndImportBlockGroup";
 import { NavbarExtension } from "./components/navbarExtension";
+import { uiStyles } from "@renderer/assets/shared/uiStyles";
 
 export default function Blockings(): React.JSX.Element {
 	const {
@@ -330,17 +331,14 @@ export default function Blockings(): React.JSX.Element {
 
 	return (
 		<>
-			<Stack
-				sx={{
-					height: "100%",
-				}}
-			>
+			<Stack>
 				<NavbarExtension />
 				<Stack
 					sx={{
-						flex: 1,
 						overflowY: "auto",
-						paddingBottom: 1,
+						px: { xs: 1.5, sm: 2.5 },
+						py: 2,
+						gap: 1,
 						...scrollbarStyle,
 					}}
 				>
@@ -350,19 +348,26 @@ export default function Blockings(): React.JSX.Element {
 
 							return (
 								<Card
-									// sx={{ maxWidth: 345 }}
 									sx={{
-										borderRadius: 0,
-										padding: 1,
-										marginBottom: "2px",
-										minHeight: "140px",
+										...uiStyles.listItemCard,
+										width: "100%",
 									}}
 									key={`${v.id} - ${i}`}
 								>
-									{/* <Box sx={{ backgroundColor: "#b5d9a3", height: 100 }}></Box> */}
-									<CardContent sx={{ paddingBottom: 0 }}>
-										<Stack direction={"row"} justifyContent={"space-between"}>
-											<Stack direction={"row"} gap={1}>
+									<CardContent
+										sx={{
+											p: 2,
+											pt: 1,
+										}}
+									>
+										<Stack
+											direction="row"
+											justifyContent="space-between"
+											gap={1.5}
+											alignItems={"center"}
+											mb={1}
+										>
+											<Stack direction="row" gap={0.75} flexWrap="wrap">
 												<CustomChip
 													optionalIcon={
 														<Box
@@ -382,9 +387,7 @@ export default function Blockings(): React.JSX.Element {
 															? teal[500]
 															: "text.secondary",
 														fontWeight: v.is_activated ? 600 : "initial",
-														borderColor: v.is_activated
-															? teal[500]
-															: "grey.300",
+														borderColor: v.is_activated ? teal[500] : "primary",
 													}}
 													optionalOnClick={
 														v.restriction_type && v.is_activated
@@ -402,7 +405,7 @@ export default function Blockings(): React.JSX.Element {
 														fontWeight: v.auto_deactivate ? 600 : "initial",
 														borderColor: v.auto_deactivate
 															? blue[800]
-															: "grey.300",
+															: "primary",
 													}}
 													optionalOnClick={() => modifyAutoDeactivateButton(v)}
 												/>
@@ -421,8 +424,8 @@ export default function Blockings(): React.JSX.Element {
 														}
 														label="Locked"
 														chipStyle={{
-															color: "grey.600",
-															borderColor: "grey.500",
+															color: "primary",
+															borderColor: "primary",
 														}}
 													/>
 												) : null}
@@ -483,7 +486,8 @@ export default function Blockings(): React.JSX.Element {
 												) : null}
 											</Stack>
 											<IconButton
-												sx={{ p: 0 }}
+												size="small"
+												sx={{ color: "text.secondary" }}
 												disableRipple
 												onClick={(e) => {
 													setBlockGroupMenuAnchor({
@@ -492,20 +496,20 @@ export default function Blockings(): React.JSX.Element {
 													});
 												}}
 											>
-												<MoreHorizIcon sx={{ color: "black" }} />
+												<MoreHorizIcon />
 											</IconButton>
 										</Stack>
 
 										<Stack
-											direction={"row"}
-											mt={2}
-											justifyContent={"space-between"}
+											direction={{ xs: "column", sm: "row" }}
+											justifyContent="space-between"
+											alignItems={{ xs: "stretch", sm: "center" }}
+											ml={0.5}
+											gap={1.5}
 										>
 											<Typography
-												variant="h5"
-												letterSpacing={1}
+												variant="h6"
 												component={"div"}
-												minWidth={"33%"}
 												onClick={() => {
 													setSelectedBlockGroup(v);
 													setBlockedContentState("covered", {
@@ -527,14 +531,15 @@ export default function Blockings(): React.JSX.Element {
 													openModal(v);
 												}}
 												sx={{
-													color: "#424242",
-													"&:hover": { color: "#229799" },
-													transition: "all 0.15s ease-in-out",
+													color: "text.primary",
+													"&:hover": { color: "primary.main" },
+													transition: "color 0.15s ease-in-out",
 													cursor: "pointer",
-													width: "fit-content",
-													fontWeight: 500,
+													fontWeight: 600,
+													overflow: "hidden",
+													textOverflow: "ellipsis",
+													whiteSpace: "nowrap",
 												}}
-												py={"2px"}
 											>
 												{v.group_name}
 											</Typography>
@@ -545,16 +550,17 @@ export default function Blockings(): React.JSX.Element {
 												size="small"
 												variant="contained"
 												disableElevation
+												startIcon={
+													v.restriction_type ? <LockIcon /> : <LockOpenIcon />
+												}
 												onClick={(e) => {
 													e.stopPropagation();
 													setSelectedBlockGroup(v);
 													setIsConfigModalOpen(true);
 												}}
+												sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
 											>
-												{v.restriction_type ? <LockIcon /> : <LockOpenIcon />}{" "}
-												<Typography ml={0.5} fontSize={"14px"}>
-													{v.restriction_type ? "Locked" : "Unlocked"}
-												</Typography>
+												{v.restriction_type ? "Locked" : "Unlocked"}
 											</Button>
 										</Stack>
 									</CardContent>
@@ -569,12 +575,14 @@ export default function Blockings(): React.JSX.Element {
 						position: "fixed",
 						bottom: 110,
 						right: 20,
-						letterSpacing: 1,
+						letterSpacing: 0,
 						fontWeight: 500,
 						overflow: "hidden",
-						borderRadius: "50px",
-						boxShadow: 3,
+						borderRadius: 2,
+						boxShadow: "0 14px 32px rgba(15, 23, 42, 0.16)",
 						display: "flex",
+						border: "1px solid",
+						borderColor: "divider",
 					}}
 				>
 					<Fab
@@ -582,7 +590,7 @@ export default function Blockings(): React.JSX.Element {
 						variant="extended"
 						disableRipple
 						sx={{
-							borderRadius: "0px",
+							borderRadius: 0,
 							boxShadow: "none",
 						}}
 						onClick={() => {
@@ -594,17 +602,21 @@ export default function Blockings(): React.JSX.Element {
 					<Box
 						sx={{
 							width: "1px",
-							bgcolor: "white",
+							bgcolor: "primary.dark",
+							opacity: 0.35,
 							alignSelf: "stretch",
 						}}
 					/>
 					<IconButton
 						onClick={(e) => setFabGroupMenuAnchor(e.currentTarget)}
 						sx={{
-							backgroundColor: "white",
-							color: "inherit",
+							backgroundColor: "background.paper",
+							color: "primary.main",
 							borderRadius: 0,
 							px: 1.5,
+							"&:hover": {
+								backgroundColor: "action.hover",
+							},
 						}}
 					>
 						<MenuIcon />

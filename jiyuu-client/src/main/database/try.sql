@@ -1,3 +1,5 @@
+select * from whitelist
+
 
 -- CREATE TABLE block_group(
 --         id INTEGER PRIMARY KEY,
@@ -38,16 +40,16 @@
 
         -- INSERT into blocked_sites(target_text, block_group_id) VALUES ("reddit", 1);
         -- INSERT into blocked_sites(target_text, block_group_id) VALUES ("youtube", 1);
-        
+
 
         -- select * from blocked_sites;
 
--- SELECT 
---     bs.target_text, bg.is_grayscaled, 
---     bg.is_covered, bg.is_muted, 
+-- SELECT
+--     bs.target_text, bg.is_grayscaled,
+--     bg.is_covered, bg.is_muted,
 --     bg.group_name, bs.block_group_id
--- FROM blocked_sites as bs 
--- INNER JOIN block_group as bg ON 
+-- FROM blocked_sites as bs
+-- INNER JOIN block_group as bg ON
 --     bg.id = bs.block_group_id;
 
 
@@ -107,7 +109,7 @@ DROP TABLE IF EXISTS block_group_config;
 DROP TABLE IF EXISTS date_today;
 DROP TABLE if EXISTS migration;
 DROP TABLE block_sites;
-DROP TABLE 
+DROP TABLE
 
 CREATE TABLE IF NOT EXISTS block_group(
                 id INTEGER PRIMARY KEY,
@@ -127,9 +129,9 @@ SELECT bg.*, GROUP_CONCAT(
                     'config_type', bgc.config_type,
                     'config_data', bgc.config_data
             ) END
-        ) AS configs_json 
-        FROM block_group bg 
-        LEFT JOIN block_group_config bgc 
+        ) AS configs_json
+        FROM block_group bg
+        LEFT JOIN block_group_config bgc
         ON bg.id = bgc.block_group_id
         GROUP BY  bg.id
 
@@ -140,7 +142,7 @@ select * from block_group_usage_log;
 select * from usage_log;
 
 
-SELECT 
+SELECT
   name AS table_name,
   SUM(pgsize) AS size_bytes,
   ROUND(SUM(pgsize) / 1024.0, 2) AS size_kb,

@@ -1,6 +1,15 @@
-import { Button, Stack, Typography } from "@mui/material";
+import {
+	Button,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	Stack,
+	Typography,
+} from "@mui/material";
 import { JSX, useEffect, useState } from "react";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import ExtensionOutlinedIcon from "@mui/icons-material/ExtensionOutlined";
 import toast from "react-hot-toast";
 import {
 	ipcRendererOn,
@@ -36,30 +45,29 @@ export function BotbarTutorial(): JSX.Element {
 
 	return (
 		<Stack
-			direction={"row"}
+			direction={{ xs: "column", sm: "row" }}
 			sx={{
-				backgroundColor: "#134686",
-				color: "white",
-				p: 1,
-				alignContent: "center",
+				backgroundColor: "primary.dark",
+				color: "primary.contrastText",
+				px: 2,
+				py: 1,
 				alignItems: "center",
 				justifyContent: "space-between",
+				gap: 1,
 			}}
 		>
 			<Typography sx={{ fontSize: 15, p: 0 }}>
-				New to jiyuu? head to the tutorial 🎉 🎉
+				New to Jiyuu? Head to the tutorial.
 			</Typography>
-			<Stack direction={"row"} gap={1.5} justifyContent={"end"}>
+			<Stack direction="row" gap={1.5} justifyContent="end">
 				<Button
 					variant="text"
 					size="small"
-					style={{
+					sx={{
 						fontSize: 12,
-						padding: 4,
-						paddingLeft: 10,
-						paddingRight: 10,
-						color: "white",
-						borderColor: "white",
+						px: 1.25,
+						py: 0.5,
+						color: "primary.contrastText",
 					}}
 					onClick={() => {
 						localStorage.removeItem("isTutOpen");
@@ -71,13 +79,13 @@ export function BotbarTutorial(): JSX.Element {
 				<Button
 					variant="contained"
 					size="small"
-					style={{
+					sx={{
 						fontSize: 12,
-						padding: 4,
-						paddingLeft: 10,
-						paddingRight: 10,
-						backgroundColor: "white",
-						color: "#134686",
+						px: 1.25,
+						py: 0.5,
+						backgroundColor: "background.paper",
+						color: "primary.dark",
+						"&:hover": { backgroundColor: "background.paper" },
 					}}
 					endIcon={<OpenInNewIcon fontSize="small" />}
 					onClick={() => {
@@ -88,5 +96,63 @@ export function BotbarTutorial(): JSX.Element {
 				</Button>
 			</Stack>
 		</Stack>
+	);
+}
+
+export function ExtensionInstallNotice(): JSX.Element {
+	const [isOpen, setIsOpen] = useState(false);
+
+	useEffect(() => {
+		setIsOpen(
+			localStorage.getItem("isExtensionInstallNoticeDismissed") !== "true",
+		);
+	}, []);
+
+	const handleClose = (): void => {
+		localStorage.setItem("isExtensionInstallNoticeDismissed", "true");
+		setIsOpen(false);
+	};
+
+	return (
+		<Dialog
+			open={isOpen}
+			onClose={handleClose}
+			aria-labelledby="extension-install-title"
+			maxWidth="sm"
+			fullWidth
+		>
+			<DialogTitle id="extension-install-title">
+				<Stack direction="row" alignItems="center" gap={1.25}>
+					<ExtensionOutlinedIcon color="primary" />
+					<Typography variant="h6">Install the Jiyuu extension</Typography>
+				</Stack>
+			</DialogTitle>
+			<DialogContent>
+				<Stack spacing={1.5}>
+					<Typography variant="body2" color="text.secondary">
+						Jiyuu works best when the browser extension is installed in every
+						browser you use.
+					</Typography>
+					<Typography variant="body2" color="text.secondary">
+						If a block group is active, Jiyuu may close browsers where the
+						extension is missing or where it is not allowed in incognito/private
+						windows.
+					</Typography>
+				</Stack>
+			</DialogContent>
+			<DialogActions>
+				<Button onClick={handleClose}>Got it</Button>
+				<Button
+					variant="contained"
+					endIcon={<OpenInNewIcon fontSize="small" />}
+					onClick={() => {
+						ipcRendererSend("openurl", { process: "default" });
+						handleClose();
+					}}
+				>
+					Open download page
+				</Button>
+			</DialogActions>
+		</Dialog>
 	);
 }

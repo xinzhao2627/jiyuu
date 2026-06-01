@@ -9,16 +9,10 @@ import {
 	DialogContent,
 } from "@mui/material";
 import * as React from "react";
-import { menuButtonStyle, useStore } from "../../blockingsStore";
+import { useStore } from "../../blockingsStore";
 import { ipcRendererSend } from "../../blockingAPI";
 import { FieldValues, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-const formContainerStyle: React.CSSProperties = {
-	display: "flex",
-	flexDirection: "column",
-	minWidth: 360,
-};
-
 function NewBlockGroupModal(): React.JSX.Element {
 	const { register, handleSubmit, reset } = useForm();
 	const { setBlockGroupModal, setSelectedBlockGroup } = useStore();
@@ -46,33 +40,22 @@ function NewBlockGroupModal(): React.JSX.Element {
 					});
 					handleClose();
 				})}
-				style={formContainerStyle}
+				style={{ minWidth: 360 }}
 			>
 				<DialogContent>
 					<TextField
-						variant="standard"
+						label="Group name"
+						variant="outlined"
 						fullWidth
 						{...register("newGroupName")}
 					/>
 				</DialogContent>
 				<DialogActions>
 					<Stack direction={"row"} justifyContent={"end"} gap={1}>
-						<Button
-							variant="contained"
-							color="primary"
-							type="submit"
-							sx={{ ...menuButtonStyle, fontWeight: 400 }}
-						>
+						<Button variant="contained" color="primary" type="submit">
 							Save
 						</Button>
-						<Button
-							variant="text"
-							onClick={handleClose}
-							sx={{
-								...menuButtonStyle,
-								fontWeight: 400,
-							}}
-						>
+						<Button variant="text" onClick={handleClose}>
 							Cancel
 						</Button>
 					</Stack>
@@ -116,36 +99,23 @@ function RenameBlockGroupModal(): React.JSX.Element {
 				})}
 				style={{
 					display: "flex",
-					flexWrap: "wrap",
-					width: "fit-content",
+					minWidth: 360,
 				}}
 			>
 				<DialogContent>
 					<TextField
-						variant="standard"
+						label="New group name"
+						variant="outlined"
 						fullWidth
-						sx={{ marginTop: 3 }}
 						{...register("newGroupName")}
 					/>
 				</DialogContent>
 				<DialogActions>
 					<Stack direction={"row"} justifyContent={"end"} gap={1} marginTop={3}>
-						<Button
-							variant="contained"
-							color="primary"
-							type="submit"
-							sx={{ ...menuButtonStyle, fontWeight: 400 }}
-						>
+						<Button variant="contained" color="primary" type="submit">
 							Save
 						</Button>
-						<Button
-							variant="text"
-							onClick={handleClose}
-							sx={{
-								...menuButtonStyle,
-								fontWeight: 400,
-							}}
-						>
+						<Button variant="text" onClick={handleClose}>
 							Cancel
 						</Button>
 					</Stack>
@@ -165,7 +135,7 @@ function DeleteBlockGroupModal(): React.JSX.Element {
 			<Stack direction={"row"} justifyContent={"end"} gap={1} marginTop={3}>
 				<Button
 					variant="contained"
-					color="primary"
+					color="error"
 					onClick={() => {
 						if (blockGroup.selectedBlockGroup?.id) {
 							// send the id that is about to be deleted in the server
@@ -175,16 +145,10 @@ function DeleteBlockGroupModal(): React.JSX.Element {
 						}
 						handleClose();
 					}}
-					sx={{ ...menuButtonStyle }}
 				>
 					Delete
 				</Button>
-				<Button
-					variant="text"
-					color="primary"
-					onClick={handleClose}
-					sx={{ ...menuButtonStyle }}
-				>
+				<Button variant="text" color="primary" onClick={handleClose}>
 					Cancel
 				</Button>
 			</Stack>
@@ -213,8 +177,8 @@ export default function MainBlockGroupModal(): React.JSX.Element {
 					<Typography
 						component={"span"}
 						variant="h5"
-						color="initial"
-						sx={{ ...menuButtonStyle, fontSize: "1.4em", width: "100%" }}
+						color="text.primary"
+						sx={{ fontWeight: 700, width: "100%" }}
 					>
 						{blockGroup.modal.delete &&
 							"Are you sure you want to delete this group"}

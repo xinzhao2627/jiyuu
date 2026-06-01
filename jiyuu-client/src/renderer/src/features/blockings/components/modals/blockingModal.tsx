@@ -16,28 +16,36 @@ import { menuButtonStyle, useStore } from "../../blockingsStore";
 import { ipcRendererSend } from "../../blockingAPI";
 import ClearIcon from "@mui/icons-material/Clear";
 import toast from "react-hot-toast";
-import { Theme } from "@emotion/react";
+import { Theme } from "@mui/material";
 import { useRef } from "react";
 import { blocked_content } from "@renderer/jiyuuInterfaces";
+import { scrollbarStyle } from "@renderer/assets/shared/modalStyle";
+import { uiStyles } from "@renderer/assets/shared/uiStyles";
 
 const modalStyle = {
 	position: "absolute",
 	top: "50%",
 	left: "50%",
 	transform: "translate(-50%, -50%)",
-	width: "70%",
+	width: { xs: "calc(100vw - 24px)", md: "72%" },
+	maxWidth: 880,
+	maxHeight: "calc(100vh - 32px)",
 	bgcolor: "background.paper",
-	boxShadow: 24,
-	color: "black",
+	boxShadow: "0 28px 80px rgba(15, 23, 42, 0.24)",
+	color: "text.primary",
 	outline: "none",
+	border: "1px solid",
+	borderColor: "divider",
+	borderRadius: 2,
+	overflow: "hidden",
 };
 const toggleButtonStyle: SxProps<Theme> = {
-	borderRadius: "0px",
+	borderRadius: 0,
 	"&.Mui-selected": {
-		color: "white",
-		backgroundColor: "#199473",
+		color: "primary.contrastText",
+		backgroundColor: "primary.main",
 		"&:hover": {
-			backgroundColor: "#15785D",
+			backgroundColor: "primary.dark",
 		},
 	},
 	"&:hover": {
@@ -49,11 +57,11 @@ const toggleButtonStyle: SxProps<Theme> = {
 const keywordFlagButtonSx: SxProps<Theme> = {
 	px: 1.5,
 	py: 0.75,
-	borderRadius: 2,
+	borderRadius: 1,
 	textTransform: "none",
 	fontSize: 12,
 	fontWeight: 600,
-	letterSpacing: 0.7,
+	letterSpacing: 0,
 	border: "1px solid",
 	borderColor: "divider",
 	color: "text.secondary",
@@ -218,9 +226,14 @@ export default function BlockingModal(): React.JSX.Element {
 						</ToggleButton>
 					</ToggleButtonGroup>
 				</Stack>
-				<div style={{ padding: "16px" }}>
-					<Stack direction={"column"}>
-						<Stack direction={"row"} alignItems="center" gap={2}>
+				<Box sx={{ p: { xs: 2, sm: 2.5 } }}>
+					<Stack
+						direction={{ xs: "column", sm: "row" }}
+						alignItems={{ xs: "stretch", sm: "flex-start" }}
+						gap={2}
+						mb={2}
+					>
+						<Stack width={"100%"}>
 							<TextField
 								type="text"
 								value={blockedContent.input.text}
@@ -231,7 +244,7 @@ export default function BlockingModal(): React.JSX.Element {
 									});
 								}}
 								label="Keyword"
-								variant="standard"
+								variant="outlined"
 								fullWidth
 								onKeyDown={(e) => {
 									if (e.key.toLowerCase() === "enter") {
@@ -239,165 +252,144 @@ export default function BlockingModal(): React.JSX.Element {
 									}
 								}}
 							/>
-							<Stack>
-								<input
-									type="file"
-									accept=".txt"
-									ref={inputFile}
-									style={{ display: "none" }}
-									onChange={(e) => {
-										const { files } = e.target;
-										if (files && files.length) {
-											const file = files[0];
-											const filename = files[0].name;
-											const p = filename.split(".");
-											const fileType = p[p.length - 1];
-
-											if (fileType === "txt") {
-												console.log("file is txt");
-
-												const reader = new FileReader();
-
-												reader.onload = (event) => {
-													const c = event.target?.result as string;
-													// console.log("c", c);
-
-													if (!blockGroup.selectedBlockGroup) {
-														toast.error(
-															"There was a problem adding a content for this group",
-														);
-														console.error(blockGroup);
-														return;
-													}
-													const lines = c
-														.split(/\r?\n/)
-														.filter((l) => l.length > 0)
-														.map((l) => {
-															const sl = l.trim().toLowerCase();
-															const is_abs =
-																sl.substring(0, 3) === "{a}" ? 1 : 0;
-															return {
-																target_text: is_abs ? sl.slice(3) : sl,
-																block_group_id:
-																	blockGroup.selectedBlockGroup?.id,
-																is_absolute: is_abs,
-															};
-														});
-
-													const added_text: Array<blocked_content> = [];
-													for (let i = 0; i < lines.length; i++) {
-														// console.log(lines[0]);
-
-														const cdata = blockedContent.data;
-														// if its alread in the list of this particular group, skip it.
-														if (
-															cdata.some(
-																(c) =>
-																	c.target_text.toLocaleLowerCase() ===
-																		lines[i].target_text &&
-																	c.block_group_id ===
-																		blockGroup.selectedBlockGroup?.id,
-															)
-														) {
-															continue;
-														}
-														added_text.push({
-															target_text: lines[i].target_text,
-															block_group_id: blockGroup.selectedBlockGroup?.id,
-															is_absolute: lines[i].is_absolute === 0 ? 0 : 1,
-														});
-													}
-													setBlockedContentData([
-														...blockedContent.data,
-														...added_text,
-													]);
-												};
-												reader.readAsText(file);
-											}
-										}
-									}}
-								/>
-								<Button
-									variant="text"
-									color="primary"
-									sx={{
-										...keywordFlagButtonSx,
-										height: "2em",
-										mb: 0.5,
-										fontWeight: 500,
-									}}
-									onClick={() => {
-										inputFile?.current?.click();
-									}}
-								>
-									Import
-								</Button>
-								<ToggleButtonGroup
-									value={[
-										blockedContent.input.is_absolute ? "absolute" : null,
-									].filter(Boolean)}
-									onChange={(_, values: string[]) => {
-										setBlockedContentInput({
-											text: blockedContent.input.text,
-											is_absolute: values.includes("absolute"),
-										});
-									}}
-									aria-label="keyword flags"
-									style={{
-										alignItems: "center",
-										alignContent: "center",
-										height: "100%",
-									}}
-								>
-									<Tooltip title="Absolute (exact match – doesn't use partial contains)">
-										<ToggleButton
-											value="absolute"
-											sx={keywordFlagButtonSx}
-											size="small"
-										>
-											Absolute
-										</ToggleButton>
-									</Tooltip>
-								</ToggleButtonGroup>
-							</Stack>
+							<Typography
+								variant="caption"
+								sx={{ mb: 1, ml: 0.33 }}
+								color="text.secondary"
+							>
+								Press Enter to add a keyword or a website{" "}
+								{"(e.g: facebook.com/reel | r/funny)"}
+							</Typography>
 						</Stack>
-						<Typography
-							variant="caption"
-							sx={{ marginBottom: 1 }}
-							color="textSecondary"
-						>
-							Press Enter to add a keyword or a website{" "}
-							{"(e.g: facebook.com/reel | r/funny)"}
-						</Typography>
+
+						<Stack gap={1} sx={{ minWidth: { sm: 132 } }}>
+							<input
+								type="file"
+								accept=".txt"
+								ref={inputFile}
+								style={{ display: "none" }}
+								onChange={(e) => {
+									const { files } = e.target;
+									if (files && files.length) {
+										const file = files[0];
+										const filename = files[0].name;
+										const p = filename.split(".");
+										const fileType = p[p.length - 1];
+
+										if (fileType === "txt") {
+											console.log("file is txt");
+
+											const reader = new FileReader();
+
+											reader.onload = (event) => {
+												const c = event.target?.result as string;
+												// console.log("c", c);
+
+												if (!blockGroup.selectedBlockGroup) {
+													toast.error(
+														"There was a problem adding a content for this group",
+													);
+													console.error(blockGroup);
+													return;
+												}
+												const lines = c
+													.split(/\r?\n/)
+													.filter((l) => l.length > 0)
+													.map((l) => {
+														const sl = l.trim().toLowerCase();
+														const is_abs = sl.substring(0, 3) === "{a}" ? 1 : 0;
+														return {
+															target_text: is_abs ? sl.slice(3) : sl,
+															block_group_id: blockGroup.selectedBlockGroup?.id,
+															is_absolute: is_abs,
+														};
+													});
+
+												const added_text: Array<blocked_content> = [];
+												for (let i = 0; i < lines.length; i++) {
+													// console.log(lines[0]);
+
+													const cdata = blockedContent.data;
+													// if its alread in the list of this particular group, skip it.
+													if (
+														cdata.some(
+															(c) =>
+																c.target_text.toLocaleLowerCase() ===
+																	lines[i].target_text &&
+																c.block_group_id ===
+																	blockGroup.selectedBlockGroup?.id,
+														)
+													) {
+														continue;
+													}
+													added_text.push({
+														target_text: lines[i].target_text,
+														block_group_id: blockGroup.selectedBlockGroup?.id,
+														is_absolute: lines[i].is_absolute === 0 ? 0 : 1,
+													});
+												}
+												setBlockedContentData([
+													...blockedContent.data,
+													...added_text,
+												]);
+											};
+											reader.readAsText(file);
+										}
+									}
+								}}
+							/>
+							<Button
+								variant="text"
+								color="primary"
+								sx={{
+									...keywordFlagButtonSx,
+									height: 36,
+									fontWeight: 500,
+								}}
+								onClick={() => {
+									inputFile?.current?.click();
+								}}
+							>
+								Import
+							</Button>
+							<ToggleButtonGroup
+								value={[
+									blockedContent.input.is_absolute ? "absolute" : null,
+								].filter(Boolean)}
+								onChange={(_, values: string[]) => {
+									setBlockedContentInput({
+										text: blockedContent.input.text,
+										is_absolute: values.includes("absolute"),
+									});
+								}}
+								aria-label="keyword flags"
+								sx={{
+									alignItems: "center",
+									alignContent: "center",
+									height: "100%",
+								}}
+							>
+								<Tooltip title="Absolute (exact match – doesn't use partial contains)">
+									<ToggleButton
+										value="absolute"
+										sx={{ ...keywordFlagButtonSx }}
+										fullWidth
+										size="small"
+									>
+										Absolute
+									</ToggleButton>
+								</Tooltip>
+							</ToggleButtonGroup>
+						</Stack>
 					</Stack>
+
 					<Stack
 						height={220}
 						gap={1}
 						overflow={"auto"}
 						sx={{
 							pr: 0.5,
-							scrollbarWidth: "thin", // Firefox
-							"&::-webkit-scrollbar": {
-								width: 8,
-							},
-							"&::-webkit-scrollbar-track": {
-								background: "transparent",
-								borderRadius: 8,
-							},
-							"&::-webkit-scrollbar-thumb": {
-								borderRadius: 8,
-								border: "2px solid transparent",
-								backgroundClip: "content-box",
-							},
-							"&::-webkit-scrollbar-thumb:hover": {
-								backgroundColor: "#19947380",
-							},
-							"&::-webkit-scrollbar-thumb:active": {
-								backgroundColor: "#199473CC",
-							},
-							"&:hover::-webkit-scrollbar-thumb": {
-								backgroundColor: "#19947360",
-							},
+							...scrollbarStyle,
 						}}
 					>
 						{blockedContent.data.map((v, i) => {
@@ -405,8 +397,10 @@ export default function BlockingModal(): React.JSX.Element {
 								<Stack
 									key={`${v.block_group_id} - ${v.target_text} - ${i}`}
 									direction={"row"}
-									border={"1px solid #CBCBCB"}
-									padding={0.2}
+									sx={{
+										...uiStyles.outlinedPanel,
+										p: 0.75,
+									}}
 								>
 									<Stack
 										direction={"row"}
@@ -419,6 +413,11 @@ export default function BlockingModal(): React.JSX.Element {
 											width={"100%"}
 											alignContent={"center"}
 											justifyContent={"center"}
+											sx={{
+												overflow: "hidden",
+												textOverflow: "ellipsis",
+												whiteSpace: "nowrap",
+											}}
 										>
 											{v.target_text}
 										</Typography>
@@ -478,7 +477,7 @@ export default function BlockingModal(): React.JSX.Element {
 							Cancel
 						</Button>
 					</Stack>
-				</div>
+				</Box>
 			</Box>
 		</Modal>
 	);

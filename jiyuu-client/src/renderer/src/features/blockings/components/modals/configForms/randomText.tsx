@@ -1,7 +1,7 @@
 import { FieldValues } from "react-hook-form";
 import { FormInterface, quickSendForms } from "./quickFunctions";
 import { useStore } from "@renderer/features/blockings/blockingsStore";
-import { Box, Button, Stack } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { modalTextFieldStyle } from "@renderer/assets/shared/modalStyle";
 import { BlockGroup_Full } from "@renderer/jiyuuInterfaces";
 import toast from "react-hot-toast";
@@ -58,13 +58,14 @@ export function RandomTextInput({ formVal }: FormInterface): React.JSX.Element {
 			style={{
 				display: "flex",
 				flexWrap: "wrap",
-				width: "fit-content",
+				width: "100%",
+				marginTop: "16px",
 			}}
 			onSubmit={handleSubmit((fv) => {
 				randomTextSubmit(fv, handleClose, blockGroup.selectedBlockGroup);
 			})}
 		>
-			<Stack gap={2}>
+			<Stack gap={2} width="100%">
 				<Box sx={{ ...modalTextFieldStyle }}>
 					<input
 						maxLength={3}
@@ -75,7 +76,9 @@ export function RandomTextInput({ formVal }: FormInterface): React.JSX.Element {
 						{...register("randomTextCount")}
 					/>
 				</Box>
-				<span>Input how many random characters would it generate</span>
+				<Typography variant="body2" color="text.secondary">
+					Input how many random characters it should generate.
+				</Typography>
 				<Button type="submit" variant="contained" sx={{ fontWeight: "600" }}>
 					Submit
 				</Button>

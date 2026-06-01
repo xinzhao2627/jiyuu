@@ -2,6 +2,7 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import { Stack } from "@mui/material";
+import { uiStyles } from "@renderer/assets/shared/uiStyles";
 
 interface TopKpiProps {
 	title: string;
@@ -15,14 +16,18 @@ export default function TopKpi({
 	return (
 		<Card
 			sx={{
-				minWidth: 275,
-				minHeight: 100,
-				padding: 1,
+				...uiStyles.kpiCard,
+				minHeight: 120,
 			}}
 		>
 			<CardContent>
 				<Stack direction={"row"}>
-					<Typography mb={1} variant="body1" fontWeight={400}>
+					<Typography
+						mb={1}
+						variant="body2"
+						color="text.secondary"
+						fontWeight={600}
+					>
 						{title}
 					</Typography>
 				</Stack>

@@ -47,11 +47,10 @@ export function NavbarExtension(): JSX.Element {
 			severity="warning"
 			icon={<WarningAmberIcon fontSize="medium" />}
 			sx={{
-				bgcolor: "transparent",
-				mx: 1,
-				mt: 1,
+				mx: { xs: 1.5, sm: 2.5 },
+				mt: 2,
 				borderRadius: 2,
-				backgroundColor: "warning.lighter",
+				backgroundColor: "rgba(217, 119, 6, 0.10)",
 				border: "1px solid",
 				borderColor: "warning.light",
 				"& .MuiAlert-icon": {
@@ -61,9 +60,9 @@ export function NavbarExtension(): JSX.Element {
 		>
 			<Stack
 				spacing={1.5}
-				direction={"row"}
+				direction={{ xs: "column", sm: "row" }}
 				alignContent={"center"}
-				alignItems={"center"}
+				alignItems={{ xs: "flex-start", sm: "center" }}
 			>
 				<Typography variant="caption" fontWeight={600}>
 					Extension or {`"Allowed in Incognito"`} not detected/installed in the

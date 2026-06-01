@@ -58,7 +58,7 @@ export function ExportAndImportBlockGroup(): React.JSX.Element {
 					<ListItemIcon>
 						<FileDownloadIcon fontSize="small" />
 					</ListItemIcon>
-					<ListItemText sx={{ letterSpacing: 0.7 }}>
+					<ListItemText sx={{ letterSpacing: 0 }}>
 						Export everything as JSON
 					</ListItemText>
 				</MenuItem>
@@ -72,7 +72,7 @@ export function ExportAndImportBlockGroup(): React.JSX.Element {
 					<ListItemIcon>
 						<FileUploadIcon fontSize="small" />
 					</ListItemIcon>
-					<ListItemText sx={{ letterSpacing: 0.7 }}>
+					<ListItemText sx={{ letterSpacing: 0 }}>
 						Import JSON file
 					</ListItemText>
 				</MenuItem>

@@ -56,7 +56,8 @@ export function RandomTextVerify({
 			style={{
 				display: "flex",
 				flexWrap: "wrap",
-				width: "fit-content",
+				width: "100%",
+				marginTop: "16px",
 			}}
 			onSubmit={handleSubmit((fv) => {
 				randomTextUnlock(
@@ -67,7 +68,7 @@ export function RandomTextVerify({
 				);
 			})}
 		>
-			<Stack gap={2}>
+			<Stack gap={2} width="100%">
 				<Typography
 					variant="body1"
 					color="initial"
@@ -77,13 +78,18 @@ export function RandomTextVerify({
 						width: "100%",
 						whiteSpace: "normal",
 						wordBreak: "break-all",
-						letterSpacing: "1.3px",
-						fontWeight: "500",
+						letterSpacing: 0,
+						fontWeight: 600,
+						p: 1.5,
+						border: "1px solid",
+						borderColor: "divider",
+						borderRadius: 1,
+						backgroundColor: "background.default",
 					}}
 				>
 					{config.randomTextContent}
 				</Typography>
-				<Typography variant="caption" color="initial" width={"100%"}>
+				<Typography variant="caption" color="text.secondary" width={"100%"}>
 					Type the characters in the field below
 				</Typography>
 				<Box sx={{ ...modalTextFieldStyle }}>

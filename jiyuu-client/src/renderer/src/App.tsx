@@ -5,14 +5,22 @@ import { Route, HashRouter, Routes } from "react-router-dom";
 import Dashboard from "./features/dashboard/Dashboard";
 import { Toaster } from "react-hot-toast";
 import { Box, CssBaseline } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import Options from "./features/options/Options";
 import Whitelist from "./features/whitelist/Whitelist";
-import { BotbarTutorial } from "./components/botbarTutorial";
+import {
+	BotbarTutorial,
+	ExtensionInstallNotice,
+} from "./components/botbarTutorial";
+
 function Layout({
 	children,
 }: {
 	children: React.ReactNode;
 }): React.JSX.Element {
+	const theme = useTheme();
+	const isDark = theme.palette.mode === "dark";
+
 	return (
 		<>
 			<CssBaseline />
@@ -22,47 +30,66 @@ function Layout({
 					flexDirection: "column",
 					height: "100vh",
 					width: "100vw",
-					backgroundColor: "#F8F8FF",
+					backgroundColor: "background.default",
+					position: "relative",
+					overflow: "hidden",
 				}}
 			>
-				<Box sx={{ flex: 1, overflow: "auto" }}>{children}</Box>
+				<Box sx={{ flex: 1, overflow: "auto", pb: 1, position: "relative" }}>
+					{children}
+				</Box>
 
-				{/* BOTTOM NAVIGATION BAR */}
-				<Box sx={{ flexShrink: 0, width: "100%", border: "1px solid #e5e5e5" }}>
+				<Box
+					sx={{
+						position: "relative",
+						flexShrink: 0,
+						width: "100%",
+						borderTop: "1px solid",
+						borderColor: "divider",
+						backdropFilter: "blur(18px)",
+					}}
+				>
 					<BotbarTutorial />
 					<BottomNav />
 				</Box>
+				<ExtensionInstallNotice />
 
-				{/* TOAST MESSAGE STYLE */}
 				<Toaster
 					position="top-center"
 					toastOptions={{
 						className: "roboto-toast",
-						duration: 1400,
+						duration: 1800,
 						style: {
-							fontWeight: "600",
-							fontFamily: "roboto, Roboto",
+							fontWeight: "500",
+							fontFamily: "Inter, Roboto, sans-serif",
+							borderRadius: "0px",
+							background: theme.palette.background.paper,
+							color: theme.palette.text.primary,
+							border: `1px solid ${theme.palette.divider}`,
+							boxShadow: isDark
+								? "0 18px 38px rgba(0, 0, 0, 0.36)"
+								: "0 18px 38px rgba(15, 23, 42, 0.12)",
 						},
 						success: {
 							style: {
-								background: "#D1FAE5", // light green
-								color: "#065F46", // dark green
-								border: "1px solid #10B981", // green border
+								background: theme.palette.success.main,
+								color: theme.palette.success.contrastText,
+								border: `1px solid ${theme.palette.success.main}`,
 							},
 							iconTheme: {
-								primary: "#10B981", // icon color
-								secondary: "#D1FAE5",
+								primary: theme.palette.success.main,
+								secondary: theme.palette.background.paper,
 							},
 						},
 						error: {
 							style: {
-								background: "#FEE2E2", // light red
-								color: "#991B1B", // dark red
-								border: "1px solid #EF4444",
+								background: theme.palette.error.main,
+								color: theme.palette.error.contrastText,
+								border: `1px solid ${theme.palette.error.main}`,
 							},
 							iconTheme: {
-								primary: "#EF4444",
-								secondary: "#FEE2E2",
+								primary: theme.palette.error.main,
+								secondary: theme.palette.background.paper,
 							},
 						},
 					}}

@@ -154,8 +154,8 @@ export async function increment_active_browsers(
 	);
 
 	stdout = stdout.trim().toLowerCase();
-	console.log("stdout: ", stdout);
-	
+	// console.log("stdout: ", stdout);
+
 	const toWarnBrowsers: { process: string; url: string }[] = [];
 
 	const oneThirdTime =
@@ -272,7 +272,7 @@ export function taskList_win(): string {
 			Where-Object { $_.DisplayName -and $_.UninstallString } |
 			Select-Object @{Name="Name"; Expression={$_.DisplayName}}, @{Name="InstallPath"; Expression={$_.InstallLocation}}, @{Name="ExePath"; Expression={$_.DisplayIcon}}, @{Name="Uninstaller"; Expression={$_.UninstallString}}
 		}
-		$results | ConvertTo-Json -Depth 3  
+		$results | ConvertTo-Json -Depth 3
 	`;
 	exec(`powershell -Command "${psc}"`, (err, stdout) => {
 		if (err) {

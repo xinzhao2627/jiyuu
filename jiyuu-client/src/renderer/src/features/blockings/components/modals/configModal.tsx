@@ -32,6 +32,7 @@ import { PasswordForm } from "./configForms/password";
 import { RandomTextVerify } from "./configForms/randomTextVerify";
 import { RandomTextInput } from "./configForms/randomText";
 import { RestrictTimerForm } from "./configForms/restrictTimer";
+import { uiStyles } from "@renderer/assets/shared/uiStyles";
 const configTypeList = [
 	{
 		title: "Usage limit",
@@ -142,22 +143,23 @@ export default function ConfigModal(): React.JSX.Element {
 				transitionDuration={0}
 				sx={{
 					"& .MuiDialog-paper": {
-						minHeight: "400px",
+						minHeight: 400,
+						width: "calc(100vw - 32px)",
+						maxWidth: 720,
 						overflow: "hidden",
 					},
-					// minWidth: 700,
 				}}
 				disablePortal={false}
 			>
 				<DialogTitle
 					sx={{
-						fontFamily: "roboto",
 						display: "flex",
 						justifyContent: "space-between",
 						alignItems: "center",
-						px: 1,
+						px: 1.5,
 						py: 1.5,
-						minWidth: 500,
+						borderBottom: "1px solid",
+						borderColor: "divider",
 					}}
 				>
 					{config.type && (
@@ -176,9 +178,9 @@ export default function ConfigModal(): React.JSX.Element {
 					)}
 					<Typography
 						variant="body2"
-						color="initial"
+						color="text.primary"
 						width={"100%"}
-						sx={{ fontWeight: 500, fontSize: 20, mx: 2 }}
+						sx={{ fontWeight: 700, fontSize: 20, mx: 2 }}
 					>
 						Configure block settings
 					</Typography>
@@ -200,8 +202,13 @@ export default function ConfigModal(): React.JSX.Element {
 							sx={{
 								width: "100%",
 								display: "grid",
-								gridTemplateColumns: "repeat(3, 1fr)",
+								gridTemplateColumns: {
+									xs: "1fr",
+									sm: "repeat(2, minmax(0, 1fr))",
+									md: "repeat(3, minmax(0, 1fr))",
+								},
 								gap: 2,
+								mt: 2,
 							}}
 						>
 							{configTypeList.map((card, i): React.JSX.Element => {
@@ -210,8 +217,9 @@ export default function ConfigModal(): React.JSX.Element {
 									<Card
 										key={"config - " + i}
 										sx={{
+											...uiStyles.outlinedPanel,
 											gridColumn:
-												card.type === "usageLimit" ? "1 / -1" : "auto", // Full width for usageLimit
+												card.type === "usageLimit" ? "1 / -1" : "auto",
 										}}
 									>
 										<CardActionArea
@@ -270,7 +278,7 @@ export default function ConfigModal(): React.JSX.Element {
 												},
 											}}
 										>
-											<CardContent sx={{ height: "100%" }}>
+											<CardContent sx={{ height: "100%", p: 2 }}>
 												<Typography variant="h6" component="div">
 													{card.title}
 												</Typography>
@@ -291,7 +299,6 @@ export default function ConfigModal(): React.JSX.Element {
 													variant="body2"
 													color="text.secondary"
 													mt={1}
-													sx={{ height: "100" }}
 												>
 													{card.description}
 												</Typography>
@@ -305,7 +312,7 @@ export default function ConfigModal(): React.JSX.Element {
 					{config.type === null && (
 						<Typography
 							variant="overline"
-							color="initial"
+							color="text.secondary"
 							sx={{
 								width: "100%",
 								textAlign: "center",
@@ -331,7 +338,7 @@ export default function ConfigModal(): React.JSX.Element {
 						<RestrictTimerForm formVal={formVal} />
 					)}
 				</DialogContent>
-				<DialogActions sx={{ mt: 2 }}>
+				<DialogActions sx={{ borderTop: "1px solid", borderColor: "divider" }}>
 					<Button onClick={handleClose}>Close</Button>
 				</DialogActions>
 			</Dialog>

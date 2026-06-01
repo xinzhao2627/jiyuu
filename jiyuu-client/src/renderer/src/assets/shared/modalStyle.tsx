@@ -1,52 +1,66 @@
 import { SxProps, Theme } from "@mui/material";
 
-export const modalStyle = {
+export const modalStyle: SxProps<Theme> = {
 	position: "absolute",
 	top: "50%",
 	left: "50%",
 	transform: "translate(-50%, -50%)",
-	width: 400,
+	width: { xs: "calc(100vw - 24px)", sm: 440 },
+	maxHeight: "calc(100vh - 32px)",
 	bgcolor: "background.paper",
-	boxShadow: 24,
-	color: "black",
+	boxShadow: "0 28px 80px rgba(15, 23, 42, 0.24)",
+	color: "text.primary",
 	outline: "none",
-	pt: 2,
-	px: 4,
+	border: "1px solid",
+	borderColor: "divider",
+	borderRadius: 2,
+	pt: 3,
+	px: { xs: 2.5, sm: 3.5 },
 	pb: 3,
+	overflow: "auto",
 };
 
 export const modalTextFieldStyle: SxProps<Theme> = {
-	"& input": {
+	display: "flex",
+	flexDirection: "column",
+	gap: 0.75,
+	width: "100%",
+	"& input, & .MuiSelect-select": {
 		verticalAlign: "middle",
-		borderRadius: "2px",
-		minHeight: "36px",
-		backgroundColor: "#ffffff",
-		border: "1px solid rgba(36,28,21,0.3)",
-		transition: "all 0.2s ease-in-out 0s",
-		fontSize: "16px",
-		lineHeight: "18px",
-		fontWeight: "normal",
+		borderRadius: "8px",
+		minHeight: "44px",
+		backgroundColor: "background.paper",
+		border: "1px solid",
+		borderColor: "divider",
+		transition:
+			"border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease",
+		fontSize: "0.95rem",
+		lineHeight: "1.5rem",
+		fontWeight: 500,
+		paddingInline: "12px",
+		color: "text.primary",
 		outline: "none",
 		"&:focus": {
 			outline: "none",
-			border: "1px solid #1976d2",
-			boxShadow: "inset 0 0 0 1px #1976d2",
+			borderColor: "primary.main",
+			boxShadow: "0 0 0 4px rgba(37, 99, 235, 0.14)",
+			backgroundColor: "background.paper",
 		},
 	},
 };
 
-export const scrollbarStyle = {
+export const scrollbarStyle: SxProps<Theme> = {
 	"&::-webkit-scrollbar": {
-		width: "6px",
+		width: "8px",
 	},
 	"&::-webkit-scrollbar-track": {
 		backgroundColor: "transparent",
 	},
 	"&::-webkit-scrollbar-thumb": {
-		backgroundColor: "#d0d0d0",
-		borderRadius: "3px",
+		backgroundColor: "rgba(100, 116, 139, 0.3)",
+		borderRadius: "999px",
 	},
 	"&::-webkit-scrollbar-thumb:hover": {
-		backgroundColor: "#b0b0b0",
+		backgroundColor: "rgba(37, 99, 235, 0.45)",
 	},
 };

@@ -146,6 +146,7 @@ export function UsageLimitForm({ formVal }: FormInterface): React.JSX.Element {
 				display: "flex",
 				flexWrap: "wrap",
 				width: "100%",
+				marginTop: "16px",
 				// width: "fit-content",
 			}}
 		>

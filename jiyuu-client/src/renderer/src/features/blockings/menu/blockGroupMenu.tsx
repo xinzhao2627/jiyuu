@@ -40,7 +40,7 @@ export function BlockGroupMenu(): React.JSX.Element {
 				<ListItemIcon>
 					<DeleteIcon fontSize="small" />
 				</ListItemIcon>
-				<ListItemText sx={{ letterSpacing: 0.7 }}>Delete</ListItemText>
+				<ListItemText sx={{ letterSpacing: 0 }}>Delete</ListItemText>
 			</MenuItem>
 			<MenuItem
 				onClick={(e) => {
@@ -56,7 +56,7 @@ export function BlockGroupMenu(): React.JSX.Element {
 				<ListItemIcon>
 					<DriveFileRenameOutlineIcon fontSize="small" />
 				</ListItemIcon>
-				<ListItemText sx={{ letterSpacing: 0.7 }}>Rename</ListItemText>
+				<ListItemText sx={{ letterSpacing: 0 }}>Rename</ListItemText>
 			</MenuItem>
 			<MenuItem
 				onClick={(e) => {
@@ -71,7 +71,7 @@ export function BlockGroupMenu(): React.JSX.Element {
 				<ListItemIcon>
 					<SettingsIcon fontSize="small" />
 				</ListItemIcon>
-				<ListItemText sx={{ letterSpacing: 0.7 }}>
+				<ListItemText sx={{ letterSpacing: 0 }}>
 					Open configuration
 				</ListItemText>
 			</MenuItem>
@@ -89,7 +89,7 @@ export function BlockGroupMenu(): React.JSX.Element {
 				<ListItemIcon>
 					<FileDownloadIcon fontSize="small" />
 				</ListItemIcon>
-				<ListItemText sx={{ letterSpacing: 0.7 }}>Export Data</ListItemText>
+				<ListItemText sx={{ letterSpacing: 0 }}>Export data</ListItemText>
 			</MenuItem>
 		</Menu>
 	);

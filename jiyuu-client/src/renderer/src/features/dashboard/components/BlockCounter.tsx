@@ -1,19 +1,16 @@
-import { Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import * as React from "react";
+import { uiStyles } from "@renderer/assets/shared/uiStyles";
 
 export default function BlockCounter(): React.JSX.Element {
 	return (
-		<div
-			style={{
-				border: "1px solid black",
-				padding: "20px",
-				width: "fit-content",
-			}}
-		>
-			<Typography variant="h3" color="initial">
+		<Box sx={{ ...uiStyles.kpiCard, p: 2, width: "fit-content" }}>
+			<Typography variant="h6" color="text.secondary">
 				Total Blocks
 			</Typography>
-			<p>Number of blocks: 0</p>
-		</div>
+			<Typography variant="h4" color="primary.main" fontWeight={700}>
+				0
+			</Typography>
+		</Box>
 	);
 }

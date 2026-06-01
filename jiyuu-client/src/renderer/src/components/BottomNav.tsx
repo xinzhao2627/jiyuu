@@ -11,8 +11,8 @@ import AppsIcon from "@mui/icons-material/Apps";
 // import VpnLockIcon from "@mui/icons-material/VpnLock";
 import { useLocation, useNavigate } from "react-router-dom";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
-const actionStyle: SxProps<Theme> = { fontWeight: 500, letterSpacing: 1 };
-const iconActionStyle: SxProps<Theme> = { mb: "2px" };
+const actionStyle: SxProps<Theme> = { fontWeight: 600, letterSpacing: 0 };
+const iconActionStyle: SxProps<Theme> = { mb: "2px", fontWeight: 400 };
 export default function BottomNav(): React.JSX.Element {
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -36,30 +36,37 @@ export default function BottomNav(): React.JSX.Element {
 				display: "flex",
 				"& .MuiBottomNavigationAction-root": {
 					flex: 1,
-					minWidth: 0,
+					minWidth: 68,
 					maxWidth: "none",
+					borderRadius: 0,
+					color: "text.secondary",
+					transition:
+						"background-color 0.18s ease, color 0.18s ease, transform 0.18s ease",
 				},
-				padding: 1,
+				"& .Mui-selected": {
+					color: "primary.main",
+					transform: "translateY(-1px)",
+				},
 			}}
 		>
 			<BottomNavigationAction
-				label="BLOCKINGS"
+				label="Blockings"
 				icon={<ShieldOutlinedIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
 
 			<BottomNavigationAction
-				label="DASHBOARD"
+				label="Dashboard"
 				icon={<DashboardOutlinedIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
 			<BottomNavigationAction
-				label="WHITELIST"
+				label="Whitelist"
 				icon={<AppsIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>
 			<BottomNavigationAction
-				label="OPTION"
+				label="Options"
 				icon={<TuneIcon sx={iconActionStyle} />}
 				sx={actionStyle}
 			/>

@@ -98,6 +98,7 @@ export default function UsageAndPauseMenu({
 	return (
 		<div style={{ minWidth: "33%" }}>
 			<Button
+				size="small"
 				aria-haspopup="true"
 				aria-expanded={open ? "true" : undefined}
 				variant="contained"

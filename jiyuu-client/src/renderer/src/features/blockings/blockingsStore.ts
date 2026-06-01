@@ -8,11 +8,11 @@ import { create } from "zustand";
 import { Theme } from "@emotion/react";
 
 export const menuButtonStyle: SxProps<Theme> = {
-	letterSpacing: 0.8,
-	fontWeight: 400,
+	letterSpacing: 0,
+	fontWeight: 600,
 	textTransform: "none",
-	fontSize: "16px",
-	borderRadius: 0,
+	fontSize: "0.875rem",
+	borderRadius: 8,
 };
 type MinuteHour = "minute" | "hour";
 type DayWeekHour = "d" | "w" | "h";
