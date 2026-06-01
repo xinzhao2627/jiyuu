@@ -63,7 +63,7 @@ For Extension:
 
 ### Caution:
 
-In some instances, apps that manipulates local servers such as WSL, Docker desktop and Kubernetes could mess up the websocket of Jiyuu. In that case you should restart <b>Windows NAT Driver</b> in powershell admin console.
+In some instances, apps that manipulates local servers such as WSL, Docker desktop and Orchestrators (K8s Kubernetes) could mess up the websocket of Jiyuu. In that case you should restart <b>Windows NAT Driver</b> in powershell admin console.
 
 Stop first
 
