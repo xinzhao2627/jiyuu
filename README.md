@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".github/assets/banner.png" alt="Jiyuu Banner" width="100%">
+  <img src=".github/assets/jiyuu banner.png" alt="Jiyuu Banner" width="100%" height="100%" >
 </p>
 
 <h1 align="center">Jiyuu</h1>
@@ -44,6 +44,19 @@ Jiyuu has been recognized by the open-source community on **SourceForge** with p
       <h3>SourceForge OSS Rising Star</h3>
       <p>
         Awarded to Jiyuu for demonstrating exceptional growth, rapid user adoption, and community engagement since its launch. This award highlights the project's dedication to providing a high-quality, secure website-blocking solution for Windows.
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td width="30%" align="center">
+      <a href="https://sourceforge.net/projects/jiyuu-website-blocker/reviews/">
+        <img src="https://b.sf-syn.com/badge_img/4094557/oss-users-love-us-black" alt="SourceForge Users Love Us" width="150">
+      </a>
+    </td>
+    <td width="70%">
+      <h3>SourceForge Users Love Us</h3>
+      <p>
+        An official achievement badge recognizing Jiyuu's platform presence and high quality standards. We are excited to continue growing our user base and community support.
       </p>
     </td>
   </tr>
