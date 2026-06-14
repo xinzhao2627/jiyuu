@@ -47,19 +47,6 @@ Jiyuu has been recognized by the open-source community on **SourceForge** with p
       </p>
     </td>
   </tr>
-  <tr>
-    <td width="30%" align="center">
-      <a href="https://sourceforge.net/projects/jiyuu-website-blocker/reviews/">
-        <img src="https://b.sf-syn.com/badge_img/4094557/oss-users-love-us-black" alt="SourceForge Users Love Us" width="150">
-      </a>
-    </td>
-    <td width="70%">
-      <h3>SourceForge Users Love Us</h3>
-      <p>
-        An official achievement badge recognizing Jiyuu's platform presence and high quality standards. We are excited to continue growing our user base and community support.
-      </p>
-    </td>
-  </tr>
 </table>
 
 ---
