@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "skills": {
+    "data-storytelling": {
+      "source": "../../../AppData/Local/Temp/wshobson-agents",
+      "sourceType": "local",
+      "computedHash": "f015e72bde964f59df0c47b0cc3e713ef9cf0dbeec201e8dd95b472cd8e2e15b"
+    },
+    "electron": {
+      "source": "../../../AppData/Local/Temp/electron-skills",
+      "sourceType": "local",
+      "computedHash": "f65bb582c00bba537c6c023415cefc586e18155e87e0f80b6c060076add382d8"
+    },
+    "frontend-design": {
+      "source": "../../../AppData/Local/Temp/anthropic-skills",
+      "sourceType": "local",
+      "computedHash": "106acf230014cbb43ca34e6410371321b56ca742f9ee0442e8ec05bf02eb0384"
+    },
+    "hallmark": {
+      "source": "../../../AppData/Local/Temp/hallmark",
+      "sourceType": "local",
+      "computedHash": "6d53b2b609e05849c1dd0fc53e37daa7515089d5880c15e7e885c86e8b814e9c"
+    },
+    "ponytail": {
+      "source": "dietrichgebert/ponytail",
+      "sourceType": "github",
+      "skillPath": "skills/ponytail/SKILL.md",
+      "computedHash": "9e8d05cbbaf6dc38f0cffc924c09b3cbe76d94ba4ba0d09bde803da2f8c6b5a0"
+    }
+  }
+}

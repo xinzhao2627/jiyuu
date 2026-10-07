@@ -1,22 +1,21 @@
 import * as React from "react";
-
 import {
 	Box,
 	Card,
 	CardContent,
 	Grid,
+	LinearProgress,
 	Stack,
 	SxProps,
 	Theme,
 	ToggleButton,
 	ToggleButtonGroup,
 	Typography,
-	LinearProgress,
-	CircularProgress,
 } from "@mui/material";
 import { ipcRendererOn, ipcRendererSend } from "../blockings/blockingAPI";
 import { alpha } from "@mui/material/styles";
 import { uiStyles } from "@renderer/assets/shared/uiStyles";
+import TopKpi from "./components/TopKpi";
 
 export default function Dashboard(): React.JSX.Element {
 	const [usageLogSummarized, setUsageLogSummarized] = React.useState<
@@ -28,29 +27,25 @@ export default function Dashboard(): React.JSX.Element {
 	const [groupTimeSummarized, setGroupTimeSummarized] = React.useState<
 		Map<number, { name: string; secondsElapsed: number }>
 	>(new Map<number, { name: string; secondsElapsed: number }>());
-	const [selectedPeriod, setSelectedPeriod] = React.useState<"m" | "w" | "d">(
+	const [selectedPeriod, setSelectedPeriod] = React.useState<"d" | "w" | "m">(
 		"d",
 	);
 	const [isKpiLoading, setIsKpiLoading] = React.useState<boolean>(false);
-	// const [dashboardRetrieveReady, setDashboardRetrieveReady] =
-	// 	React.useState<boolean>(true);
+
 	function dashboardGet(): void {
 		setIsKpiLoading(true);
-		// if (dashboardRetrieveReady) {
-		// setDashboardRetrieveReady(false);
 		ipcRendererSend("dashboard/get", {});
-		// }
 	}
+
 	React.useEffect(() => {
-		// let isUnmounted = false;
 		const listeners = [
 			{
 				channel: "dashboard/get/response",
-				handler: (_, data) => {
-					if (data.error) {
-						console.error("Error getting dashboard data: ", data.error);
-					} else {
-						const d = data.data as {
+				handler: (
+					_: unknown,
+					data: {
+						error?: unknown;
+						data: {
 							usageLogSummarized: Map<string, number> | null;
 							clicksSummarized: Map<string, number> | null;
 							groupTimeSummarized: Map<
@@ -58,69 +53,70 @@ export default function Dashboard(): React.JSX.Element {
 								{ name: string; secondsElapsed: number }
 							> | null;
 						};
+					},
+				) => {
+					if (data.error) {
+						console.error("Error getting dashboard data: ", data.error);
+					} else {
+						const d = data.data;
 						setUsageLogSummarized(
 							d.usageLogSummarized || new Map<string, number>(),
 						);
 						setClicksSummarized(
 							d.clicksSummarized || new Map<string, number>(),
 						);
-
 						setGroupTimeSummarized(
 							d.groupTimeSummarized ||
 								new Map<number, { name: string; secondsElapsed: number }>(),
 						);
-						// console.log("the d: ", d);
 					}
-					// UPDATE 2/25/2026: NO LONGER FETCHES THE DASHBOARD EVERY SECONDS TO PREVENT PERFORMANCE DEGREDATION
-					// setDashboardRetrieveReady(true);
 					setIsKpiLoading(false);
-
-					// if (!isUnmounted) {
-					// 	setTimeout(() => dashboardGet(), 1000);
-					// }
 				},
 			},
 			{
 				channel: "useroptions/get/response",
-				handler: (_, data) => {
-					if (data.error)
-						console.error("error retrieving user settings", data.error);
-					else {
-						const d = data.data as {
-							dashboardDateMode: "m" | "w" | "d" | null;
-						};
-
-						setSelectedPeriod(d.dashboardDateMode || "d");
+				handler: (
+					_: unknown,
+					data: {
+						error?: unknown;
+						data: { dashboardDateMode: "m" | "w" | "d" | null };
+					},
+				) => {
+					if (!data.error && data.data?.dashboardDateMode) {
+						setSelectedPeriod(data.data.dashboardDateMode);
 					}
 				},
 			},
 			{
 				channel: "useroptions/set/response",
-				handler: (_, data) => {
+				handler: (_: unknown, data: { error?: unknown }) => {
 					if (data.error) {
-						console.error("error setting user settings: ", data.error);
+						console.error("Error setting user settings: ", data.error);
 					}
 					ipcRendererSend("useroptions/get", {});
 				},
 			},
 		];
+
 		listeners.forEach((v) => {
 			ipcRendererOn(v.channel, v.handler);
 		});
 		dashboardGet();
 		ipcRendererSend("useroptions/get", {});
+
 		return () => {
-			// isUnmounted = true;
 			listeners.forEach((v) => {
 				window.electron.ipcRenderer.removeAllListeners(v.channel);
 			});
 		};
 	}, []);
+
 	const tButtonStyle: SxProps<Theme> = {
-		width: { xs: 88, sm: 112 },
-		height: 40,
-		px: 1.5,
+		width: { xs: 72, sm: 84 },
+		height: 32,
 		textTransform: "none",
+		fontSize: "0.8125rem",
+		fontWeight: 600,
 		"&.Mui-selected": {
 			backgroundColor: "primary.main",
 			color: "primary.contrastText",
@@ -128,287 +124,92 @@ export default function Dashboard(): React.JSX.Element {
 				backgroundColor: "primary.dark",
 			},
 		},
-		fontWeight: 600,
-		letterSpacing: 0,
 		borderColor: "divider",
 	};
-	const clicksDisplay = (): React.JSX.Element => {
+
+	const totalClicks = React.useMemo(() => {
 		let sum = 0;
-		if (clicksSummarized) {
-			for (const v of clicksSummarized.values()) {
-				sum += v;
-			}
+		for (const count of clicksSummarized.values()) {
+			sum += count;
 		}
-		return (
-			<>
-				<Typography
-					variant="h3"
-					sx={{ color: "primary.main", fontWeight: 700 }}
-				>
-					{sum}
-				</Typography>
-			</>
-		);
-	};
-	const usageLogDisplay = (): React.JSX.Element => {
-		let sum = 0;
-		if (usageLogSummarized) {
-			for (const v of usageLogSummarized.values()) {
-				sum += v;
-			}
+		return sum;
+	}, [clicksSummarized]);
+
+	const totalUsageFormatted = React.useMemo(() => {
+		let sumSeconds = 0;
+		for (const seconds of usageLogSummarized.values()) {
+			sumSeconds += seconds;
 		}
-		const mode = (sum * 1.0) / 60 > 60 ? "hrs" : "mins";
-		const displaySum =
-			(sum * 1.0) / 60 > 60 ? (sum * 1.0) / 3600 : (sum * 1.0) / 60;
-		return (
-			<>
-				<Typography
-					variant="h3"
-					sx={{ color: "primary.main", fontWeight: 700 }}
-				>
-					{`${displaySum.toFixed(1)} ${mode}`}
-				</Typography>
-			</>
+		const inHours = sumSeconds >= 3600;
+		const displayValue = inHours ? sumSeconds / 3600 : sumSeconds / 60;
+		return `${displayValue.toFixed(1)} ${inHours ? "hrs" : "mins"}`;
+	}, [usageLogSummarized]);
+
+	const mostUsedSite = React.useMemo(() => {
+		const sorted = Array.from(usageLogSummarized.entries()).sort(
+			(a, b) => b[1] - a[1],
 		);
-	};
-	const mostUsedDisplay = (): React.JSX.Element => {
-		const arr = Array.from(usageLogSummarized);
-		arr.sort((a, b) => {
-			return b[1] - a[1];
+		if (sorted.length === 0) return null;
+		const [site, seconds] = sorted[0];
+		const inHours = seconds >= 3600;
+		const displayValue = inHours ? seconds / 3600 : seconds / 60;
+		return {
+			site,
+			time: `${displayValue.toFixed(1)} ${inHours ? "hrs" : "mins"}`,
+		};
+	}, [usageLogSummarized]);
+
+	const topSitesList = React.useMemo(() => {
+		const sorted = Array.from(usageLogSummarized.entries()).sort(
+			(a, b) => b[1] - a[1],
+		);
+		const totalSeconds = sorted.reduce((acc, curr) => acc + curr[1], 0);
+		return sorted.slice(0, 10).map(([site, seconds]) => {
+			const inHours = seconds >= 3600;
+			const displayValue = inHours ? seconds / 3600 : seconds / 60;
+			const percentage =
+				totalSeconds > 0 ? Math.round((seconds / totalSeconds) * 100) : 0;
+			return {
+				site,
+				duration: `${displayValue.toFixed(1)} ${inHours ? "hrs" : "mins"}`,
+				percentage,
+			};
 		});
+	}, [usageLogSummarized]);
 
-		function generateListItem(): React.JSX.Element {
-			const res = arr[0] || null;
-			if (res) {
-				const sum = res[1] ?? 200;
-				const mode = (sum * 1.0) / 60 > 60 ? "hrs" : "mins";
-				const displaySum =
-					(sum * 1.0) / 60 > 60 ? (sum * 1.0) / 3600 : (sum * 1.0) / 60;
-
-				return (
-					<Stack alignContent={"center"} mt={1}>
-						<Typography
-							variant="h5"
-							alignContent={"center"}
-							sx={{
-								color: "primary.main",
-								fontWeight: 700,
-								whiteSpace: "nowrap",
-							}}
-							width={"100%"}
-							overflow={"hidden"}
-							textOverflow={"ellipsis"}
-						>
-							{res[0]}
-						</Typography>
-						<Typography
-							variant="subtitle1"
-							sx={{ color: "text.secondary", fontWeight: 600 }}
-						>
-							{displaySum.toFixed(1)} {mode}
-						</Typography>
-					</Stack>
-				);
-			}
-
-			return (
-				<Stack
-					sx={{
-						height: "100%",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
-					<Typography
-						mt={1}
-						variant="body1"
-						sx={{ fontWeight: 500 }}
-						color="text.secondary"
-					>
-						Data unavailable
-					</Typography>
-				</Stack>
-			);
-		}
-
-		return <>{generateListItem()}</>;
-	};
-	const mostUsedTopTenDisplay = (): React.JSX.Element => {
-		const arr = Array.from(usageLogSummarized);
-		arr.sort((a, b) => b[1] - a[1]);
-
-		const totalSeconds = arr.reduce((total, entry) => total + entry[1], 0);
-		const topEntries = arr.slice(0, Math.min(10, arr.length));
-
-		if (topEntries.length === 0) {
-			return (
-				<Stack
-					sx={{
-						height: "100%",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
-					<Typography
-						mt={1}
-						variant="body1"
-						sx={{ fontWeight: 500 }}
-						color="text.secondary"
-					>
-						Data unavailable
-					</Typography>
-				</Stack>
-			);
-		}
-
-		return (
-			<Stack spacing={1.25} mt={1}>
-				{topEntries.map((entry, index) => {
-					const sum = entry[1] ?? 0;
-					const mode = sum / 60 > 60 ? "hrs" : "mins";
-					const displaySum = sum / 60 > 60 ? sum / 3600 : sum / 60;
-					const percentage = totalSeconds > 0 ? (sum / totalSeconds) * 100 : 0;
-
-					return (
-						<Stack
-							key={`top-site-${entry[0]}-${index}`}
-							direction="row"
-							alignItems="center"
-							justifyContent="space-between"
-							gap={2}
-							px={1.5}
-							py={1.25}
-							sx={{
-								borderRadius: 2,
-								boxShadow: "0 6px 18px rgba(15, 23, 42, 0.04)",
-								transition:
-									"background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease",
-							}}
-						>
-							<Stack sx={{ minWidth: 0 }}>
-								<Typography variant="subtitle1" fontWeight={600} noWrap>
-									{index + 1}. {entry[0]}
-								</Typography>
-								<Typography variant="caption" color="text.secondary">
-									{displaySum.toFixed(1)} {mode}
-								</Typography>
-							</Stack>
-							<Typography
-								variant="body2"
-								color="text.secondary"
-								fontWeight={600}
-							>
-								{Math.round(percentage)}%
-							</Typography>
-						</Stack>
-					);
-				})}
-			</Stack>
+	const groupTimeList = React.useMemo(() => {
+		const list = Array.from(groupTimeSummarized.values()).filter(
+			(v) => v.name && v.secondsElapsed > 0,
 		);
-	};
-	const blockGroupsTimeDisplay = (): React.JSX.Element => {
-		const groupsListArr: Array<{ name: string; secondsElapsed: number }> = [];
-		let totalsec = 0;
-		for (const v of groupTimeSummarized.entries()) {
-			const id = v[0];
-			const group_name = v[1].name;
-			const secondsElapsed = v[1].secondsElapsed;
+		const total = list.reduce((acc, curr) => acc + curr.secondsElapsed, 0);
+		return { list, total };
+	}, [groupTimeSummarized]);
 
-			if (id && secondsElapsed && group_name) {
-				groupsListArr.push({
-					name: group_name,
-					secondsElapsed: secondsElapsed,
-				});
-				totalsec += secondsElapsed;
-			}
-		}
-		if (groupsListArr.length === 0)
-			return (
-				<Stack
-					sx={{
-						height: "100%",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
-					<Typography
-						mt={2.5}
-						variant="body1"
-						sx={{ fontWeight: 500 }}
-						color="text.secondary"
-					>
-						Data unavailable
-					</Typography>
-				</Stack>
-			);
-
-		return (
-			<>
-				{groupsListArr.map((v, i) => {
-					return (
-						<Box key={`group-${v.name}-${i}`} sx={{ mb: 2 }}>
-							<Stack
-								direction={"row"}
-								justifyContent={"space-between"}
-								mb={0.75}
-								gap={2}
-							>
-								<Typography variant="subtitle1" fontWeight={600}>
-									{v.name}
-								</Typography>
-								<Typography variant="subtitle2" color="text.secondary">
-									{v.secondsElapsed > 3600
-										? `${(v.secondsElapsed / 3600.0).toFixed(1)} hours`
-										: `${(v.secondsElapsed / 60.0).toFixed(1)} minutes`}
-								</Typography>
-							</Stack>
-
-							<LinearProgress
-								variant="determinate"
-								value={totalsec > 0 ? (v.secondsElapsed / totalsec) * 100 : 0}
-								sx={{
-									height: 8,
-									borderRadius: 1,
-									backgroundColor: (theme) =>
-										alpha(theme.palette.primary.main, 0.1),
-								}}
-							/>
-						</Box>
-					);
-				})}
-			</>
-		);
-	};
 	return (
 		<Box sx={uiStyles.pageShell}>
 			<Stack sx={uiStyles.pageInner} spacing={2.5}>
 				<Stack
-					direction={{ xs: "column", sm: "row" }}
-					alignItems={{ xs: "stretch", sm: "center" }}
+					direction="row"
+					alignItems="center"
 					justifyContent="space-between"
 					gap={2}
 				>
 					<Box>
 						<Typography variant="overline" sx={uiStyles.eyebrow}>
-							Dashboard
+							Analytics
 						</Typography>
 						<Typography variant="h4" sx={uiStyles.pageTitle}>
-							Focus activity
+							Focus Activity
 						</Typography>
 					</Box>
 					<ToggleButtonGroup
 						value={selectedPeriod}
 						exclusive
-						onChange={(
-							_e: React.MouseEvent<HTMLElement>,
-							newPeriod: "d" | "w" | "m" | null,
-						) => {
-							if (newPeriod === "d" || newPeriod == "w" || newPeriod == "m") {
-								console.log("sending ipcrenderer", newPeriod);
-
+						size="small"
+						disabled={isKpiLoading}
+						onChange={(_e, newPeriod: "d" | "w" | "m" | null) => {
+							if (newPeriod && newPeriod !== selectedPeriod) {
+								setSelectedPeriod(newPeriod);
 								ipcRendererSend("useroptions/set", {
 									dashboardDateMode: newPeriod,
 								});
@@ -416,180 +217,201 @@ export default function Dashboard(): React.JSX.Element {
 							}
 						}}
 					>
-						<ToggleButton
-							value="d"
-							disabled={isKpiLoading}
-							aria-label="left aligned"
-							disableRipple
-							sx={tButtonStyle}
-						>
-							{isKpiLoading ? (
-								<CircularProgress
-									size={"24px"}
-									sx={{
-										color:
-											selectedPeriod == "d"
-												? "primary.contrastText"
-												: "primary.main",
-									}}
-								/>
-							) : (
-								"Day"
-							)}
+						<ToggleButton value="d" disableRipple sx={tButtonStyle}>
+							Day
 						</ToggleButton>
-						<ToggleButton
-							value="w"
-							disabled={isKpiLoading}
-							aria-label="centered"
-							disableRipple
-							sx={tButtonStyle}
-						>
-							{isKpiLoading ? (
-								<CircularProgress
-									size={"24px"}
-									sx={{
-										color:
-											selectedPeriod == "w"
-												? "primary.contrastText"
-												: "primary.main",
-									}}
-								/>
-							) : (
-								"Week"
-							)}
+						<ToggleButton value="w" disableRipple sx={tButtonStyle}>
+							Week
 						</ToggleButton>
-						<ToggleButton
-							value="m"
-							disabled={isKpiLoading}
-							aria-label="right aligned"
-							disableRipple
-							sx={tButtonStyle}
-						>
-							{isKpiLoading ? (
-								<CircularProgress
-									size={"24px"}
-									sx={{
-										color:
-											selectedPeriod == "m"
-												? "primary.contrastText"
-												: "primary.main",
-									}}
-								/>
-							) : (
-								"Month"
-							)}
+						<ToggleButton value="m" disableRipple sx={tButtonStyle}>
+							Month
 						</ToggleButton>
 					</ToggleButtonGroup>
 				</Stack>
+
 				<Grid container spacing={2}>
-					{/* site visits today */}
-					<Grid size={{ xs: 12, sm: 6, md: 4 }}>
-						<Card
-							sx={{
-								...uiStyles.kpiCard,
-								minHeight: 144,
-							}}
-						>
-							<CardContent>
-								<Typography
-									mb={1}
-									variant="body2"
-									color="text.secondary"
-									fontWeight={600}
-								>
-									Sites visited{" "}
-									{selectedPeriod === "d"
-										? "today"
-										: selectedPeriod === "m"
-											? "this month"
-											: "this week"}
+					<Grid size={{ xs: 12, sm: 4 }}>
+						<TopKpi
+							label="Sites Visited"
+							value={
+								<Typography variant="h4" color="primary.main" fontWeight={700}>
+									{totalClicks}
 								</Typography>
-								<Stack>{clicksDisplay()}</Stack>
+							}
+							caption={`Navigations this ${selectedPeriod === "d" ? "day" : selectedPeriod === "w" ? "week" : "month"}`}
+						/>
+					</Grid>
+
+					<Grid size={{ xs: 12, sm: 4 }}>
+						<TopKpi
+							label="Total Time Spent"
+							value={
+								<Typography variant="h4" color="primary.main" fontWeight={700}>
+									{totalUsageFormatted}
+								</Typography>
+							}
+							caption="Cumulative browsing duration"
+						/>
+					</Grid>
+
+					<Grid size={{ xs: 12, sm: 4 }}>
+						<TopKpi
+							label="Top Destination"
+							value={
+								mostUsedSite ? (
+									<Box>
+										<Typography
+											variant="h6"
+											fontWeight={700}
+											color="primary.main"
+											noWrap
+										>
+											{mostUsedSite.site}
+										</Typography>
+										<Typography
+											variant="caption"
+											color="text.secondary"
+											fontWeight={500}
+										>
+											{mostUsedSite.time}
+										</Typography>
+									</Box>
+								) : (
+									<Typography variant="body2" color="text.secondary">
+										No activity recorded
+									</Typography>
+								)
+							}
+						/>
+					</Grid>
+
+					<Grid size={12}>
+						<Card sx={uiStyles.sectionCard}>
+							<CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+								<Typography variant="subtitle2" fontWeight={700} mb={1.5}>
+									Block Group Distribution
+								</Typography>
+								{groupTimeList.list.length === 0 ? (
+									<Typography
+										variant="body2"
+										color="text.secondary"
+										py={2}
+										textAlign="center"
+									>
+										No group session logs recorded for this period.
+									</Typography>
+								) : (
+									<Stack spacing={1.5}>
+										{groupTimeList.list.map((group) => {
+											const percentage =
+												groupTimeList.total > 0
+													? (group.secondsElapsed / groupTimeList.total) * 100
+													: 0;
+											return (
+												<Box key={`group-${group.name}`}>
+													<Stack
+														direction="row"
+														justifyContent="space-between"
+														alignItems="center"
+														mb={0.5}
+													>
+														<Typography variant="body2" fontWeight={600}>
+															{group.name}
+														</Typography>
+														<Typography
+															variant="caption"
+															color="text.secondary"
+														>
+															{group.secondsElapsed >= 3600
+																? `${(group.secondsElapsed / 3600).toFixed(1)} hrs`
+																: `${Math.round(group.secondsElapsed / 60)} mins`}
+														</Typography>
+													</Stack>
+													<LinearProgress
+														variant="determinate"
+														value={percentage}
+														sx={{
+															height: 4,
+															borderRadius: "2px",
+															backgroundColor: (theme) =>
+																alpha(theme.palette.primary.main, 0.12),
+														}}
+													/>
+												</Box>
+											);
+										})}
+									</Stack>
+								)}
 							</CardContent>
 						</Card>
 					</Grid>
 
-					{/* time spent today */}
-					<Grid size={{ xs: 12, sm: 6, md: 4 }}>
-						<Card
-							sx={{
-								...uiStyles.kpiCard,
-								minHeight: 144,
-							}}
-						>
-							<CardContent>
-								<Typography
-									mb={1}
-									variant="body2"
-									color="text.secondary"
-									fontWeight={600}
-								>
-									Total time spent{" "}
-									{selectedPeriod === "d"
-										? "today"
-										: selectedPeriod === "m"
-											? "this month"
-											: "this week"}
-								</Typography>
-								<Stack>{usageLogDisplay()}</Stack>
-							</CardContent>
-						</Card>
-					</Grid>
-					{/* time usage today */}
-					<Grid size={{ xs: 12, sm: 6, md: 4 }}>
-						<Card
-							sx={{
-								...uiStyles.kpiCard,
-								minHeight: 144,
-							}}
-						>
-							<CardContent sx={{ height: "100%" }}>
-								<Typography
-									mb={1}
-									variant="body2"
-									color="text.secondary"
-									fontWeight={600}
-								>
-									Most used site{" "}
-									{selectedPeriod === "d"
-										? "today"
-										: selectedPeriod === "m"
-											? "this month"
-											: "this week"}
-								</Typography>
-								<Box height={"100%"}>{mostUsedDisplay()}</Box>
-							</CardContent>
-						</Card>{" "}
-					</Grid>
-
-					{/* Total block groups active/inactive */}
 					<Grid size={12}>
-						<Card
-							sx={{
-								...uiStyles.sectionCard,
-							}}
-						>
-							<CardContent>
-								<Typography mb={2} variant="h6">
-									Block group time usage{" "}
+						<Card sx={uiStyles.sectionCard}>
+							<CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+								<Typography variant="subtitle2" fontWeight={700} mb={1.5}>
+									Top Visited Websites
 								</Typography>
-								<Box>{blockGroupsTimeDisplay()}</Box>
-							</CardContent>
-						</Card>{" "}
-					</Grid>
-
-					{/* Top used sites */}
-					<Grid size={12}>
-						<Card
-							sx={{
-								...uiStyles.sectionCard,
-							}}
-						>
-							<CardContent>
-								<Typography mb={2} variant="h6">
-									Top used websites
-								</Typography>
-								<Box>{mostUsedTopTenDisplay()}</Box>
+								{topSitesList.length === 0 ? (
+									<Typography
+										variant="body2"
+										color="text.secondary"
+										py={2}
+										textAlign="center"
+									>
+										No website activity recorded for this period.
+									</Typography>
+								) : (
+									<Stack spacing={0.75}>
+										{topSitesList.map((entry, idx) => (
+											<Stack
+												key={`top-${entry.site}`}
+												direction="row"
+												alignItems="center"
+												justifyContent="space-between"
+												px={1.5}
+												py={1}
+												sx={{
+													borderRadius: "4px",
+													border: "1px solid",
+													borderColor: "divider",
+													backgroundColor: "background.paper",
+												}}
+											>
+												<Stack
+													direction="row"
+													alignItems="center"
+													gap={1.25}
+													minWidth={0}
+												>
+													<Typography
+														variant="caption"
+														fontWeight={700}
+														color="text.secondary"
+														sx={{ width: 18 }}
+													>
+														{idx + 1}
+													</Typography>
+													<Typography variant="body2" fontWeight={600} noWrap>
+														{entry.site}
+													</Typography>
+												</Stack>
+												<Stack direction="row" alignItems="center" gap={2}>
+													<Typography variant="caption" color="text.secondary">
+														{entry.duration}
+													</Typography>
+													<Typography
+														variant="caption"
+														fontWeight={700}
+														sx={{ width: 34, textAlign: "right" }}
+													>
+														{entry.percentage}%
+													</Typography>
+												</Stack>
+											</Stack>
+										))}
+									</Stack>
+								)}
 							</CardContent>
 						</Card>
 					</Grid>

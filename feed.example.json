@@ -1,0 +1,22 @@
+[
+  {
+    "id": "rel-1-2-0",
+    "type": "release",
+    "title": "Jiyuu v1.2.0 Released",
+    "summary": "Added support for Brave browser and updated blocking engine.",
+    "date": "2026-10-01T00:00:00Z",
+    "url": "https://jiyuublocker.vercel.app/releases/v1-2-0",
+    "tag": "Update",
+    "badgeColor": "primary"
+  },
+  {
+    "id": "roadmap-2026-q4",
+    "type": "roadmap",
+    "title": "2026 Q4 Roadmap & Upcoming Apps",
+    "summary": "Check out what features and companion apps are coming next.",
+    "date": "2026-08-20T00:00:00Z",
+    "url": "https://jiyuublocker.vercel.app/roadmap",
+    "tag": "Roadmap",
+    "badgeColor": "secondary"
+  }
+]

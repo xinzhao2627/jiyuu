@@ -10,14 +10,21 @@ import {
 	CardContent,
 	CardActionArea,
 	IconButton,
+	Chip,
+	Stack,
 } from "@mui/material";
-import "react-datepicker/dist/react-datepicker.css";
 import * as React from "react";
 import { useStore } from "../../blockingsStore";
 import { scrollbarStyle } from "@renderer/assets/shared/modalStyle";
 import { useForm } from "react-hook-form";
 import WestOutlinedIcon from "@mui/icons-material/WestOutlined";
 import CloseIcon from "@mui/icons-material/Close";
+import TimerOutlinedIcon from "@mui/icons-material/TimerOutlined";
+import SpellcheckOutlinedIcon from "@mui/icons-material/SpellcheckOutlined";
+import LockClockOutlinedIcon from "@mui/icons-material/LockClockOutlined";
+import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
+import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 import {
 	ConfigType,
@@ -26,41 +33,55 @@ import {
 	RestrictTimer_Config,
 	UsageLimitData_Config,
 } from "@renderer/jiyuuInterfaces";
-import { blue } from "@mui/material/colors";
 import { UsageLimitForm } from "./configForms/usageLimit";
 import { PasswordForm } from "./configForms/password";
 import { RandomTextVerify } from "./configForms/randomTextVerify";
 import { RandomTextInput } from "./configForms/randomText";
 import { RestrictTimerForm } from "./configForms/restrictTimer";
 import { uiStyles } from "@renderer/assets/shared/uiStyles";
+
 const configTypeList = [
 	{
-		title: "Usage limit",
-		type: "usageLimit",
+		title: "Usage Limit",
+		type: "usageLimit" as ConfigType,
+		subtitle: "Browsing Budget",
 		description:
-			"Sets the usage limit of this block group. The block group will immediately activate if usage limit has been reached. Resets remaining time after certain period",
+			"Allow a daily or hourly browsing allowance before blocks automatically engage.",
+		icon: <TimerOutlinedIcon sx={{ fontSize: 20 }} />,
+		color: "info.main",
 	},
 	{
 		title: "Random Text",
-		type: "randomText",
+		type: "randomText" as ConfigType,
+		subtitle: "Typing Barrier",
 		description:
-			"Restrict the block group with random text. When deactivating the block group, you need to type the presented text to unlock.",
+			"Require typing a generated string of characters to disable or unlock this group.",
+		icon: <SpellcheckOutlinedIcon sx={{ fontSize: 20 }} />,
+		color: "warning.main",
 	},
 	{
 		title: "Restrict Timer",
-		type: "restrictTimer",
+		type: "restrictTimer" as ConfigType,
+		subtitle: "Scheduled Lockbox",
 		description:
-			"Use this to restrict a block group, disabling you from modifying until it reaches the specified date.",
+			"Lock modifications completely until a designated future date and time arrives.",
+		icon: <LockClockOutlinedIcon sx={{ fontSize: 20 }} />,
+		color: "secondary.main",
 	},
 	{
 		title: "Password",
-		type: "password",
-		description: "Set up password to restrict access for this blockgroup",
+		type: "password" as ConfigType,
+		subtitle: "Passphrase Shield",
+		description:
+			"Protect access with a secret passphrase required to modify or unlock the group.",
+		icon: <KeyOutlinedIcon sx={{ fontSize: 20 }} />,
+		color: "success.main",
 	},
 ];
+
 export default function ConfigModal(): React.JSX.Element {
-	const { register, handleSubmit, control, reset } = useForm();
-	const formVal = { register, handleSubmit, control, reset };
+	const { register, handleSubmit, control, reset, setValue, watch } = useForm();
+	const formVal = { register, handleSubmit, control, reset, setValue, watch };
 	const {
 		config,
 		blockGroup,
@@ -79,52 +100,9 @@ export default function ConfigModal(): React.JSX.Element {
 		setUsageResetPeriod(null);
 		setUsageTimeValueNumber(null);
 		setRandomTextContent("");
-
 		reset();
 	};
-	const baseLabel = (): string => {
-		let res = "You can add restriction for this block group";
 
-		if (blockGroup.selectedBlockGroup?.restriction_type === "password") {
-			res = "This block group is locked through password";
-		} else if (
-			blockGroup.selectedBlockGroup?.restriction_type === "restrictTimer"
-		) {
-			if (blockGroup.selectedBlockGroup.configs_json) {
-				const cj = JSON.parse(
-					`[${blockGroup.selectedBlockGroup.configs_json}]`,
-				) as {
-					config_type: string;
-					config_data: string;
-				}[];
-				for (const c of cj) {
-					const cd = JSON.parse(c.config_data) as
-						| UsageLimitData_Config
-						| Password_Config
-						| RestrictTimer_Config
-						| RandomText_Config;
-					if (cd.config_type === "restrictTimer") {
-						res =
-							"This block group is locked until: " +
-							new Date(cd.end_date).toLocaleString("en-US", {
-								weekday: "short",
-								year: "numeric",
-								month: "long",
-								day: "numeric",
-								hour: "2-digit",
-								minute: "2-digit",
-								hour12: true,
-							});
-					}
-				}
-			}
-		} else if (
-			blockGroup.selectedBlockGroup?.restriction_type === "randomText"
-		) {
-			res = "This block group is locked through random text";
-		}
-		return res;
-	};
 	const generateRandomChar = (length: number): void => {
 		let res = "";
 		const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -134,113 +112,137 @@ export default function ConfigModal(): React.JSX.Element {
 		}
 		setRandomTextContent(res);
 	};
+
+	const currentRestriction = blockGroup.selectedBlockGroup?.restriction_type;
+	const isCurrentlyLocked = Boolean(currentRestriction);
+
+	const activeConfigItem = configTypeList.find((c) => c.type === config.type);
+
 	return (
-		<>
-			<Dialog
-				open={config.modal}
-				onClose={handleClose}
-				disableEscapeKeyDown
-				transitionDuration={0}
+		<Dialog
+			open={config.modal}
+			onClose={handleClose}
+			disableEscapeKeyDown
+			transitionDuration={0}
+			PaperProps={{
+				sx: {
+					borderRadius: 1.5,
+					width: "calc(100vw - 32px)",
+					maxWidth: 580,
+					maxHeight: "calc(100vh - 48px)",
+					overflow: "hidden",
+				},
+			}}
+		>
+			<DialogTitle
 				sx={{
-					"& .MuiDialog-paper": {
-						minHeight: 400,
-						width: "calc(100vw - 32px)",
-						maxWidth: 720,
-						overflow: "hidden",
-					},
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					px: 2,
+					py: 1.5,
+					borderBottom: "1px solid",
+					borderColor: "divider",
 				}}
-				disablePortal={false}
 			>
-				<DialogTitle
-					sx={{
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
-						px: 1.5,
-						py: 1.5,
-						borderBottom: "1px solid",
-						borderColor: "divider",
-					}}
-				>
-					{config.type && (
-						<IconButton
-							aria-label="goback"
-							onClick={() => {
-								setConfigType(null);
-								reset();
-							}}
-							sx={(theme) => ({
-								color: theme.palette.grey[500],
-							})}
-						>
-							<WestOutlinedIcon />
-						</IconButton>
+				<Stack direction="row" alignItems="center" spacing={1}>
+					{config.type ? (
+						<>
+							<IconButton
+								size="small"
+								aria-label="Back to restrictions"
+								onClick={() => {
+									setConfigType(null);
+									reset();
+								}}
+								sx={{ color: "text.secondary", mr: 0.5 }}
+							>
+								<WestOutlinedIcon fontSize="small" />
+							</IconButton>
+							<Typography variant="subtitle1" fontWeight={700}>
+								{activeConfigItem?.title}
+							</Typography>
+							<Chip
+								label={blockGroup.selectedBlockGroup?.group_name || "Group"}
+								size="small"
+								variant="outlined"
+								sx={{ height: 22, fontSize: 11, fontWeight: 500 }}
+							/>
+						</>
+					) : (
+						<>
+							<Typography variant="subtitle1" fontWeight={700}>
+								{blockGroup.selectedBlockGroup?.group_name ||
+									"Group Restrictions"}
+							</Typography>
+							{isCurrentlyLocked && (
+								<Chip
+									icon={<LockOutlinedIcon sx={{ "&&": { fontSize: 13 } }} />}
+									label="Locked"
+									size="small"
+									color="primary"
+									variant="outlined"
+									sx={{ height: 22, fontSize: 11, fontWeight: 700 }}
+								/>
+							)}
+						</>
 					)}
-					<Typography
-						variant="body2"
-						color="text.primary"
-						width={"100%"}
-						sx={{ fontWeight: 700, fontSize: 20, mx: 2 }}
-					>
-						Configure block settings
-					</Typography>
+				</Stack>
 
-					<IconButton
-						aria-label="close"
-						onClick={handleClose}
-						sx={(theme) => ({
-							color: theme.palette.grey[500],
-						})}
-					>
-						<CloseIcon />
-					</IconButton>
-				</DialogTitle>
+				<IconButton
+					size="small"
+					aria-label="Close"
+					onClick={handleClose}
+					sx={{ color: "text.secondary" }}
+				>
+					<CloseIcon fontSize="small" />
+				</IconButton>
+			</DialogTitle>
 
-				<DialogContent sx={{ overflowY: "auto", ...scrollbarStyle }}>
-					{!config.type && (
-						<Box
-							sx={{
-								width: "100%",
-								display: "grid",
-								gridTemplateColumns: {
-									xs: "1fr",
-									sm: "repeat(2, minmax(0, 1fr))",
-									md: "repeat(3, minmax(0, 1fr))",
-								},
-								gap: 2,
-								mt: 2,
-							}}
-						>
-							{configTypeList.map((card, i): React.JSX.Element => {
-								const cardType = card.type as ConfigType;
-								return (
-									<Card
-										key={"config - " + i}
-										sx={{
-											...uiStyles.outlinedPanel,
-											gridColumn:
-												card.type === "usageLimit" ? "1 / -1" : "auto",
-										}}
-									>
-										<CardActionArea
-											disabled={
-												cardType !== "usageLimit"
-													? cardType === "restrictTimer" &&
-														Boolean(
-															blockGroup.selectedBlockGroup?.restriction_type,
-														)
-														? true
-														: Boolean(
-																blockGroup.selectedBlockGroup?.restriction_type,
-															) &&
-															blockGroup.selectedBlockGroup
-																?.restriction_type !== cardType
-													: false
-											}
-											onClick={() => {
-												// console.log(selectedBlockGroup, card.type);
-												if (cardType === "randomText") {
-													if (blockGroup.selectedBlockGroup?.configs_json) {
+			<DialogContent sx={{ p: 2, overflowY: "auto", ...scrollbarStyle }}>
+				{!config.type && (
+					<Box
+						sx={{
+							display: "grid",
+							gridTemplateColumns: {
+								xs: "1fr",
+								sm: "repeat(2, minmax(0, 1fr))",
+							},
+							gap: 1.5,
+						}}
+					>
+						{configTypeList.map((card) => {
+							const cardType = card.type;
+							const isActive =
+								blockGroup.selectedBlockGroup?.restriction_type === card.type ||
+								(blockGroup.selectedBlockGroup?.usage_label &&
+									card.type === "usageLimit");
+
+							const isDisabled =
+								cardType !== "usageLimit"
+									? cardType === "restrictTimer" && isCurrentlyLocked
+										? true
+										: isCurrentlyLocked && currentRestriction !== cardType
+									: false;
+
+							return (
+								<Card
+									key={card.type}
+									sx={{
+										...uiStyles.listItemCard,
+										border: "1px solid",
+										borderColor: isActive ? "primary.main" : "divider",
+										opacity: isDisabled ? 0.45 : 1,
+										transition:
+											"border-color 0.15s ease, background-color 0.15s ease",
+									}}
+								>
+									<CardActionArea
+										disabled={isDisabled}
+										onClick={() => {
+											if (cardType === "randomText") {
+												if (blockGroup.selectedBlockGroup?.configs_json) {
+													try {
 														const cj = JSON.parse(
 															`[${blockGroup.selectedBlockGroup?.configs_json}]`,
 														) as {
@@ -249,8 +251,6 @@ export default function ConfigModal(): React.JSX.Element {
 														}[];
 
 														for (const c of cj) {
-															// console.log(c);
-
 															const cd = JSON.parse(c.config_data) as
 																| UsageLimitData_Config
 																| Password_Config
@@ -263,85 +263,139 @@ export default function ConfigModal(): React.JSX.Element {
 																generateRandomChar(cd.randomTextCount);
 															}
 														}
+													} catch (err) {
+														console.error(err);
 													}
 												}
-												setConfigType(cardType);
-											}}
-											sx={{
-												height: "100%",
+											}
 
-												"&[data-active]": {
-													backgroundColor: "action.selected",
-													"&:hover": {
-														backgroundColor: "action.selectedHover",
-													},
-												},
-											}}
-										>
-											<CardContent sx={{ height: "100%", p: 2 }}>
-												<Typography variant="h6" component="div">
-													{card.title}
-												</Typography>
-												{/* {selectedBlockGroup?.restriction_type} */}
-												{(blockGroup.selectedBlockGroup?.restriction_type ===
-													card.type ||
-													(blockGroup.selectedBlockGroup?.usage_label &&
-														card.type === "usageLimit")) && (
-													<Typography
-														variant="subtitle2"
-														sx={{ color: blue[900], fontWeight: "600" }}
-													>
-														{"(Active)"}
-													</Typography>
-												)}
+											if (cardType === "usageLimit") {
+												if (blockGroup.selectedBlockGroup?.configs_json) {
+													try {
+														const cj = JSON.parse(
+															`[${blockGroup.selectedBlockGroup?.configs_json}]`,
+														) as {
+															config_type: string;
+															config_data: string;
+														}[];
 
-												<Typography
-													variant="body2"
-													color="text.secondary"
-													mt={1}
+														for (const c of cj) {
+															const cd = JSON.parse(c.config_data) as
+																| UsageLimitData_Config
+																| Password_Config
+																| RestrictTimer_Config
+																| RandomText_Config;
+															if (cd.config_type === "usageLimit") {
+																setUsageTimeValueNumber({
+																	val: cd.usage_reset_value,
+																	mode: cd.usage_reset_value_mode,
+																});
+																setUsageResetPeriod(cd.usage_reset_type);
+															}
+														}
+													} catch (err) {
+														console.error(err);
+													}
+												}
+											}
+
+											setConfigType(cardType);
+										}}
+										sx={{ height: "100%", p: 1.75 }}
+									>
+										<CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+											<Stack
+												direction="row"
+												alignItems="center"
+												justifyContent="space-between"
+												mb={1.25}
+											>
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														justifyContent: "center",
+														width: 34,
+														height: 34,
+														borderRadius: 1,
+														backgroundColor: "action.hover",
+														color: isActive ? "primary.main" : card.color,
+													}}
 												>
-													{card.description}
-												</Typography>
-											</CardContent>
-										</CardActionArea>
-									</Card>
-								);
-							})}
-						</Box>
-					)}
-					{config.type === null && (
-						<Typography
-							variant="overline"
-							color="text.secondary"
-							sx={{
-								width: "100%",
-								textAlign: "center",
-								justifyContent: "center",
-								display: "flex",
-								mt: 2,
-								fontWeight: "600",
-							}}
-						>
-							{baseLabel()}
-						</Typography>
-					)}
-					{config.type === "usageLimit" && <UsageLimitForm formVal={formVal} />}
-					{config.type === "password" && <PasswordForm formVal={formVal} />}
-					{config.type === "randomText" &&
-						(blockGroup.selectedBlockGroup?.restriction_type &&
-						blockGroup.selectedBlockGroup.restriction_type === "randomText" ? (
-							<RandomTextVerify formVal={formVal} />
-						) : (
-							<RandomTextInput formVal={formVal} />
-						))}
-					{config.type === "restrictTimer" && (
-						<RestrictTimerForm formVal={formVal} />
-					)}
-				</DialogContent>
-				<DialogActions sx={{ borderTop: "1px solid", borderColor: "divider" }}>
-					<Button onClick={handleClose}>Close</Button>
+													{card.icon}
+												</Box>
+
+												<Stack
+													direction="row"
+													alignItems="center"
+													spacing={0.5}
+												>
+													{isActive && (
+														<Chip
+															label="Active"
+															size="small"
+															color="primary"
+															sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+														/>
+													)}
+													{isDisabled ? (
+														<LockOutlinedIcon
+															sx={{ fontSize: 15, color: "text.disabled" }}
+														/>
+													) : (
+														<ChevronRightOutlinedIcon
+															sx={{ fontSize: 18, color: "text.secondary" }}
+														/>
+													)}
+												</Stack>
+											</Stack>
+
+											<Typography variant="subtitle2" fontWeight={700}>
+												{card.title}
+											</Typography>
+
+											<Typography
+												variant="caption"
+												color="text.secondary"
+												sx={{ mt: 0.5, display: "block", lineHeight: 1.4 }}
+											>
+												{card.description}
+											</Typography>
+										</CardContent>
+									</CardActionArea>
+								</Card>
+							);
+						})}
+					</Box>
+				)}
+
+				{config.type === "usageLimit" && <UsageLimitForm formVal={formVal} />}
+				{config.type === "password" && <PasswordForm formVal={formVal} />}
+				{config.type === "randomText" &&
+					(blockGroup.selectedBlockGroup?.restriction_type === "randomText" ? (
+						<RandomTextVerify formVal={formVal} />
+					) : (
+						<RandomTextInput formVal={formVal} />
+					))}
+				{config.type === "restrictTimer" && (
+					<RestrictTimerForm formVal={formVal} />
+				)}
+			</DialogContent>
+
+			{!config.type && (
+				<DialogActions
+					sx={{
+						px: 2,
+						py: 1.25,
+						borderTop: "1px solid",
+						borderColor: "divider",
+					}}
+				>
+					<Button size="small" variant="outlined" onClick={handleClose}>
+						Done
+					</Button>
 				</DialogActions>
-			</Dialog>
-		</>
+			)}
+		</Dialog>
 	);
 }
