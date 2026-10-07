@@ -1,3 +1,4 @@
+import * as React from "react";
 import {
 	BlockGroup_Full,
 	Password_Config,
@@ -9,8 +10,20 @@ import { FieldValues } from "react-hook-form";
 import { FormInterface, quickSendForms, quickUnlock } from "./quickFunctions";
 import toast from "react-hot-toast";
 import { useStore } from "@renderer/features/blockings/blockingsStore";
-import { Box, Button, Stack, Typography } from "@mui/material";
-import { modalTextFieldStyle } from "@renderer/assets/shared/modalStyle";
+import {
+	Button,
+	IconButton,
+	InputAdornment,
+	Stack,
+	TextField,
+	Typography,
+	Box,
+} from "@mui/material";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
+import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
 
 const passwordUnlock = (
 	fv: FieldValues,
@@ -31,43 +44,45 @@ const passwordUnlock = (
 				| RestrictTimer_Config
 				| RandomText_Config;
 			if (cd.config_type === "password" && cd.password === password) {
-				// delete the config to unlock
 				quickUnlock({ config_type: cd.config_type }, selectedBlockGroup);
 				isSuccess = true;
 			}
 		}
 		if (isSuccess) {
-			// toast.success("Restriction unlocked");
+			toast.success("Restriction unlocked");
 			handleClose();
 		} else {
-			throw "Password incorrect";
+			toast.error("Incorrect password");
 		}
 	} catch (error) {
-		console.log(error);
 		toast.error(error instanceof Error ? error.message : String(error));
 	}
 };
+
 const passwordSubmit = (
 	fv: FieldValues,
 	handleClose: () => void,
 	selectedBlockGroup: BlockGroup_Full | null,
 ): void => {
 	try {
-		const password = fv.password;
-		if (!password) throw "The input field is empty";
+		const password = fv.password?.trim();
+		if (!password) {
+			toast.error("Password cannot be blank");
+			return;
+		}
 		quickSendForms(
 			{ password: password, config_type: "password" },
 			selectedBlockGroup,
 		);
 		handleClose();
 	} catch (error) {
-		console.log(error);
 		toast.error(error instanceof Error ? error.message : String(error));
 	}
 };
 
 export function PasswordForm({ formVal }: FormInterface): React.JSX.Element {
-	const { register, handleSubmit, reset } = formVal;
+	const { register, handleSubmit, reset, watch } = formVal;
+	const [showPassword, setShowPassword] = React.useState<boolean>(false);
 	const {
 		blockGroup,
 		setIsConfigModalOpen,
@@ -77,6 +92,7 @@ export function PasswordForm({ formVal }: FormInterface): React.JSX.Element {
 		setUsageTimeValueNumber,
 		setRandomTextContent,
 	} = useStore();
+
 	const handleClose = (): void => {
 		setIsConfigModalOpen(false);
 		setConfigType(null);
@@ -84,52 +100,129 @@ export function PasswordForm({ formVal }: FormInterface): React.JSX.Element {
 		setUsageResetPeriod(null);
 		setUsageTimeValueNumber(null);
 		setRandomTextContent("");
-
 		reset();
 	};
+
+	const isLocked =
+		blockGroup.selectedBlockGroup?.restriction_type === "password";
+
+	const enteredPassword = watch("password", "");
+
 	return (
 		<form
 			noValidate
-			style={{
-				display: "flex",
-				flexWrap: "wrap",
-				width: "100%",
-				marginTop: "16px",
-			}}
 			onSubmit={handleSubmit((fv) => {
-				if (
-					blockGroup.selectedBlockGroup?.restriction_type &&
-					blockGroup.selectedBlockGroup.restriction_type === "password"
-				) {
+				if (isLocked) {
 					passwordUnlock(fv, handleClose, blockGroup.selectedBlockGroup);
 				} else {
 					passwordSubmit(fv, handleClose, blockGroup.selectedBlockGroup);
 				}
 			})}
 		>
-			<Stack gap={2} width={"100%"}>
-				<Box sx={{ ...modalTextFieldStyle, width: "100%" }}>
-					<input
-						style={{ width: "100%" }}
-						type="text"
-						id="password"
-						placeholder={
-							blockGroup.selectedBlockGroup?.restriction_type &&
-							blockGroup.selectedBlockGroup.restriction_type === "password"
-								? "Enter your password"
-								: "Enter a new password"
-						}
-						{...register("password")}
-					/>
-					<Typography variant="caption" color="text.secondary">
-						{blockGroup.selectedBlockGroup?.restriction_type &&
-						blockGroup.selectedBlockGroup.restriction_type === "password"
-							? "Enter your password to remove restriction"
-							: "Enter a new password"}
+			<Stack spacing={2.5} pt={0.5}>
+				{/* Status Hero Card */}
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "space-between",
+						p: 1.5,
+						borderRadius: 1.5,
+						border: "1px solid",
+						borderColor: isLocked ? "primary.main" : "divider",
+						backgroundColor: "action.hover",
+					}}
+				>
+					<Stack direction="row" alignItems="center" spacing={1.25}>
+						{isLocked ? (
+							<LockOutlinedIcon
+								fontSize="small"
+								sx={{ color: "primary.main" }}
+							/>
+						) : (
+							<KeyOutlinedIcon
+								fontSize="small"
+								sx={{ color: "text.secondary" }}
+							/>
+						)}
+						<Typography variant="body2" fontWeight={600}>
+							{isLocked ? "Group is currently locked" : "Set access passphrase"}
+						</Typography>
+					</Stack>
+
+					<Typography
+						variant="caption"
+						sx={{
+							color: isLocked ? "primary.main" : "text.secondary",
+							fontWeight: 600,
+							fontSize: 11,
+							px: 1,
+							py: 0.25,
+							borderRadius: 1,
+							bgcolor: "background.paper",
+							border: "1px solid",
+							borderColor: "divider",
+						}}
+					>
+						{isLocked ? "Protected" : "Unlocked"}
 					</Typography>
 				</Box>
-				<Button type="submit" variant="contained" sx={{ fontWeight: "600" }}>
-					Submit
+
+				{/* Password Input with Visibility Toggle */}
+				<TextField
+					size="small"
+					type={showPassword ? "text" : "password"}
+					fullWidth
+					autoFocus
+					placeholder={
+						isLocked ? "Enter password to unlock" : "Choose a lock passphrase"
+					}
+					{...register("password")}
+					InputProps={{
+						startAdornment: (
+							<InputAdornment position="start">
+								<LockOutlinedIcon
+									fontSize="small"
+									sx={{ color: "text.secondary" }}
+								/>
+							</InputAdornment>
+						),
+						endAdornment: (
+							<InputAdornment position="end">
+								<IconButton
+									size="small"
+									aria-label="toggle password visibility"
+									onClick={() => setShowPassword(!showPassword)}
+									edge="end"
+									sx={{ color: "text.secondary" }}
+								>
+									{showPassword ? (
+										<VisibilityOffOutlinedIcon fontSize="small" />
+									) : (
+										<VisibilityOutlinedIcon fontSize="small" />
+									)}
+								</IconButton>
+							</InputAdornment>
+						),
+					}}
+				/>
+
+				{/* Action Button */}
+				<Button
+					type="submit"
+					variant="contained"
+					size="small"
+					disabled={!enteredPassword?.trim()}
+					startIcon={
+						isLocked ? (
+							<LockOpenOutlinedIcon fontSize="small" />
+						) : (
+							<LockOutlinedIcon fontSize="small" />
+						)
+					}
+					sx={{ height: 38, fontWeight: 600, borderRadius: 1 }}
+				>
+					{isLocked ? "Unlock Group" : "Lock Group"}
 				</Button>
 			</Stack>
 		</form>

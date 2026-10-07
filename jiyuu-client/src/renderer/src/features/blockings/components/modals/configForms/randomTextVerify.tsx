@@ -1,10 +1,20 @@
+import * as React from "react";
 import { useStore } from "@renderer/features/blockings/blockingsStore";
 import { FieldValues } from "react-hook-form";
 import toast from "react-hot-toast";
 import { FormInterface, quickUnlock } from "./quickFunctions";
 import { BlockGroup_Full } from "@renderer/jiyuuInterfaces";
-import { Box, Typography, Button, Stack } from "@mui/material";
-import { modalTextFieldStyle } from "@renderer/assets/shared/modalStyle";
+import {
+	Typography,
+	Button,
+	Stack,
+	TextField,
+	Box,
+	LinearProgress,
+} from "@mui/material";
+import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
+import SpellcheckOutlinedIcon from "@mui/icons-material/SpellcheckOutlined";
+
 const randomTextUnlock = (
 	fv: FieldValues,
 	randomTextContent: string,
@@ -12,16 +22,19 @@ const randomTextUnlock = (
 	selectedBlockGroup: BlockGroup_Full | null,
 ): void => {
 	try {
-		const rtcontent = fv.randomTextContent;
-		// if one of the input or content is empty, throw an error
-		if (!(rtcontent && randomTextContent))
-			throw "Invalid input or invalid random generated characters";
-		if (rtcontent === randomTextContent) {
+		const text = fv.randomTextContent?.trim();
+		if (!text || !randomTextContent) {
+			toast.error("Please enter the challenge text");
+			return;
+		}
+		if (text === randomTextContent) {
 			quickUnlock({ config_type: "randomText" }, selectedBlockGroup);
+			toast.success("Restriction unlocked");
 			handleClose();
-		} else throw "Invalid text input";
+		} else {
+			toast.error("Characters do not match. Try again.");
+		}
 	} catch (error) {
-		console.log(error);
 		toast.error(error instanceof Error ? error.message : String(error));
 	}
 };
@@ -29,7 +42,7 @@ const randomTextUnlock = (
 export function RandomTextVerify({
 	formVal,
 }: FormInterface): React.JSX.Element {
-	const { register, handleSubmit, reset } = formVal;
+	const { register, handleSubmit, reset, watch } = formVal;
 	const {
 		config,
 		blockGroup,
@@ -40,6 +53,7 @@ export function RandomTextVerify({
 		setUsageTimeValueNumber,
 		setRandomTextContent,
 	} = useStore();
+
 	const handleClose = (): void => {
 		setIsConfigModalOpen(false);
 		setConfigType(null);
@@ -47,18 +61,30 @@ export function RandomTextVerify({
 		setUsageResetPeriod(null);
 		setUsageTimeValueNumber(null);
 		setRandomTextContent("");
-
 		reset();
 	};
+
+	const targetText = config.randomTextContent || "";
+	const currentInput = watch("randomTextContent", "") || "";
+
+	// Calculate match and error status
+	let hasError = false;
+	for (let i = 0; i < currentInput.length; i++) {
+		if (i >= targetText.length || currentInput[i] !== targetText[i]) {
+			hasError = true;
+			break;
+		}
+	}
+
+	const isCompleted = currentInput === targetText && targetText.length > 0;
+	const progressPercent =
+		targetText.length > 0
+			? Math.min(100, (currentInput.length / targetText.length) * 100)
+			: 0;
+
 	return (
 		<form
 			noValidate
-			style={{
-				display: "flex",
-				flexWrap: "wrap",
-				width: "100%",
-				marginTop: "16px",
-			}}
 			onSubmit={handleSubmit((fv) => {
 				randomTextUnlock(
 					fv,
@@ -68,43 +94,150 @@ export function RandomTextVerify({
 				);
 			})}
 		>
-			<Stack gap={2} width="100%">
-				<Typography
-					variant="body1"
-					color="initial"
+			<Stack spacing={2.5} pt={0.5}>
+				{/* Header Status Card */}
+				<Box
 					sx={{
-						userSelect: "none",
-						pointerEvents: "none",
-						width: "100%",
-						whiteSpace: "normal",
-						wordBreak: "break-all",
-						letterSpacing: 0,
-						fontWeight: 600,
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "space-between",
 						p: 1.5,
+						borderRadius: 1.5,
 						border: "1px solid",
-						borderColor: "divider",
-						borderRadius: 1,
-						backgroundColor: "background.default",
+						borderColor: isCompleted ? "success.main" : "divider",
+						backgroundColor: "action.hover",
 					}}
 				>
-					{config.randomTextContent}
-				</Typography>
-				<Typography variant="caption" color="text.secondary" width={"100%"}>
-					Type the characters in the field below
-				</Typography>
-				<Box sx={{ ...modalTextFieldStyle }}>
-					<input
-						onPaste={(e) => {
-							e.preventDefault();
+					<Stack direction="row" alignItems="center" spacing={1.25}>
+						<SpellcheckOutlinedIcon
+							fontSize="small"
+							sx={{ color: isCompleted ? "success.main" : "primary.main" }}
+						/>
+						<Typography variant="body2" fontWeight={600}>
+							Type challenge to unlock
+						</Typography>
+					</Stack>
+
+					<Typography
+						variant="caption"
+						sx={{
+							color: isCompleted ? "success.main" : "text.secondary",
+							fontWeight: 600,
+							fontSize: 11,
+							px: 1,
+							py: 0.25,
+							borderRadius: 1,
+							bgcolor: "background.paper",
+							border: "1px solid",
+							borderColor: "divider",
 						}}
-						type="text"
-						style={{ width: "100%", minHeight: "50px" }}
-						id="randomTextCount"
-						{...register("randomTextContent")}
-					/>
+					>
+						{currentInput.length} / {targetText.length} chars
+					</Typography>
 				</Box>
-				<Button type="submit" variant="contained" sx={{ fontWeight: "600" }}>
-					Submit
+
+				{/* Interactive Monospace Challenge Tape */}
+				<Box
+					sx={{
+						p: 2,
+						border: "1px solid",
+						borderColor: hasError
+							? "error.main"
+							: isCompleted
+								? "success.main"
+								: "divider",
+						borderRadius: 1.5,
+						backgroundColor: "background.default",
+						fontFamily: 'Consolas, "Roboto Mono", monospace',
+						fontSize: "1.1rem",
+						letterSpacing: "0.14em",
+						lineHeight: 1.8,
+						wordBreak: "break-all",
+						userSelect: "none",
+						maxHeight: 120,
+						overflowY: "auto",
+					}}
+				>
+					{targetText.split("").map((char, index) => {
+						let charColor = "text.disabled";
+						let textDecoration = "none";
+						let fontWeight = 500;
+						let bgColor = "transparent";
+
+						if (index < currentInput.length) {
+							if (currentInput[index] === char) {
+								charColor = "success.main";
+								fontWeight = 700;
+							} else {
+								charColor = "error.main";
+								bgColor = "error.light";
+								fontWeight = 700;
+							}
+						} else if (index === currentInput.length) {
+							// Current cursor position
+							charColor = "text.primary";
+							textDecoration = "underline";
+							fontWeight = 700;
+						}
+
+						return (
+							<span
+								key={index}
+								style={{
+									color: `var(--mui-palette-${charColor.replace(".", "-")}, inherit)`,
+									backgroundColor:
+										bgColor === "transparent"
+											? undefined
+											: "rgba(239, 68, 68, 0.15)",
+									textDecoration,
+									fontWeight,
+									paddingInline: "1px",
+									borderRadius: "2px",
+								}}
+							>
+								{char}
+							</span>
+						);
+					})}
+				</Box>
+
+				{/* Thin Progress Indicator */}
+				<LinearProgress
+					variant="determinate"
+					value={progressPercent}
+					color={hasError ? "error" : isCompleted ? "success" : "primary"}
+					sx={{ height: 3, borderRadius: 1 }}
+				/>
+
+				{/* Uncopyable Input Field */}
+				<TextField
+					size="small"
+					fullWidth
+					autoFocus
+					placeholder="Type the exact characters above..."
+					onPaste={(e) => {
+						e.preventDefault();
+						toast.error("Pasting is disabled for typing challenges");
+					}}
+					inputProps={{
+						style: {
+							fontFamily: 'Consolas, "Roboto Mono", monospace',
+							letterSpacing: "0.08em",
+						},
+					}}
+					{...register("randomTextContent")}
+				/>
+
+				{/* Unlock Button */}
+				<Button
+					type="submit"
+					variant="contained"
+					size="small"
+					disabled={!isCompleted}
+					startIcon={<LockOpenOutlinedIcon fontSize="small" />}
+					sx={{ height: 38, fontWeight: 600, borderRadius: 1 }}
+				>
+					Verify & Unlock
 				</Button>
 			</Stack>
 		</form>
