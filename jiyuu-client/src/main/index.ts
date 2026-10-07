@@ -1,5 +1,4 @@
 /* eslint-disable prefer-const */
-/* eslint-disable prettier/prettier */
 import {
 	app,
 	shell,
@@ -18,11 +17,11 @@ import { WebSocketServer } from "ws";
 // import sqlite3 from "sqlite3";
 import {
 	blockUninstallIfNeeded,
-    // ! June 1, 2026 Update: Now Commented out
+	// ! June 1, 2026 Update: Now Commented out
 	// cleanURL,
 	findBrowser,
 	increment_active_browsers,
-    // ! June 1, 2026 Update: Now Commented out
+	// ! June 1, 2026 Update: Now Commented out
 	// isURL,
 	killManager,
 	showError,
@@ -64,7 +63,7 @@ import {
 } from "./methods/functionUsageLog";
 import { getDashboardDateMode } from "./methods/functionUserOptions";
 import {
-    // ! June 1, 2026 Update: Now Commented out
+	// ! June 1, 2026 Update: Now Commented out
 	// get_whitelist_all,
 	whitelist_does_exist,
 	whitelist_is_in_blockgroup,
@@ -250,7 +249,6 @@ if (!gotTheLock) {
 		// see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
 		app.on("browser-window-created", (_, window) => {
 			optimizer.watchWindowShortcuts(window);
-
 		});
 		const JIYUU_URL = "jiyuu.app";
 		let browsers_list: browsersList[] = [
@@ -829,15 +827,12 @@ if (!gotTheLock) {
 						.where("block_group_id", "=", group.id)
 						.execute();
 
-
-                    // ! June 1, 2026 Update: Now Commented out
+					// ! June 1, 2026 Update: Now Commented out
 					// const whitelist_to_be_deleted: Set<string> = new Set();
-
 
 					// const whitelist_rows = await get_whitelist_all();
 					for (const s of blocked_content_data) {
-
-                        // ! June 1, 2026 Update: Now Commented out
+						// ! June 1, 2026 Update: Now Commented out
 						// const content_is_url = isURL(s.target_text);
 						// const cleaned_target_text = cleanURL(s.target_text);
 						// then insert the latest collections
@@ -851,10 +846,10 @@ if (!gotTheLock) {
 							.execute();
 
 						// lastly delete any whitelisted items that is present in this blocked contents
-                        // ! June 1, 2026 Update: Upon saving the list of blocks,
-                        // ! It does not remove items in the whitelist where any block of this group matches in the whitelist
+						// ! June 1, 2026 Update: Upon saving the list of blocks,
+						// ! It does not remove items in the whitelist where any block of this group matches in the whitelist
 
-                        // for (const v of whitelist_rows) {
+						// for (const v of whitelist_rows) {
 						// 	const cleaned_item = cleanURL(v.item);
 						// 	if (
 						// 		content_is_url &&
@@ -870,7 +865,7 @@ if (!gotTheLock) {
 					}
 					// delete all whitelisted items that is affected by this newly added blocked content
 
-                    // ! June 1, 2026 Update: Now Commented out, it doesnt delete anymore
+					// ! June 1, 2026 Update: Now Commented out, it doesnt delete anymore
 					// for (const v of [...whitelist_to_be_deleted]) {
 					// 	await db
 					// 		?.deleteFrom("whitelist")
@@ -1433,7 +1428,6 @@ if (!gotTheLock) {
 					// the time logged may cause duplication if using multiple different browsers at the samew time
 					else if (data.sendType === "isTimelist") {
 						let ua_string = data.userAgent ? (data.userAgent as string) : "";
-
 
 						let name = findBrowser(ua_string);
 						// console.log("DATA: " + data.data[0]);
