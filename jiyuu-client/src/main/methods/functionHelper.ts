@@ -48,7 +48,7 @@ export async function blockUninstallIfNeeded(): Promise<void> {
 
 	return;
 }
-
+// validates sitedata that came from the extension
 export function siteIncludes(
 	siteData: SiteAttribute | TimeListInterface,
 	target: string,
@@ -58,31 +58,41 @@ export function siteIncludes(
 ): boolean {
 	const isFullUrlIncluded = "fullUrl" in siteData;
 
+	// lower case any sitedata to avoid bypassing the checkers below
+	const url = siteData.url?.toLowerCase() || "";
+	const desc = siteData.desc?.toLowerCase() || "";
+	const keywords = siteData.keywords?.toLowerCase() || "";
+	const title = siteData.title?.toLowerCase() || "";
+	const fullUrl =
+		isFullUrlIncluded && siteData.fullUrl
+			? siteData.fullUrl.toLowerCase()
+			: "";
+
 	// IF A KEYWORD IS ABSOLUTE YOU
 	// MUST ONLY COMPARE EACH ATTRIBUTE OF A WEBPAGE,
 	// NOT ITS PREFIX OR SUFFIX
 	let res = false;
 	if (
-		whitelists.some((v) => siteData.url.includes(v)) ||
-		(isFullUrlIncluded && whitelists.some((v) => siteData.fullUrl.includes(v)))
+		whitelists.some((v) => url.includes(v)) ||
+		(isFullUrlIncluded && whitelists.some((v) => fullUrl.includes(v)))
 	) {
 		res = false;
 	} else if (!is_absolute) {
 		res =
 			Boolean(isact) &&
-			(siteData.desc?.includes(target) ||
-				siteData.keywords?.includes(target) ||
-				siteData.title?.includes(target) ||
-				siteData.url?.includes(target) ||
-				(isFullUrlIncluded && siteData.fullUrl.includes(target)));
+			(desc.includes(target) ||
+				keywords.includes(target) ||
+				title.includes(target) ||
+				url.includes(target) ||
+				(isFullUrlIncluded && fullUrl.includes(target)));
 	} else {
 		res =
 			Boolean(isact) &&
-			(siteData.desc === target ||
-				siteData.keywords === target ||
-				siteData.title === target ||
-				siteData.url === target ||
-				(isFullUrlIncluded && siteData.fullUrl === target));
+			(desc === target ||
+				keywords === target ||
+				title === target ||
+				url === target ||
+				(isFullUrlIncluded && fullUrl === target));
 	}
 	return res;
 }

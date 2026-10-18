@@ -41,7 +41,21 @@ export async function whitelist_is_in_blockgroup(
 	// loop all blocked contents
 	for (const b of blocked_content) {
 		// check if its included in one of the blocked groups
-		if (item.includes(b.target_text)) {
+		const isIncludedInBlockGroup = item.includes(b.target_text);
+
+		// check if the block group is activated
+		const isBlockGroupActivated = b.is_activated;
+
+		// check if the block group is currently locked
+		const isBlockGroupLocked = b.restriction_type !== null
+
+		/** is_included as true means
+		 * 		- the whitelist ur trying to add is in one of the groups
+		 * 		- AND that group is currently activated
+		 * 		- AND that group is currently locked
+		 * doing this prevent users from exploiting the whitelist
+		 * */
+		if (isIncludedInBlockGroup && (isBlockGroupActivated || isBlockGroupLocked)) {
 			included_blockgroups.add(b.group_name);
 			is_included = true;
 		}
