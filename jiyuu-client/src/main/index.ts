@@ -1338,7 +1338,7 @@ if (!gotTheLock) {
 				// check if it is in some blockgroups
 				const s = await whitelist_is_in_blockgroup(item);
 				if (s.is_included) {
-					throw `item is present in group: ${s.included_blockgroups.toString()}`;
+					throw `Matches a blocked site in locked/active group: ${s.included_blockgroups.join(", ")}`;
 				}
 				await whitelist_put({ item, whitelist_type });
 				event.reply("whitelist/put/response", {});

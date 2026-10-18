@@ -149,3 +149,14 @@ SELECT
   ROUND(SUM(pgsize) / 1048576.0, 2) AS size_mb
 FROM dbstat
 WHERE name = 'block_group_usage_log';
+
+
+SELECT
+        block_group.*,
+        blocked_content.*
+    FROM blocked_content
+    INNER JOIN block_group
+        ON block_group.id = blocked_content.block_group_id;
+
+
+select * from blocked_content;
