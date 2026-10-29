@@ -104,7 +104,12 @@ export async function updateBlockGroup(): Promise<void> {
 			const x =
 				currentDate.getTime() - (cd.pause_until || currentDate.getTime()); // do this so theres no negative
 			const new_pause_until = Math.max(x, 0);
-
+			const setUsageTimeLeft = (cd: UsageLimitData_Config):void => {
+				let usage_time_left = cd.usage_reset_value;
+				if (cd.usage_reset_value_mode === "minute") usage_time_left*=60;
+				else if (cd.usage_reset_value_mode === "hour") usage_time_left*=60*60;
+				cd.usage_time_left = usage_time_left
+			}
 			switch (cd.usage_reset_type) {
 				// if there is a block that has a day reset,
 				// check if the day is new then if it is, reset the timeleft.. do also for hour and week
@@ -112,7 +117,7 @@ export async function updateBlockGroup(): Promise<void> {
 					// we also check month and year if a user didnt logged in for 1 month or 1 year
 					if (!isSameDay(candiDate, currentDate)) {
 						cd.last_updated_date = currentDate.toISOString();
-						cd.usage_time_left = cd.usage_reset_value;
+						setUsageTimeLeft(cd)
 						await groupAutoDeact(r.block_group_id, new_pause_until);
 					}
 					break;
@@ -120,9 +125,7 @@ export async function updateBlockGroup(): Promise<void> {
 				case "h": {
 					if (!isSameHour(candiDate, currentDate)) {
 						cd.last_updated_date = currentDate.toISOString();
-						cd.usage_time_left =
-							cd.usage_reset_value *
-							(cd.usage_reset_value_mode === "minute" ? 60 : 60 * 60);
+						setUsageTimeLeft(cd)
 						await groupAutoDeact(r.block_group_id, new_pause_until);
 					}
 					break;
@@ -130,7 +133,7 @@ export async function updateBlockGroup(): Promise<void> {
 				case "w": {
 					if (!isSameWeek(candiDate, currentDate)) {
 						cd.last_updated_date = currentDate.toISOString();
-						cd.usage_time_left = cd.usage_reset_value;
+						setUsageTimeLeft(cd)
 						await groupAutoDeact(r.block_group_id, new_pause_until);
 					}
 					break;

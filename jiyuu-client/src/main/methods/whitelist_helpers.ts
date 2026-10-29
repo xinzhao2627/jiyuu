@@ -52,7 +52,7 @@ export async function whitelist_is_in_blockgroup(
 		/** is_included as true means
 		 * 		- the whitelist ur trying to add is in one of the groups
 		 * 		- AND that group is currently activated
-		 * 		- AND that group is currently locked
+		 * 		- OR that group is currently locked
 		 * doing this prevent users from exploiting the whitelist
 		 * */
 		if (isIncludedInBlockGroup && (isBlockGroupActivated || isBlockGroupLocked)) {
