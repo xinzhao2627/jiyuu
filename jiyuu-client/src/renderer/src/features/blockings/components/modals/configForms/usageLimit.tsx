@@ -181,28 +181,29 @@ export function UsageLimitForm({ formVal }: FormInterface): React.JSX.Element {
 				),
 			)}
 		>
-			<Stack spacing={2.5} pt={0.5}>
+			<Stack spacing={2.5} p={1}>
 				{/* Live Budget Readout Header */}
 				<Box
 					sx={{
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "space-between",
-						p: 1.5,
+						p: 1.2,
 						borderRadius: 1.5,
 						border: "1px solid",
 						borderColor: "divider",
 						backgroundColor: "action.hover",
 					}}
 				>
-					<Stack direction="row" alignItems="center" spacing={1.25}>
+					<Stack direction="row" alignItems="center" spacing={1.5}>
 						<TimerOutlinedIcon
 							fontSize="small"
 							sx={{ color: "primary.main" }}
 						/>
-						<Typography variant="body2" fontWeight={600}>
-							{currentVal || 0} {currentMode === "minute" ? "minutes" : "hours"}{" "}
-							per {periodName}
+						<Typography variant="caption" fontWeight={600}>
+							{currentVal || 0} {currentMode === "minute" ? "minutes" : "hours"}
+							{" of free time per "}
+							{periodName}
 						</Typography>
 					</Stack>
 

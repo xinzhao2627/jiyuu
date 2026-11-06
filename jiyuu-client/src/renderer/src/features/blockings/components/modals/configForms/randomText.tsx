@@ -125,26 +125,10 @@ export function RandomTextInput({ formVal }: FormInterface): React.JSX.Element {
 							sx={{ color: "primary.main" }}
 						/>
 						<Typography variant="body2" fontWeight={600}>
-							{currentCount} characters challenge
+							You will type {currentCount} random characters to unlock this
+							group.
 						</Typography>
 					</Stack>
-
-					<Typography
-						variant="caption"
-						sx={{
-							color: "text.secondary",
-							fontWeight: 600,
-							fontSize: 11,
-							px: 1,
-							py: 0.25,
-							borderRadius: 1,
-							bgcolor: "background.paper",
-							border: "1px solid",
-							borderColor: "divider",
-						}}
-					>
-						Typing Barrier
-					</Typography>
 				</Box>
 
 				{/* Difficulty Presets */}
@@ -264,7 +248,7 @@ export function RandomTextInput({ formVal }: FormInterface): React.JSX.Element {
 					startIcon={<LockOutlinedIcon fontSize="small" />}
 					sx={{ height: 38, fontWeight: 600, borderRadius: 1 }}
 				>
-					Lock with Typing Challenge
+					Lock
 				</Button>
 			</Stack>
 		</form>

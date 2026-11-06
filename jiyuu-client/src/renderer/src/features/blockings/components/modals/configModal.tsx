@@ -209,6 +209,7 @@ export default function ConfigModal(): React.JSX.Element {
 								sm: "repeat(2, minmax(0, 1fr))",
 							},
 							gap: 1.5,
+							mt: 1.5,
 						}}
 					>
 						{configTypeList.map((card) => {
@@ -330,14 +331,6 @@ export default function ConfigModal(): React.JSX.Element {
 													alignItems="center"
 													spacing={0.5}
 												>
-													{isActive && (
-														<Chip
-															label="Active"
-															size="small"
-															color="primary"
-															sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
-														/>
-													)}
 													{isDisabled ? (
 														<LockOutlinedIcon
 															sx={{ fontSize: 15, color: "text.disabled" }}

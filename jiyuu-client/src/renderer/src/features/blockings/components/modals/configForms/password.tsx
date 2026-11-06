@@ -16,14 +16,11 @@ import {
 	InputAdornment,
 	Stack,
 	TextField,
-	Typography,
-	Box,
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
-import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
 
 const passwordUnlock = (
 	fv: FieldValues,
@@ -119,55 +116,7 @@ export function PasswordForm({ formVal }: FormInterface): React.JSX.Element {
 				}
 			})}
 		>
-			<Stack spacing={2.5} pt={0.5}>
-				{/* Status Hero Card */}
-				<Box
-					sx={{
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "space-between",
-						p: 1.5,
-						borderRadius: 1.5,
-						border: "1px solid",
-						borderColor: isLocked ? "primary.main" : "divider",
-						backgroundColor: "action.hover",
-					}}
-				>
-					<Stack direction="row" alignItems="center" spacing={1.25}>
-						{isLocked ? (
-							<LockOutlinedIcon
-								fontSize="small"
-								sx={{ color: "primary.main" }}
-							/>
-						) : (
-							<KeyOutlinedIcon
-								fontSize="small"
-								sx={{ color: "text.secondary" }}
-							/>
-						)}
-						<Typography variant="body2" fontWeight={600}>
-							{isLocked ? "Group is currently locked" : "Set access passphrase"}
-						</Typography>
-					</Stack>
-
-					<Typography
-						variant="caption"
-						sx={{
-							color: isLocked ? "primary.main" : "text.secondary",
-							fontWeight: 600,
-							fontSize: 11,
-							px: 1,
-							py: 0.25,
-							borderRadius: 1,
-							bgcolor: "background.paper",
-							border: "1px solid",
-							borderColor: "divider",
-						}}
-					>
-						{isLocked ? "Protected" : "Unlocked"}
-					</Typography>
-				</Box>
-
+			<Stack spacing={2.5} p={1.5}>
 				{/* Password Input with Visibility Toggle */}
 				<TextField
 					size="small"
@@ -222,7 +171,7 @@ export function PasswordForm({ formVal }: FormInterface): React.JSX.Element {
 					}
 					sx={{ height: 38, fontWeight: 600, borderRadius: 1 }}
 				>
-					{isLocked ? "Unlock Group" : "Lock Group"}
+					{isLocked ? "Unlock" : "Lock"}
 				</Button>
 			</Stack>
 		</form>

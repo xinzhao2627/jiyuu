@@ -250,7 +250,7 @@ if (!gotTheLock) {
 		app.on("browser-window-created", (_, window) => {
 			optimizer.watchWindowShortcuts(window);
 		});
-		const JIYUU_URL = "jiyuu.app";
+		const JIYUU_URL = "jiyuublocker.vercel.app";
 		let browsers_list: browsersList[] = [
 			{
 				name: "chrome",
