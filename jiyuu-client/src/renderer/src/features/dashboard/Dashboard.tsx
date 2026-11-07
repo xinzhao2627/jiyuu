@@ -233,7 +233,6 @@ export default function Dashboard(): React.JSX.Element {
 									{totalClicks}
 								</Typography>
 							}
-							caption={`Navigations this ${selectedPeriod === "d" ? "day" : selectedPeriod === "w" ? "week" : "month"}`}
 						/>
 					</Grid>
 
@@ -245,7 +244,6 @@ export default function Dashboard(): React.JSX.Element {
 									{totalUsageFormatted}
 								</Typography>
 							}
-							caption="Cumulative browsing duration"
 						/>
 					</Grid>
 

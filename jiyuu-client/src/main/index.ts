@@ -1111,6 +1111,7 @@ if (!gotTheLock) {
 						?.updateTable("block_group")
 						.set({ restriction_type: null })
 						.where("id", "=", id)
+						.where("restriction_type", "=", config_data.config_type)
 						.executeTakeFirst();
 					// db?.prepare(
 					// 	`

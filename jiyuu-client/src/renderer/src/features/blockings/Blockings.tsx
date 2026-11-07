@@ -76,16 +76,26 @@ export default function Blockings(): React.JSX.Element {
 		});
 		setBlockGroupModal("blockingModal", true);
 	};
+
+	// this triggers when the active/inactive button is clicked
 	const modifyActivateButton = (v: BlockGroup_Full): void => {
-		if (!v.usage_label || v.usage_label.includes("pause")) {
+		console.log(v.restriction_type);
+
+		const is_activated = v.is_activated ? 1 : 0;
+
+		// if no usage label the bgroup is deactivated: simple to activate/deactivate
+		if (!v.usage_label || !is_activated) {
 			ipcRendererSend("blockgroup/set", {
 				group: {
 					...v,
 					is_activated: v.is_activated ? 0 : 1,
 				},
 			});
-		} else {
+		}
+		// elese if there is a usage label that is activated
+		else {
 			setSelectedBlockGroup(v);
+			// deactivate group modal is for usage limit
 			setBlockGroupModal("deactivateGroupModal", true);
 		}
 	};
@@ -386,7 +396,11 @@ export default function Blockings(): React.JSX.Element {
 															}}
 														/>
 													}
-													label={v.is_activated ? "Active" : "Inactive"}
+													label={
+														v.is_activated
+															? "Active (Click to deactivate)"
+															: "Inactive (click to activate)"
+													}
 													chipStyle={{
 														color: v.is_activated
 															? teal[500]

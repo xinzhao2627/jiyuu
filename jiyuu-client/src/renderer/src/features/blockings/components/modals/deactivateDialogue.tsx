@@ -6,7 +6,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { useStore } from "../../blockingsStore";
-import { ipcRendererSend } from "../../blockingAPI";
+import { quickUnlock } from "./configForms/quickFunctions";
 // import toast from "react-hot-toast";
 
 export function GroupDeactivateDialogue(): React.JSX.Element {
@@ -18,14 +18,14 @@ export function GroupDeactivateDialogue(): React.JSX.Element {
 	};
 
 	const removeUsageLimit = (): void => {
-		ipcRendererSend("blockgroupconfig/delete", {
-			id: blockGroup.selectedBlockGroup?.id,
-			config_data: { config_type: "usageLimit" },
-		});
+		quickUnlock({ config_type: "usageLimit" }, blockGroup.selectedBlockGroup);
 		handleClose();
 		// toast.success("Usage limit removed");
 	};
-
+	const isBlockGroupLocked =
+		blockGroup.selectedBlockGroup?.restriction_type === "password" ||
+		blockGroup.selectedBlockGroup?.restriction_type === "randomText" ||
+		blockGroup.selectedBlockGroup?.restriction_type === "restrictTimer";
 	return (
 		<React.Fragment>
 			<Dialog
@@ -44,8 +44,12 @@ export function GroupDeactivateDialogue(): React.JSX.Element {
 					</DialogContentText>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={removeUsageLimit} color="error">
-						Remove usage limit
+					<Button
+						onClick={removeUsageLimit}
+						color="error"
+						disabled={!!isBlockGroupLocked}
+					>
+						{isBlockGroupLocked ? "locked" : "Remove usage limit"}
 					</Button>
 					<Button onClick={handleClose} autoFocus>
 						Close
