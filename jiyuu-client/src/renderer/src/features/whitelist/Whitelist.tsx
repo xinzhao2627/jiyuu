@@ -86,11 +86,8 @@ export default function Whitelist(): React.JSX.Element {
 		<Box sx={uiStyles.pageShell}>
 			<Stack sx={uiStyles.pageInner} spacing={2.5}>
 				<Box>
-					<Typography variant="overline" sx={uiStyles.eyebrow}>
-						Allowlist
-					</Typography>
 					<Typography variant="h4" sx={uiStyles.pageTitle}>
-						Permitted Websites
+						Whitelisted Websites
 					</Typography>
 					<Typography variant="body2" sx={uiStyles.pageSubtitle}>
 						Configure domains that bypass active restrictions across all block

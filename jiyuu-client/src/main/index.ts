@@ -250,7 +250,7 @@ if (!gotTheLock) {
 		app.on("browser-window-created", (_, window) => {
 			optimizer.watchWindowShortcuts(window);
 		});
-		const JIYUU_URL = "jiyuu.app";
+		const JIYUU_URL = "jiyuublocker.vercel.app";
 		let browsers_list: browsersList[] = [
 			{
 				name: "chrome",
@@ -1111,6 +1111,7 @@ if (!gotTheLock) {
 						?.updateTable("block_group")
 						.set({ restriction_type: null })
 						.where("id", "=", id)
+						.where("restriction_type", "=", config_data.config_type)
 						.executeTakeFirst();
 					// db?.prepare(
 					// 	`

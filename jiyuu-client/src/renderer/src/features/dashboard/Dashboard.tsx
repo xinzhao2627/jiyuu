@@ -194,14 +194,9 @@ export default function Dashboard(): React.JSX.Element {
 					justifyContent="space-between"
 					gap={2}
 				>
-					<Box>
-						<Typography variant="overline" sx={uiStyles.eyebrow}>
-							Analytics
-						</Typography>
-						<Typography variant="h4" sx={uiStyles.pageTitle}>
-							Focus Activity
-						</Typography>
-					</Box>
+					<Typography variant="h4" sx={uiStyles.pageTitle}>
+						Focus Activity
+					</Typography>
 					<ToggleButtonGroup
 						value={selectedPeriod}
 						exclusive
@@ -238,7 +233,6 @@ export default function Dashboard(): React.JSX.Element {
 									{totalClicks}
 								</Typography>
 							}
-							caption={`Navigations this ${selectedPeriod === "d" ? "day" : selectedPeriod === "w" ? "week" : "month"}`}
 						/>
 					</Grid>
 
@@ -250,7 +244,6 @@ export default function Dashboard(): React.JSX.Element {
 									{totalUsageFormatted}
 								</Typography>
 							}
-							caption="Cumulative browsing duration"
 						/>
 					</Grid>
 

@@ -6,13 +6,18 @@ import {
 	IconButton,
 	Badge,
 	Popover,
-	Button,
 	Divider,
 	Chip,
+	Tabs,
+	Tab,
+	Dialog,
+	DialogTitle,
+	DialogContent,
 } from "@mui/material";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import DoneAllIcon from "@mui/icons-material/DoneAll";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import toast from "react-hot-toast";
 import { useNotifications } from "../features/notifications/useNotifications";
@@ -20,15 +25,115 @@ import {
 	ipcRendererOn,
 	ipcRendererSend,
 } from "../features/blockings/blockingAPI";
+import type { Notif } from "../Notification";
+
+function renderInlineMarkdown(text: string): React.ReactNode[] {
+	const pattern =
+		/(\*\*.+?\*\*|\*.+?\*|`.+?`|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/g;
+	return text
+		.split(pattern)
+		.filter(Boolean)
+		.map((part, index) => {
+			if (part.startsWith("**") && part.endsWith("**")) {
+				return <strong key={index}>{part.slice(2, -2)}</strong>;
+			}
+			if (part.startsWith("*") && part.endsWith("*")) {
+				return <em key={index}>{part.slice(1, -1)}</em>;
+			}
+			if (part.startsWith("`") && part.endsWith("`")) {
+				return <code key={index}>{part.slice(1, -1)}</code>;
+			}
+			const link = part.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+			if (link) {
+				return (
+					<a key={index} href={link[2]} target="_blank" rel="noreferrer">
+						{link[1]}
+					</a>
+				);
+			}
+			return part;
+		});
+}
+
+function MarkdownMessage({ content }: { content: string }): React.JSX.Element {
+	const lines = content.split(/\r?\n/);
+	const blocks: React.ReactNode[] = [];
+	let list: string[] = [];
+
+	const flushList = (): void => {
+		if (!list.length) return;
+		blocks.push(
+			<ul key={`list-${blocks.length}`}>
+				{list.map((item, index) => (
+					<li key={index}>{renderInlineMarkdown(item)}</li>
+				))}
+			</ul>,
+		);
+		list = [];
+	};
+
+	lines.forEach((line, index) => {
+		const heading = line.match(/^(#{1,6})\s+(.+)$/);
+		const bullet = line.match(/^\s*[-*+]\s+(.+)$/);
+		if (bullet) {
+			list.push(bullet[1]);
+			return;
+		}
+		flushList();
+		if (heading) {
+			blocks.push(
+				<Typography
+					key={index}
+					variant={heading[1].length < 3 ? "subtitle1" : "subtitle2"}
+					sx={{ fontWeight: 700, mb: 0.5 }}
+				>
+					{renderInlineMarkdown(heading[2])}
+				</Typography>,
+			);
+		} else if (line.trim()) {
+			blocks.push(
+				<Typography
+					key={index}
+					variant="body2"
+					sx={{ lineHeight: 1.65, mb: 0.75 }}
+				>
+					{renderInlineMarkdown(line)}
+				</Typography>,
+			);
+		}
+	});
+	flushList();
+
+	return (
+		<Box
+			sx={{
+				"& ul": { pl: 2.5, my: 0.75 },
+				"& li": { mb: 0.5, fontSize: 13, lineHeight: 1.6 },
+				"& a": { color: "primary.main" },
+				"& code": {
+					px: 0.5,
+					py: 0.125,
+					borderRadius: 0.5,
+					backgroundColor: "action.hover",
+					fontFamily: "monospace",
+				},
+			}}
+		>
+			{blocks}
+		</Box>
+	);
+}
 
 export default function TopHeader(): React.JSX.Element {
-	const { notifs, readIds, unreadCount, markAsRead, markAllAsRead } =
+	const { notifs, readIds, unreadCount, setRead, markAllAsRead } =
 		useNotifications();
 
 	const [urlList, setUrlList] = useState<{ process: string; url: string }[]>(
 		[],
 	);
 	const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+	const [tab, setTab] = useState<"unread" | "read">("unread");
+	const [selectedNotif, setSelectedNotif] = useState<Notif | null>(null);
 
 	useEffect(() => {
 		const listeners = [
@@ -74,11 +179,9 @@ export default function TopHeader(): React.JSX.Element {
 
 	const open = Boolean(anchorEl);
 
-	const handleOpenLink = (url?: string): void => {
-		if (url) {
-			window.open(url, "_blank");
-		}
-	};
+	const visibleNotifs = notifs.filter((item) =>
+		tab === "read" ? readIds.includes(item.id) : !readIds.includes(item.id),
+	);
 
 	return (
 		<Box
@@ -229,12 +332,12 @@ export default function TopHeader(): React.JSX.Element {
 				slotProps={{
 					paper: {
 						sx: {
-							width: 340,
+							width: { xs: "calc(100vw - 16px)", sm: 340 },
+							maxWidth: "calc(100vw - 16px)",
 							maxHeight: 440,
 							borderRadius: 1.5,
 							mt: 0.75,
-							border: "1px solid",
-							borderColor: "divider",
+							border: 0,
 							boxShadow: "none",
 							backgroundColor: "background.paper",
 							display: "flex",
@@ -244,185 +347,165 @@ export default function TopHeader(): React.JSX.Element {
 					},
 				}}
 			>
-				{/* Popover Header */}
+				<Tabs
+					value={tab}
+					onChange={(_, value: "unread" | "read") => setTab(value)}
+					variant="fullWidth"
+					sx={{ minHeight: 40, px: 1.25, pt: 0.5 }}
+				>
+					<Tab
+						value="unread"
+						label="Unread"
+						sx={{ minHeight: 40, textTransform: "none" }}
+					/>
+					<Tab
+						value="read"
+						label="Read"
+						sx={{ minHeight: 40, textTransform: "none" }}
+					/>
+				</Tabs>
+
 				<Box
+					component="button"
+					onClick={markAllAsRead}
+					disabled={unreadCount === 0}
 					sx={{
-						p: 1.5,
-						pb: 1,
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "space-between",
+						width: "100%",
+						minHeight: 36,
+						border: 0,
+						borderRadius: 0,
+						backgroundColor: "transparent",
+						color: "text.secondary",
+						font: "inherit",
+						cursor: unreadCount ? "pointer" : "default",
+						"&:hover:not(:disabled)": { color: "primary.main" },
+						"&:disabled": { opacity: 0.5 },
 					}}
 				>
-					<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-						Notifications
-					</Typography>
-
-					{unreadCount > 0 && (
-						<Button
-							size="small"
-							startIcon={<DoneAllIcon sx={{ fontSize: 14 }} />}
-							onClick={markAllAsRead}
-							disableRipple
-							sx={{
-								fontSize: 11,
-								fontWeight: 600,
-								textTransform: "none",
-								py: 0.25,
-								px: 0.75,
-								color: "text.secondary",
-								"&:hover": {
-									color: "primary.main",
-									backgroundColor: "transparent",
-								},
-							}}
-						>
-							Mark all read
-						</Button>
-					)}
+					Mark all read
 				</Box>
-
 				<Divider />
 
 				{/* Popover Content */}
 				<Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
-					{notifs.length === 0 ? (
-						<Box
-							sx={{
-								py: 4,
-								textAlign: "center",
-								color: "text.secondary",
-							}}
-						>
-							<Typography variant="body2" sx={{ fontSize: 12.5 }}>
-								No notifications
-							</Typography>
-						</Box>
-					) : (
-						<Stack spacing={0.75}>
-							{notifs.map((item) => {
-								const isRead = readIds.includes(item.id);
-								return (
-									<Box
-										key={item.id}
-										onClick={() => markAsRead(item.id)}
-										sx={{
-											p: 1.25,
-											borderRadius: 1,
-											border: "1px solid",
-											borderColor: isRead ? "divider" : "primary.main",
-											backgroundColor: "background.paper",
-											transition: "border-color 0.15s ease",
-											"&:hover": {
-												borderColor: "primary.main",
-											},
-											cursor: "pointer",
-										}}
-									>
-										<Stack
-											direction="row"
-											alignItems="center"
-											justifyContent="space-between"
-											mb={0.5}
+					<Stack spacing={0.75}>
+						{visibleNotifs.map((item) => {
+							const isRead = readIds.includes(item.id);
+							return (
+								<Box
+									key={item.id}
+									sx={{
+										px: 0.75,
+										py: 0.5,
+										borderRadius: 1,
+										borderBottom: "1px solid",
+										borderColor: "divider",
+									}}
+								>
+									<Stack direction="row" alignItems="center" spacing={0.75}>
+										<Box
+											component="button"
+											onClick={() => {
+												setRead(item.id, true);
+												setSelectedNotif(item);
+											}}
+											sx={{
+												flex: 1,
+												minWidth: 0,
+												border: 0,
+												p: 0,
+												textAlign: "left",
+												color: "inherit",
+												background: "transparent",
+												cursor: "pointer",
+											}}
 										>
-											<Stack direction="row" alignItems="center" spacing={0.75}>
-												<Chip
-													label={item.tag || item.type}
-													size="small"
-													variant="outlined"
-													sx={{
-														height: 18,
-														fontSize: 9.5,
-														fontWeight: 700,
-														textTransform: "uppercase",
-														borderColor: "divider",
-														"& .MuiChip-label": { px: 0.75 },
-													}}
-												/>
-												{!isRead && (
-													<Box
-														sx={{
-															width: 6,
-															height: 6,
-															borderRadius: "50%",
-															backgroundColor: "error.main",
-														}}
-													/>
-												)}
-											</Stack>
-
-											<Typography
-												variant="caption"
-												sx={{
-													color: "text.secondary",
-													fontSize: 10.5,
-												}}
+											<Stack
+												direction="row"
+												justifyContent="space-between"
+												gap={1}
 											>
-												{item.date
-													? new Date(item.date).toLocaleDateString()
-													: ""}
-											</Typography>
-										</Stack>
-
-										{item.title && (
+												<Typography
+													variant="body2"
+													sx={{ fontWeight: isRead ? 500 : 700 }}
+												>
+													{item.title}
+												</Typography>
+												<Typography
+													variant="caption"
+													sx={{ color: "text.secondary", flexShrink: 0 }}
+												>
+													{new Date(item.publishedAt).toLocaleDateString()}
+												</Typography>
+											</Stack>
 											<Typography
 												variant="body2"
 												sx={{
-													fontWeight: isRead ? 500 : 700,
-													fontSize: 12.5,
-													mb: 0.25,
-													color: "text.primary",
+													color: "text.secondary",
+													fontSize: 12,
+													lineHeight: 1.45,
 												}}
 											>
-												{item.title}
+												{item.message}
 											</Typography>
-										)}
-
-										<Typography
-											variant="body2"
-											sx={{
-												color: "text.secondary",
-												fontSize: 12,
-												lineHeight: 1.45,
-											}}
+										</Box>
+										<IconButton
+											size="small"
+											aria-label={isRead ? "Read" : "Mark as read"}
+											disabled={isRead}
+											onClick={() => setRead(item.id, true)}
+											sx={{ p: 0.5, color: "primary.main" }}
 										>
-											{item.summary}
-										</Typography>
-
-										{item.url && (
-											<Button
-												size="small"
-												disableRipple
-												endIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />}
-												onClick={(e) => {
-													e.stopPropagation();
-													markAsRead(item.id);
-													handleOpenLink(item.url);
-												}}
-												sx={{
-													mt: 0.75,
-													fontSize: 11,
-													p: 0,
-													minWidth: 0,
-													fontWeight: 600,
-													textTransform: "none",
-													color: "primary.main",
-													"&:hover": {
-														backgroundColor: "transparent",
-														textDecoration: "underline",
-													},
-												}}
-											>
-												Learn more
-											</Button>
-										)}
-									</Box>
-								);
-							})}
-						</Stack>
-					)}
+											{isRead ? (
+												<CheckCircleOutlineIcon sx={{ fontSize: 18 }} />
+											) : (
+												<CheckIcon sx={{ fontSize: 18 }} />
+											)}
+										</IconButton>
+									</Stack>
+								</Box>
+							);
+						})}
+					</Stack>
 				</Box>
 			</Popover>
+			<Dialog
+				open={Boolean(selectedNotif)}
+				onClose={() => setSelectedNotif(null)}
+				fullWidth
+				maxWidth="sm"
+			>
+				{selectedNotif && (
+					<>
+						<DialogTitle sx={{ fontWeight: 700, pr: 6 }}>
+							{selectedNotif.title}
+							<Typography
+								component="div"
+								variant="caption"
+								color="text.secondary"
+							>
+								{new Date(selectedNotif.publishedAt).toLocaleDateString()}
+							</Typography>
+						</DialogTitle>
+						<DialogContent dividers>
+							<MarkdownMessage content={selectedNotif.markdownMessage} />
+							{selectedNotif.url && (
+								<Typography component="p" variant="body2" sx={{ mt: 2 }}>
+									<a href={selectedNotif.url} target="_blank" rel="noreferrer">
+										{selectedNotif.url}
+									</a>
+								</Typography>
+							)}
+							<details style={{ marginTop: 20 }}>
+								<summary>{selectedNotif.type}</summary>
+								<pre style={{ overflowX: "auto", fontSize: 11 }}>
+									{JSON.stringify(selectedNotif, null, 2)}
+								</pre>
+							</details>
+						</DialogContent>
+					</>
+				)}
+			</Dialog>
 		</Box>
 	);
 }

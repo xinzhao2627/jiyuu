@@ -148,14 +148,9 @@ export default function Options(): React.JSX.Element {
 	return (
 		<Box sx={uiStyles.pageShell}>
 			<Stack sx={uiStyles.pageInner} spacing={2.5}>
-				<Box>
-					<Typography variant="overline" sx={uiStyles.eyebrow}>
-						Preferences
-					</Typography>
-					<Typography variant="h4" sx={uiStyles.pageTitle}>
-						App Settings
-					</Typography>
-				</Box>
+				<Typography variant="h4" sx={uiStyles.pageTitle}>
+					App Settings
+				</Typography>
 
 				<Stack spacing={2.5}>
 					<Card sx={uiStyles.sectionCard}>

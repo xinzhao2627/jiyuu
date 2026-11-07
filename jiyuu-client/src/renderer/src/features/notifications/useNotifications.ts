@@ -5,9 +5,22 @@ export interface UseNotificationsReturn {
 	notifs: Notif[];
 	readIds: string[];
 	unreadCount: number;
-	markAsRead: (id: string) => void;
+	setRead: (id: string, isRead: boolean) => void;
 	markAllAsRead: () => void;
 	refresh: () => void;
+}
+
+function isNotif(value: unknown): value is Notif {
+	if (!value || typeof value !== "object") return false;
+	const item = value as Partial<Notif>;
+	return (
+		typeof item.id === "string" &&
+		typeof item.type === "string" &&
+		typeof item.title === "string" &&
+		typeof item.message === "string" &&
+		typeof item.markdownMessage === "string" &&
+		typeof item.publishedAt === "string"
+	);
 }
 
 export function useNotifications(): UseNotificationsReturn {
@@ -24,9 +37,8 @@ export function useNotifications(): UseNotificationsReturn {
 	const loadNotifs = useCallback((): void => {
 		try {
 			const raw = localStorage.getItem("JIYUU_NOTIFS");
-			if (raw) {
-				setNotifs(JSON.parse(raw) as Notif[]);
-			}
+			const saved: unknown = raw ? JSON.parse(raw) : [];
+			setNotifs(Array.isArray(saved) ? saved.filter(isNotif) : []);
 		} catch {
 			setNotifs([]);
 		}
@@ -51,16 +63,20 @@ export function useNotifications(): UseNotificationsReturn {
 		};
 	}, [loadNotifs]);
 
-	const markAsRead = (id: string): void => {
-		const next = Array.from(new Set([...readIds, id]));
+	const setRead = (id: string, isRead: boolean): void => {
+		const next = isRead
+			? Array.from(new Set([...readIds, id]))
+			: readIds.filter((readId) => readId !== id);
 		setReadIds(next);
 		localStorage.setItem("JIYUU_NOTIFS_READ", JSON.stringify(next));
 	};
 
 	const markAllAsRead = (): void => {
-		const allIds = notifs.map((n) => n.id);
-		setReadIds(allIds);
-		localStorage.setItem("JIYUU_NOTIFS_READ", JSON.stringify(allIds));
+		const next = Array.from(
+			new Set([...readIds, ...notifs.map((item) => item.id)]),
+		);
+		setReadIds(next);
+		localStorage.setItem("JIYUU_NOTIFS_READ", JSON.stringify(next));
 	};
 
 	const unreadCount = notifs.filter((n) => !readIds.includes(n.id)).length;
@@ -69,7 +85,7 @@ export function useNotifications(): UseNotificationsReturn {
 		notifs,
 		readIds,
 		unreadCount,
-		markAsRead,
+		setRead,
 		markAllAsRead,
 		refresh: loadNotifs,
 	};

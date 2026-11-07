@@ -80,7 +80,7 @@ export function RestrictTimerForm({
 
 	// Format readout
 	const formatDuration = (): string => {
-		if (!selectedTime) return "Select target duration";
+		if (!selectedTime) return "Select a date";
 		const target = dayjs.isDayjs(selectedTime)
 			? selectedTime
 			: dayjs(selectedTime);
@@ -131,23 +131,6 @@ export function RestrictTimerForm({
 								{formatDuration()}
 							</Typography>
 						</Stack>
-
-						<Typography
-							variant="caption"
-							sx={{
-								color: "warning.main",
-								fontWeight: 600,
-								fontSize: 11,
-								px: 1,
-								py: 0.25,
-								borderRadius: 1,
-								bgcolor: "background.paper",
-								border: "1px solid",
-								borderColor: "divider",
-							}}
-						>
-							Irreversible
-						</Typography>
 					</Box>
 
 					{/* Quick Duration Shortcuts */}
@@ -208,7 +191,7 @@ export function RestrictTimerForm({
 						startIcon={<LockOutlinedIcon fontSize="small" />}
 						sx={{ height: 38, fontWeight: 600, borderRadius: 1 }}
 					>
-						Engage Timer Lock
+						Lock
 					</Button>
 				</Stack>
 			</form>
