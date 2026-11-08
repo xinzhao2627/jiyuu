@@ -34,7 +34,6 @@ export function CustomChip(props: {
 				height: 20,
 				borderRadius: 1,
 				px: 0.25,
-				backdropFilter: "blur(10px)",
 				"& .MuiChip-label": {
 					px: 1.1,
 				},

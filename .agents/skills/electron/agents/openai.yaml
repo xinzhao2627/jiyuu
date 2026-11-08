@@ -1,0 +1,4 @@
+interface:
+  display_name: "Electron"
+  short_description: "Electron framework including main process, renderer process…"
+  default_prompt: "Use $electron to help with my current task: Provides comprehensive guidance for Electron framework including main process, renderer process, IPC communication, window management, and desktop app development."

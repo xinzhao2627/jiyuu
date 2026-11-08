@@ -83,6 +83,11 @@ const createAppTheme = (mode: AppThemeMode): Theme =>
 			},
 		},
 		components: {
+			MuiButtonBase: {
+				defaultProps: {
+					disableRipple: true,
+				},
+			},
 			MuiCssBaseline: {
 				styleOverrides: {
 					body: {
@@ -93,15 +98,33 @@ const createAppTheme = (mode: AppThemeMode): Theme =>
 			MuiButton: {
 				defaultProps: {
 					disableElevation: true,
+					disableRipple: true,
 				},
 				styleOverrides: {
 					root: {
 						borderRadius: 6,
 						paddingInline: 16,
+						boxShadow: "none",
+						"&:hover": {
+							boxShadow: "none",
+						},
 					},
 					contained: {
 						boxShadow: "none",
+						"&:hover": {
+							boxShadow: "none",
+						},
 					},
+				},
+			},
+			MuiIconButton: {
+				defaultProps: {
+					disableRipple: true,
+				},
+			},
+			MuiCardActionArea: {
+				defaultProps: {
+					disableRipple: true,
 				},
 			},
 			MuiCard: {
@@ -111,10 +134,7 @@ const createAppTheme = (mode: AppThemeMode): Theme =>
 						border: "1px solid",
 						borderColor:
 							mode === "light" ? alpha("#17211d", 0.12) : alpha("#e9dfd1", 0.1),
-						boxShadow:
-							mode === "light"
-								? "0 1px 0 rgba(23, 33, 29, 0.06)"
-								: "0 12px 28px rgba(0, 0, 0, 0.18)",
+						boxShadow: "none",
 					},
 				},
 			},
@@ -122,6 +142,10 @@ const createAppTheme = (mode: AppThemeMode): Theme =>
 				styleOverrides: {
 					paper: {
 						borderRadius: 6,
+						border: "1px solid",
+						borderColor:
+							mode === "light" ? alpha("#17211d", 0.12) : alpha("#e9dfd1", 0.1),
+						boxShadow: "none",
 					},
 				},
 			},

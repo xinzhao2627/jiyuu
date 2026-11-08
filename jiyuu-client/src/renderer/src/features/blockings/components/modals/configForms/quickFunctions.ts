@@ -6,6 +6,8 @@ import {
 	UseFormHandleSubmit,
 	UseFormRegister,
 	UseFormReset,
+	UseFormSetValue,
+	UseFormWatch,
 } from "react-hook-form";
 
 export const quickSendForms = (
@@ -36,5 +38,7 @@ export interface FormInterface {
 		handleSubmit: UseFormHandleSubmit<FieldValues, FieldValues>;
 		reset: UseFormReset<FieldValues>;
 		control: Control<FieldValues, unknown, FieldValues>;
+		setValue: UseFormSetValue<FieldValues>;
+		watch: UseFormWatch<FieldValues>;
 	};
 }

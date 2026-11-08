@@ -1,13 +1,7 @@
+node_modules
 out
 dist
+build
+.git
 pnpm-lock.yaml
-LICENSE.md
-tsconfig.json
-tsconfig.*.json
-**/*.js
-**/*.ts
-# **/*.tsx
-**/*.jsx
-**/*.json
-**/*.css
-**/*.html
+package-lock.json

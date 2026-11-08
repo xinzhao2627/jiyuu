@@ -12,6 +12,8 @@ import {
 	BotbarTutorial,
 	ExtensionInstallNotice,
 } from "./components/botbarTutorial";
+import Notification from "./Notification";
+import TopHeader from "./components/TopHeader";
 
 function Layout({
 	children,
@@ -35,6 +37,7 @@ function Layout({
 					overflow: "hidden",
 				}}
 			>
+				<TopHeader />
 				<Box sx={{ flex: 1, overflow: "auto", pb: 1, position: "relative" }}>
 					{children}
 				</Box>
@@ -53,6 +56,7 @@ function Layout({
 					<BottomNav />
 				</Box>
 				<ExtensionInstallNotice />
+				<Notification />
 
 				<Toaster
 					position="top-center"

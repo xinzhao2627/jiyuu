@@ -8,7 +8,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { useStore } from "../../blockings/blockingsStore";
 import { ipcRendererOn, ipcRendererSend } from "../../blockings/blockingAPI";
 import toast from "react-hot-toast";
-// import toast from "react-hot-toast";
 
 export function DeleteUsageConfirmation(): React.JSX.Element {
 	const { setConfirmDeleteModal, confirmDeleteModal } = useStore();
@@ -16,24 +15,26 @@ export function DeleteUsageConfirmation(): React.JSX.Element {
 	const handleClose = (): void => {
 		setConfirmDeleteModal(false);
 	};
+
 	const handleSubmit = (): void => {
 		ipcRendererSend("usagedata/delete", {});
 	};
+
 	React.useEffect(() => {
 		const listeners = [
 			{
-				// RECEIVE BLOCK GROUP RESPONSE
 				channel: "usagedata/delete/response",
-				handler: (_, data) => {
-					if (data.error)
-						console.error("Error usagedata/delete/response: ", data.error);
-					else {
+				handler: (_: unknown, data: { error?: unknown }) => {
+					if (data.error) {
+						toast.error("Failed to delete analytics records");
+					} else {
 						setConfirmDeleteModal(false);
-						toast.success("Successfully deleted");
+						toast.success("Usage data permanently purged");
 					}
 				},
 			},
 		];
+
 		listeners.forEach((v) => {
 			ipcRendererOn(v.channel, v.handler);
 		});
@@ -43,34 +44,48 @@ export function DeleteUsageConfirmation(): React.JSX.Element {
 				window.electron.ipcRenderer.removeAllListeners(v.channel);
 			});
 		};
-	}, []);
+	}, [setConfirmDeleteModal]);
 
 	return (
-		<React.Fragment>
-			<Dialog
-				open={confirmDeleteModal}
-				onClose={handleClose}
-				aria-labelledby="alert-dialog-title"
-				aria-describedby="alert-dialog-description"
-			>
-				<DialogTitle id="alert-dialog-title">{"Delete usage data"}</DialogTitle>
-				<DialogContent>
-					<DialogContentText id="alert-dialog-description">
-						Delete all records such as{" "}
-						{
-							'"total time spent", "most used sites", "block group time usage", and "sites visited".'
-						}
-					</DialogContentText>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={handleSubmit} color="error">
-						Delete
-					</Button>
-					<Button onClick={handleClose} autoFocus>
-						Close
-					</Button>
-				</DialogActions>
-			</Dialog>
-		</React.Fragment>
+		<Dialog
+			open={confirmDeleteModal}
+			onClose={handleClose}
+			aria-labelledby="purge-dialog-title"
+			aria-describedby="purge-dialog-description"
+			PaperProps={{
+				sx: {
+					borderRadius: 1.5,
+					maxWidth: 420,
+					p: 0.5,
+				},
+			}}
+		>
+			<DialogTitle id="purge-dialog-title" sx={{ fontWeight: 700, pb: 1 }}>
+				Purge Analytics Data?
+			</DialogTitle>
+			<DialogContent>
+				<DialogContentText
+					id="purge-dialog-description"
+					sx={{ fontSize: "0.875rem" }}
+				>
+					This will permanently erase all tracked browsing history, time
+					metrics, and destination statistics from the local database. Your
+					dashboard will reset to zero. This action cannot be undone.
+				</DialogContentText>
+			</DialogContent>
+			<DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+				<Button onClick={handleClose} variant="outlined" size="small" autoFocus>
+					Cancel
+				</Button>
+				<Button
+					onClick={handleSubmit}
+					variant="contained"
+					color="error"
+					size="small"
+				>
+					Delete Permanently
+				</Button>
+			</DialogActions>
+		</Dialog>
 	);
 }

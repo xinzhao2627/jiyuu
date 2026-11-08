@@ -50,7 +50,6 @@ import { saveAs } from "file-saver";
 import { CustomChip } from "@renderer/assets/shared/customChip";
 import { BlockGroupMenu } from "./menu/blockGroupMenu";
 import { ExportAndImportBlockGroup } from "./menu/exportAndImportBlockGroup";
-import { NavbarExtension } from "./components/navbarExtension";
 import { uiStyles } from "@renderer/assets/shared/uiStyles";
 
 export default function Blockings(): React.JSX.Element {
@@ -77,16 +76,26 @@ export default function Blockings(): React.JSX.Element {
 		});
 		setBlockGroupModal("blockingModal", true);
 	};
+
+	// this triggers when the active/inactive button is clicked
 	const modifyActivateButton = (v: BlockGroup_Full): void => {
-		if (!v.usage_label || v.usage_label.includes("pause")) {
+		console.log(v.restriction_type);
+
+		const is_activated = v.is_activated ? 1 : 0;
+
+		// if no usage label the bgroup is deactivated: simple to activate/deactivate
+		if (!v.usage_label || !is_activated) {
 			ipcRendererSend("blockgroup/set", {
 				group: {
 					...v,
 					is_activated: v.is_activated ? 0 : 1,
 				},
 			});
-		} else {
+		}
+		// elese if there is a usage label that is activated
+		else {
 			setSelectedBlockGroup(v);
+			// deactivate group modal is for usage limit
 			setBlockGroupModal("deactivateGroupModal", true);
 		}
 	};
@@ -332,7 +341,6 @@ export default function Blockings(): React.JSX.Element {
 	return (
 		<>
 			<Stack>
-				<NavbarExtension />
 				<Stack
 					sx={{
 						overflowY: "auto",
@@ -357,17 +365,24 @@ export default function Blockings(): React.JSX.Element {
 									<CardContent
 										sx={{
 											p: 2,
-											pt: 1,
+											pt: 1.5,
+											"&:last-child": { pb: 2 },
 										}}
 									>
+										{/* Row 1: All Status Chips + Overflow Menu */}
 										<Stack
 											direction="row"
 											justifyContent="space-between"
 											gap={1.5}
-											alignItems={"center"}
+											alignItems="center"
 											mb={1}
 										>
-											<Stack direction="row" gap={0.75} flexWrap="wrap">
+											<Stack
+												direction="row"
+												gap={0.75}
+												flexWrap="wrap"
+												alignItems="center"
+											>
 												<CustomChip
 													optionalIcon={
 														<Box
@@ -381,7 +396,11 @@ export default function Blockings(): React.JSX.Element {
 															}}
 														/>
 													}
-													label={v.is_activated ? "Active" : "Inactive"}
+													label={
+														v.is_activated
+															? "Active (Click to deactivate)"
+															: "Inactive (click to activate)"
+													}
 													chipStyle={{
 														color: v.is_activated
 															? teal[500]
@@ -485,6 +504,7 @@ export default function Blockings(): React.JSX.Element {
 													/>
 												) : null}
 											</Stack>
+
 											<IconButton
 												size="small"
 												sx={{ color: "text.secondary" }}
@@ -496,10 +516,11 @@ export default function Blockings(): React.JSX.Element {
 													});
 												}}
 											>
-												<MoreHorizIcon />
+												<MoreHorizIcon fontSize="small" />
 											</IconButton>
 										</Stack>
 
+										{/* Row 2: Group Title on left, Controls on right */}
 										<Stack
 											direction={{ xs: "column", sm: "row" }}
 											justifyContent="space-between"
@@ -509,7 +530,7 @@ export default function Blockings(): React.JSX.Element {
 										>
 											<Typography
 												variant="h6"
-												component={"div"}
+												component="div"
 												onClick={() => {
 													setSelectedBlockGroup(v);
 													setBlockedContentState("covered", {
@@ -543,25 +564,44 @@ export default function Blockings(): React.JSX.Element {
 											>
 												{v.group_name}
 											</Typography>
-											{v.usage_label && <UsageAndPauseMenu blockGroup={v} />}
 
-											<Button
-												disableRipple
-												size="small"
-												variant="contained"
-												disableElevation
-												startIcon={
-													v.restriction_type ? <LockIcon /> : <LockOpenIcon />
-												}
-												onClick={(e) => {
-													e.stopPropagation();
-													setSelectedBlockGroup(v);
-													setIsConfigModalOpen(true);
-												}}
+											<Stack
+												direction="row"
+												alignItems="center"
+												spacing={1}
 												sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
 											>
-												{v.restriction_type ? "Locked" : "Unlocked"}
-											</Button>
+												{v.usage_label && <UsageAndPauseMenu blockGroup={v} />}
+
+												<Button
+													disableRipple
+													size="small"
+													variant={
+														v.restriction_type ? "contained" : "outlined"
+													}
+													disableElevation
+													startIcon={
+														v.restriction_type ? (
+															<LockIcon sx={{ fontSize: 14 }} />
+														) : (
+															<LockOpenIcon sx={{ fontSize: 14 }} />
+														)
+													}
+													onClick={(e) => {
+														e.stopPropagation();
+														setSelectedBlockGroup(v);
+														setIsConfigModalOpen(true);
+													}}
+													sx={{
+														fontSize: 12,
+														py: 0.25,
+														px: 1,
+														borderRadius: 1,
+													}}
+												>
+													{v.restriction_type ? "Locked" : "Unlocked"}
+												</Button>
+											</Stack>
 										</Stack>
 									</CardContent>
 								</Card>
@@ -573,16 +613,17 @@ export default function Blockings(): React.JSX.Element {
 				<Box
 					sx={{
 						position: "fixed",
-						bottom: 110,
+						bottom: 90,
 						right: 20,
 						letterSpacing: 0,
 						fontWeight: 500,
 						overflow: "hidden",
-						borderRadius: 2,
-						boxShadow: "0 14px 32px rgba(15, 23, 42, 0.16)",
+						borderRadius: 1.5,
+						boxShadow: "none",
 						display: "flex",
 						border: "1px solid",
 						borderColor: "divider",
+						zIndex: 5,
 					}}
 				>
 					<Fab
@@ -602,20 +643,20 @@ export default function Blockings(): React.JSX.Element {
 					<Box
 						sx={{
 							width: "1px",
-							bgcolor: "primary.dark",
-							opacity: 0.35,
+							bgcolor: "divider",
 							alignSelf: "stretch",
 						}}
 					/>
 					<IconButton
 						onClick={(e) => setFabGroupMenuAnchor(e.currentTarget)}
+						disableRipple
 						sx={{
 							backgroundColor: "background.paper",
 							color: "primary.main",
 							borderRadius: 0,
 							px: 1.5,
 							"&:hover": {
-								backgroundColor: "action.hover",
+								backgroundColor: "background.paper",
 							},
 						}}
 					>
