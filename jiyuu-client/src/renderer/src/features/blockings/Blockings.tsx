@@ -82,9 +82,14 @@ export default function Blockings(): React.JSX.Element {
 		console.log(v.restriction_type);
 
 		const is_activated = v.is_activated ? 1 : 0;
-
-		// if no usage label the bgroup is deactivated: simple to activate/deactivate
-		if (!v.usage_label || !is_activated) {
+		const noTimeLeft = v.usage_label.toLowerCase().includes("no time");
+		/**
+		 * simple to activate/deactivate when one of the following occur:
+		 * ? if no usage label
+		 * ? if have usage label but is not activated
+		 * ? if have usage label but still have time left
+		 *  */
+		if (!v.usage_label || !is_activated || !noTimeLeft) {
 			ipcRendererSend("blockgroup/set", {
 				group: {
 					...v,
@@ -92,7 +97,7 @@ export default function Blockings(): React.JSX.Element {
 				},
 			});
 		}
-		// elese if there is a usage label that is activated
+		// elese show a warning and prompt disable usage limit
 		else {
 			setSelectedBlockGroup(v);
 			// deactivate group modal is for usage limit
