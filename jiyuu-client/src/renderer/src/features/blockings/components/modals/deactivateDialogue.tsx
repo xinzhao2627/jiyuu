@@ -35,12 +35,12 @@ export function GroupDeactivateDialogue(): React.JSX.Element {
 				aria-describedby="alert-dialog-description"
 			>
 				<DialogTitle id="alert-dialog-title">
-					{"Unable to deactivate this group"}
+					{"No usage time left"}
 				</DialogTitle>
 				<DialogContent>
 					<DialogContentText id="alert-dialog-description">
-						This group has an unpaused usage limit, disable or pause it first to
-						deactivate this group
+						This group has no time remaining. Remove the usage limit to deactivate
+						this group.
 					</DialogContentText>
 				</DialogContent>
 				<DialogActions>
