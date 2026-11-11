@@ -6,3 +6,6 @@ out
 *.log*
 src/main/database/jiyuuData.db
 .agents
+**/__tests__
+*.test.ts
+*.spec.ts
